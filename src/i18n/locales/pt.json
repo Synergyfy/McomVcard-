@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "home": "Início",
+    "templates": "Modelos",
+    "pricing": "Preços",
+    "features": "Recursos",
+    "contact": "Contato",
+    "login": "Entrar",
+    "register": "Cadastrar",
+    "dashboard": "Painel"
+  },
+  "hero": {
+    "title": "Crie seu cartão de visita digital em minutos",
+    "subtitle": "Transforme a forma como você compartilha informações de contato. Crie vCards digitais impressionantes com modelos personalizáveis, agendamento de compromissos e muito mais.",
+    "cta": "Comece grátis",
+    "learn_more": "Saiba mais"
+  },
+  "features": {
+    "title": "Recursos poderosos",
+    "subtitle": "Tudo que você precisa para causar uma impressão duradoura com seu cartão de visita digital",
+    "item1_title": "Modelos personalizáveis",
+    "item1_desc": "Escolha entre 17 belos modelos e personalize cores, fontes e layouts para sua marca.",
+    "item2_title": "Compartilhamento inteligente",
+    "item2_desc": "Compartilhe seu vCard via QR code, NFC, redes sociais ou link direto.",
+    "item3_title": "Agendamento de compromissos",
+    "item3_desc": "Deixe os clientes agendarem compromissos diretamente do seu cartão digital. Calendário integrado com suporte a pagamento.",
+    "item4_title": "Análise integrada",
+    "item4_desc": "Acompanhe visualizações, cliques e engajamento. Entenda o desempenho do seu cartão com insights detalhados.",
+    "item5_title": "Integração com redes sociais",
+    "item5_desc": "Vincule todos os seus perfis sociais em um só lugar. WhatsApp, Instagram, LinkedIn, YouTube e mais.",
+    "item6_title": "Suporte multilíngue",
+    "item6_desc": "Alcance um público global. Seu vCard pode ser exibido em 9 idiomas diferentes."
+  },
+  "testimonials": {
+    "title": "O que nossos usuários dizem",
+    "subtitle": "Junte-se a milhares de profissionais satisfeitos que usam o Mobile VCard Link"
+  },
+  "about": {
+    "title": "Sobre nós",
+    "subtitle": "Somos apaixonados por ajudar profissionais a criar conexões significativas",
+    "description": "Mobile VCard Link é uma plataforma moderna de cartões de visita digitais que capacita profissionais e empresas a compartilhar informações de contato perfeitamente."
+  },
+  "pricing": {
+    "title": "Escolha seu plano",
+    "subtitle": "Selecione o plano perfeito para suas necessidades. Faça upgrade ou downgrade a qualquer momento.",
+    "per_month": "/mês",
+    "per_year": "/ano",
+    "free": "Grátis",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "unlimited": "Ilimitado",
+    "no_of_vcards": "{{count}} vCards",
+    "trial_days": "Teste grátis de {{days}} dias",
+    "get_started": "Começar",
+    "current_plan": "Plano atual",
+    "features": {
+      "products_services": "Produtos e serviços",
+      "testimonials": "Depoimentos",
+      "hide_branding": "Ocultar marca",
+      "enquiry_form": "Formulário de consulta",
+      "social_links": "Links sociais",
+      "password": "Proteção por senha",
+      "custom_css": "CSS personalizado",
+      "custom_js": "JS personalizado",
+      "custom_fonts": "Fontes personalizadas",
+      "products": "Produtos",
+      "appointments": "Compromissos",
+      "gallery": "Galeria",
+      "analytics": "Análises",
+      "seo": "SEO",
+      "blog": "Blog",
+      "affiliation": "Afiliados",
+      "custom_qrcode": "QR code personalizado"
+    }
+  },
+  "templates": {
+    "title": "Modelos vCard",
+    "subtitle": "Escolha entre 17 modelos projetados profissionalmente para seu cartão digital",
+    "preview": "Visualizar"
+  },
+  "contact": {
+    "title": "Fale conosco",
+    "subtitle": "Tem uma pergunta ou precisa de ajuda? Adoraríamos ouvir você.",
+    "name": "Seu nome",
+    "email": "Seu email",
+    "subject": "Assunto",
+    "message": "Sua mensagem",
+    "send": "Enviar mensagem",
+    "success": "Obrigado! Sua mensagem foi enviada com sucesso.",
+    "error": "Ocorreu um erro. Por favor, tente novamente."
+  },
+  "newsletter": {
+    "title": "Fique atualizado",
+    "subtitle": "Assine nossa newsletter para as últimas atualizações e recursos.",
+    "email": "Digite seu email",
+    "subscribe": "Inscrever-se",
+    "success": "Obrigado por se inscrever!",
+    "error": "Ocorreu um erro. Por favor, tente novamente."
+  },
+  "cookie": {
+    "message": "Usamos cookies para melhorar sua experiência. Ao continuar usando este site, você aceita nossa política de cookies.",
+    "accept": "Aceitar",
+    "decline": "Recusar"
+  },
+  "footer": {
+    "description": "Crie cartões de visita digitais impressionantes com o Mobile VCard Link. Compartilhe suas informações de contato de forma inteligente.",
+    "quick_links": "Links rápidos",
+    "home": "Início",
+    "templates": "Modelos",
+    "pricing": "Preços",
+    "contact": "Contato",
+    "legal": "Legal",
+    "terms": "Termos e condições",
+    "privacy": "Política de privacidade",
+    "follow_us": "Siga-nos",
+    "rights": "Todos os direitos reservados.",
+    "made_with": "Feito com"
+  },
+  "language": {
+    "select": "Selecionar idioma"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Algo deu errado",
+    "retry": "Tentar novamente"
+  }
+}

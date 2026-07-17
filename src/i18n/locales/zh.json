@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "home": "首页",
+    "templates": "模板",
+    "pricing": "价格",
+    "features": "功能",
+    "contact": "联系我们",
+    "login": "登录",
+    "register": "注册",
+    "dashboard": "控制台"
+  },
+  "hero": {
+    "title": "几分钟内创建您的数字名片",
+    "subtitle": "改变您分享联系方式的方式。使用可定制的模板、预约日程等功能创建令人惊叹的数字 vCard。",
+    "cta": "免费开始",
+    "learn_more": "了解更多"
+  },
+  "features": {
+    "title": "强大功能",
+    "subtitle": "用您的数字名片留下持久印象所需的一切",
+    "item1_title": "可定制模板",
+    "item1_desc": "从17个精美模板中选择，自定义颜色、字体和布局以匹配您的品牌。",
+    "item2_title": "智能分享",
+    "item2_desc": "通过二维码、NFC、社交媒体或直接链接分享您的 vCard。",
+    "item3_title": "预约日程",
+    "item3_desc": "让客户直接从您的数字名片预约。集成日历，支持支付。",
+    "item4_title": "内置分析",
+    "item4_desc": "跟踪浏览、点击和互动情况。通过详细洞察了解您的名片表现。",
+    "item5_title": "社交媒体集成",
+    "item5_desc": "在一个地方链接所有社交资料。WhatsApp、Instagram、LinkedIn、YouTube等。",
+    "item6_title": "多语言支持",
+    "item6_desc": "覆盖全球受众。您的 vCard 可以显示9种不同语言。"
+  },
+  "testimonials": {
+    "title": "用户评价",
+    "subtitle": "加入成千上万使用 Mobile VCard Link 的满意专业人士"
+  },
+  "about": {
+    "title": "关于我们",
+    "subtitle": "我们致力于帮助专业人士建立有意义的联系",
+    "description": "Mobile VCard Link 是一个现代数字名片平台，让专业人士和企业能够无缝分享联系方式。"
+  },
+  "pricing": {
+    "title": "选择您的套餐",
+    "subtitle": "选择最适合您需求的套餐。随时升级或降级。",
+    "per_month": "/月",
+    "per_year": "/年",
+    "free": "免费",
+    "monthly": "月付",
+    "yearly": "年付",
+    "unlimited": "无限",
+    "no_of_vcards": "{{count}} 张 vCard",
+    "trial_days": "{{days}} 天免费试用",
+    "get_started": "开始使用",
+    "current_plan": "当前套餐",
+    "features": {
+      "products_services": "产品与服务",
+      "testimonials": "客户评价",
+      "hide_branding": "隐藏品牌",
+      "enquiry_form": "咨询表单",
+      "social_links": "社交链接",
+      "password": "密码保护",
+      "custom_css": "自定义 CSS",
+      "custom_js": "自定义 JS",
+      "custom_fonts": "自定义字体",
+      "products": "产品",
+      "appointments": "预约",
+      "gallery": "图库",
+      "analytics": "分析",
+      "seo": "SEO",
+      "blog": "博客",
+      "affiliation": "联盟营销",
+      "custom_qrcode": "自定义二维码"
+    }
+  },
+  "templates": {
+    "title": "vCard 模板",
+    "subtitle": "从17个专业设计的模板中选择您的数字名片风格",
+    "preview": "预览"
+  },
+  "contact": {
+    "title": "联系我们",
+    "subtitle": "有问题或需要帮助？我们很乐意听取您的意见。",
+    "name": "您的姓名",
+    "email": "您的邮箱",
+    "subject": "主题",
+    "message": "您的留言",
+    "send": "发送消息",
+    "success": "谢谢！您的消息已成功发送。",
+    "error": "发生错误。请重试。"
+  },
+  "newsletter": {
+    "title": "保持关注",
+    "subtitle": "订阅我们的通讯以获取最新更新和功能。",
+    "email": "输入您的邮箱",
+    "subscribe": "订阅",
+    "success": "感谢您的订阅！",
+    "error": "发生错误。请重试。"
+  },
+  "cookie": {
+    "message": "我们使用 cookies 来改善您的体验。继续使用本网站即表示您接受我们的 cookie 政策。",
+    "accept": "接受",
+    "decline": "拒绝"
+  },
+  "footer": {
+    "description": "使用 Mobile VCard Link 创建令人惊艳的数字名片。智能分享您的联系方式。",
+    "quick_links": "快速链接",
+    "home": "首页",
+    "templates": "模板",
+    "pricing": "价格",
+    "contact": "联系我们",
+    "legal": "法律",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "follow_us": "关注我们",
+    "rights": "版权所有。",
+    "made_with": "用心制作"
+  },
+  "language": {
+    "select": "选择语言"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "出了点问题",
+    "retry": "重试"
+  }
+}

@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@variant dark (&:is(.dark *));
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes ping {
+  0% { transform: scale(1); opacity: 0.6; }
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+.animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
+.animate-fadeInLeft { animation: fadeInLeft 0.6s ease-out forwards; }
+.animate-fadeInRight { animation: fadeInRight 0.6s ease-out forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-floatSlow { animation: floatSlow 4s ease-in-out infinite; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-scaleIn { animation: scaleIn 0.5s ease-out forwards; }
+.animate-slideDown { animation: slideDown 0.3s ease-out forwards; }
+.animate-spin-slow { animation: spinSlow 8s linear infinite; }
+.animate-ping { animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+@utility delay-* {
+  animation-delay: --value(integer);
+}

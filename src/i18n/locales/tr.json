@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "templates": "Şablonlar",
+    "pricing": "Fiyatlandırma",
+    "features": "Özellikler",
+    "contact": "İletişim",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "dashboard": "Panel"
+  },
+  "hero": {
+    "title": "Dakikalar İçinde Dijital Kartvizitinizi Oluşturun",
+    "subtitle": "İletişim bilgilerinizi paylaşma şeklinizi değiştirin. Özelleştirilebilir şablonlar, randevu planlama ve daha fazlasıyla etkileyici dijital vCard'lar oluşturun.",
+    "cta": "Ücretsiz Başla",
+    "learn_more": "Daha Fazla Bilgi"
+  },
+  "features": {
+    "title": "Güçlü Özellikler",
+    "subtitle": "Dijital kartvizitinizle kalıcı bir izlenim bırakmak için ihtiyacınız olan her şey",
+    "item1_title": "Özelleştirilebilir Şablonlar",
+    "item1_desc": "17 güzel şablondan seçim yapın ve markanıza uygun renkler, yazı tipleri ve düzenler ile özelleştirin.",
+    "item2_title": "Akıllı Paylaşım",
+    "item2_desc": "vCard'ınızı QR kod, NFC, sosyal medya veya doğrudan bağlantı ile paylaşın.",
+    "item3_title": "Randevu Planlama",
+    "item3_desc": "Müşterilerinizin dijital kartınızdan doğrudan randevu almasını sağlayın. Ödeme destekli entegre takvim.",
+    "item4_title": "Yerleşik Analitik",
+    "item4_desc": "Görüntülenmeleri, tıklamaları ve etkileşimi takip edin. Detaylı içgörülerle kartınızın performansını anlayın.",
+    "item5_title": "Sosyal Medya Entegrasyonu",
+    "item5_desc": "Tüm sosyal profillerinizi tek bir yerde bağlayın. WhatsApp, Instagram, LinkedIn, YouTube ve daha fazlası.",
+    "item6_title": "Çoklu Dil Desteği",
+    "item6_desc": "Küresel bir kitleye ulaşın. vCard'ınız 9 farklı dilde görüntülenebilir."
+  },
+  "testimonials": {
+    "title": "Kullanıcılarımız Ne Diyor",
+    "subtitle": "Mobile VCard Link kullanan binlerce memnun profesyonele katılın"
+  },
+  "about": {
+    "title": "Hakkımızda",
+    "subtitle": "Profesyonellerin anlamlı bağlantılar kurmasına yardımcı olmaya tutkuyla bağlıyız",
+    "description": "Mobile VCard Link, profesyonellerin ve işletmelerin iletişim bilgilerini sorunsuz bir şekilde paylaşmasını sağlayan modern bir dijital kartvizit platformudur."
+  },
+  "pricing": {
+    "title": "Planınızı Seçin",
+    "subtitle": "İhtiyaçlarınız için mükemmel planı seçin. İstediğiniz zaman yükseltebilir veya düşürebilirsiniz.",
+    "per_month": "/ay",
+    "per_year": "/yıl",
+    "free": "Ücretsiz",
+    "monthly": "Aylık",
+    "yearly": "Yıllık",
+    "unlimited": "Sınırsız",
+    "no_of_vcards": "{{count}} vCard",
+    "trial_days": "{{days}} gün ücretsiz deneme",
+    "get_started": "Başla",
+    "current_plan": "Mevcut Plan",
+    "features": {
+      "products_services": "Ürünler ve Hizmetler",
+      "testimonials": "Referanslar",
+      "hide_branding": "Markalamayı Gizle",
+      "enquiry_form": "Sorgulama Formu",
+      "social_links": "Sosyal Bağlantılar",
+      "password": "Şifre Koruması",
+      "custom_css": "Özel CSS",
+      "custom_js": "Özel JS",
+      "custom_fonts": "Özel Yazı Tipleri",
+      "products": "Ürünler",
+      "appointments": "Randevular",
+      "gallery": "Galeri",
+      "analytics": "Analitik",
+      "seo": "SEO",
+      "blog": "Blog",
+      "affiliation": "Ortaklık",
+      "custom_qrcode": "Özel QR Kod"
+    }
+  },
+  "templates": {
+    "title": "vCard Şablonları",
+    "subtitle": "Dijital kartınız için profesyonelce tasarlanmış 17 şablon arasından seçim yapın",
+    "preview": "Önizleme"
+  },
+  "contact": {
+    "title": "Bize Ulaşın",
+    "subtitle": "Bir sorunuz mu var veya yardıma mı ihtiyacınız var? Sizden haber almayı çok isteriz.",
+    "name": "Adınız",
+    "email": "E-posta adresiniz",
+    "subject": "Konu",
+    "message": "Mesajınız",
+    "send": "Mesajı Gönder",
+    "success": "Teşekkürler! Mesajınız başarıyla gönderildi.",
+    "error": "Bir hata oluştu. Lütfen tekrar deneyin."
+  },
+  "newsletter": {
+    "title": "Güncel Kalın",
+    "subtitle": "En son güncellemeler ve özellikler için bültenimize abone olun.",
+    "email": "E-posta adresinizi girin",
+    "subscribe": "Abone Ol",
+    "success": "Abone olduğunuz için teşekkürler!",
+    "error": "Bir hata oluştu. Lütfen tekrar deneyin."
+  },
+  "cookie": {
+    "message": "Deneyiminizi iyileştirmek için çerezler kullanıyoruz. Bu siteyi kullanmaya devam ederek çerez politikamızı kabul etmiş olursunuz.",
+    "accept": "Kabul Et",
+    "decline": "Reddet"
+  },
+  "footer": {
+    "description": "Mobile VCard Link ile etkileyici dijital kartvizitler oluşturun. İletişim bilgilerinizi akıllıca paylaşın.",
+    "quick_links": "Hızlı Bağlantılar",
+    "home": "Ana Sayfa",
+    "templates": "Şablonlar",
+    "pricing": "Fiyatlandırma",
+    "contact": "İletişim",
+    "legal": "Yasal",
+    "terms": "Kullanım Şartları",
+    "privacy": "Gizlilik Politikası",
+    "follow_us": "Bizi Takip Edin",
+    "rights": "Tüm hakları saklıdır.",
+    "made_with": "İle yapıldı"
+  },
+  "language": {
+    "select": "Dil Seçin"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir şeyler yanlış gitti",
+    "retry": "Tekrar Dene"
+  }
+}

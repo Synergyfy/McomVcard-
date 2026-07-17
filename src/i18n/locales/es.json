@@ -1,0 +1,127 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "templates": "Plantillas",
+    "pricing": "Precios",
+    "features": "Características",
+    "contact": "Contacto",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "dashboard": "Panel"
+  },
+  "hero": {
+    "title": "Crea tu tarjeta de presentación digital en minutos",
+    "subtitle": "Transforma la forma de compartir información de contacto. Crea impresionantes vCards digitales con plantillas personalizables, programación de citas y más.",
+    "cta": "Empieza gratis",
+    "learn_more": "Más información"
+  },
+  "features": {
+    "title": "Características potentes",
+    "subtitle": "Todo lo que necesitas para causar una impresión duradera con tu tarjeta de presentación digital",
+    "item1_title": "Plantillas personalizables",
+    "item1_desc": "Elige entre 17 hermosas plantillas y personaliza colores, fuentes y diseños para tu marca.",
+    "item2_title": "Uso compartido inteligente",
+    "item2_desc": "Comparte tu vCard mediante código QR, NFC, redes sociales o enlace directo.",
+    "item3_title": "Programación de citas",
+    "item3_desc": "Permite que los clientes reserven citas directamente desde tu tarjeta digital. Calendario integrado con soporte de pago.",
+    "item4_title": "Analítica integrada",
+    "item4_desc": "Realiza un seguimiento de vistas, clics e interacción. Comprende el rendimiento de tu tarjeta con información detallada.",
+    "item5_title": "Integración de redes sociales",
+    "item5_desc": "Enlaza todos tus perfiles sociales en un solo lugar. WhatsApp, Instagram, LinkedIn, YouTube y más.",
+    "item6_title": "Soporte multilingüe",
+    "item6_desc": "Llega a una audiencia global. Tu vCard se puede mostrar en 9 idiomas diferentes."
+  },
+  "testimonials": {
+    "title": "Lo que dicen nuestros usuarios",
+    "subtitle": "Únete a miles de profesionales satisfechos que usan Mobile VCard Link"
+  },
+  "about": {
+    "title": "Sobre nosotros",
+    "subtitle": "Nos apasiona ayudar a los profesionales a crear conexiones significativas",
+    "description": "Mobile VCard Link es una plataforma moderna de tarjetas de presentación digitales que permite a profesionales y empresas compartir información de contacto sin problemas."
+  },
+  "pricing": {
+    "title": "Elige tu plan",
+    "subtitle": "Selecciona el plan perfecto para tus necesidades. Mejora o reduce en cualquier momento.",
+    "per_month": "/mes",
+    "per_year": "/año",
+    "free": "Gratis",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "unlimited": "Ilimitado",
+    "no_of_vcards": "{{count}} vCards",
+    "trial_days": "Prueba gratuita de {{days}} días",
+    "get_started": "Comenzar",
+    "current_plan": "Plan actual",
+    "features": {
+      "products_services": "Productos y servicios",
+      "testimonials": "Testimonios",
+      "hide_branding": "Ocultar marca",
+      "enquiry_form": "Formulario de consulta",
+      "social_links": "Enlaces sociales",
+      "password": "Protección con contraseña",
+      "custom_css": "CSS personalizado",
+      "custom_js": "JS personalizado",
+      "custom_fonts": "Fuentes personalizadas",
+      "products": "Productos",
+      "appointments": "Citas",
+      "gallery": "Galería",
+      "analytics": "Analítica",
+      "seo": "SEO",
+      "blog": "Blog",
+      "affiliation": "Afiliación",
+      "custom_qrcode": "Código QR personalizado"
+    }
+  },
+  "templates": {
+    "title": "Plantillas vCard",
+    "subtitle": "Elige entre 17 plantillas diseñadas profesionalmente para tu tarjeta digital",
+    "preview": "Vista previa"
+  },
+  "contact": {
+    "title": "Contáctanos",
+    "subtitle": "¿Tienes una pregunta o necesitas ayuda? Nos encantaría saber de ti.",
+    "name": "Tu nombre",
+    "email": "Tu correo electrónico",
+    "subject": "Asunto",
+    "message": "Tu mensaje",
+    "send": "Enviar mensaje",
+    "success": "¡Gracias! Tu mensaje se ha enviado correctamente.",
+    "error": "Ocurrió un error. Por favor, inténtalo de nuevo."
+  },
+  "newsletter": {
+    "title": "Mantente al día",
+    "subtitle": "Suscríbete a nuestro boletín para las últimas novedades y funciones.",
+    "email": "Ingresa tu correo electrónico",
+    "subscribe": "Suscribirse",
+    "success": "¡Gracias por suscribirte!",
+    "error": "Ocurrió un error. Por favor, inténtalo de nuevo."
+  },
+  "cookie": {
+    "message": "Usamos cookies para mejorar tu experiencia. Al continuar usando este sitio, aceptas nuestra política de cookies.",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
+  "footer": {
+    "description": "Crea impresionantes tarjetas de presentación digitales con Mobile VCard Link. Comparte tu información de contacto de forma inteligente.",
+    "quick_links": "Enlaces rápidos",
+    "home": "Inicio",
+    "templates": "Plantillas",
+    "pricing": "Precios",
+    "contact": "Contacto",
+    "legal": "Legal",
+    "terms": "Términos y condiciones",
+    "privacy": "Política de privacidad",
+    "follow_us": "Síguenos",
+    "rights": "Todos los derechos reservados.",
+    "made_with": "Hecho con"
+  },
+  "language": {
+    "select": "Seleccionar idioma"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "retry": "Reintentar"
+  }
+}
