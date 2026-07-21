@@ -125,6 +125,39 @@ export default function LoginPage() {
         <SocialLoginButtons />
       </div>
 
+      <div className="relative mt-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-white px-4 text-gray-400">Demo Login</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-4">
+        <button
+          type="button"
+          onClick={() => navigate('/admin')}
+          className="px-3 py-2 text-xs font-semibold rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-all hover:shadow-md hover:shadow-purple-200"
+        >
+          Admin
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard')}
+          className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all hover:shadow-md hover:shadow-blue-200"
+        >
+          Business
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/consumer')}
+          className="px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all hover:shadow-md hover:shadow-emerald-200"
+        >
+          Consumer
+        </button>
+      </div>
+
       <p className="text-center text-sm text-gray-500 mt-6">
         {t('auth.no_account')}{' '}
         <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
