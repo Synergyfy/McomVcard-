@@ -1,93 +1,116 @@
-import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockTemplates } from '../../services/mockData'
-import PreviewModal from '../../components/common/PreviewModal'
-import type { PreviewCardData } from '../../components/common/PreviewModal'
+
+const MOCK_CLAIMED_TEMPLATE_IDS = [1, 4, 9, 13]
 
 export default function ConsumerVCardTemplatesPage() {
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [previewCard, setPreviewCard] = useState<PreviewCardData | null>(null)
-
-  const consumerTemplates = mockTemplates.filter((t) => t.is_consumer && t.status === 'published')
-  const categories = [...new Set(consumerTemplates.map((t) => t.category))]
-
-  const filtered = consumerTemplates.filter((t) => {
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())
-    const matchCategory = categoryFilter === 'all' || t.category === categoryFilter
-    return matchSearch && matchCategory
-  })
-
-  const openPreview = (template: typeof mockTemplates[0]) => {
-    setPreviewCard({
-      id: template.id, name: template.name, type: 'Template',
-      style: template.category, primaryColor: template.primary_color,
-      secondaryColor: template.secondary_color, category: template.category,
-      templateUrl: template.template_url, logo: template.category?.charAt(0) || 'T',
-      businessName: template.category, title: template.font_family,
-    })
-  }
+  const claimedTemplates = mockTemplates.filter((t) => MOCK_CLAIMED_TEMPLATE_IDS.includes(t.id))
 
   return (
     <div>
-      <Helmet><title>vCard Templates - Consumer - MCOM VCard</title></Helmet>
+      <Helmet><title>My vCards - Consumer - MCOM VCard</title></Helmet>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">vCard Templates</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Browse and preview vCard templates — {consumerTemplates.length} templates</p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
-        <div className="relative flex-1">
-          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input type="text" placeholder="Search templates..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm" />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My vCards</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{claimedTemplates.length} templates claimed</p>
         </div>
-        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm">
-          <option value="all">All Categories</option>
-          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <Link to="/templates" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+          Get Template
+        </Link>
       </div>
 
-      {filtered.length ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filtered.map((template) => (
-            <div key={template.id} className="group relative rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer"
-              onClick={() => openPreview(template)}>
-              <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 dark:bg-gray-700">
-                <img
-                  src={template.template_url}
-                  alt={template.name}
-                  className="w-full transition-transform duration-[8000ms] ease-linear group-hover:translate-y-[-52%]"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect fill="#f3f4f6" width="400" height="600"/><text fill="#9ca3af" font-family="Arial" font-size="14" x="50%" y="50%" text-anchor="middle" dy=".3em">${template.name}</text></svg>`)}`
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                  onClick={(e) => { e.stopPropagation(); openPreview(template) }}>
-                  <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+      {claimedTemplates.length ? (
+        <div className="space-y-6">
+          {claimedTemplates.map((template) => (
+            <div key={template.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+                <div className="lg:col-span-1 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
+                  <div className="w-[280px] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-600">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <img
+                        src={template.template_url}
+                        alt={template.name}
+                        className="w-full transition-transform duration-[8000ms] ease-linear hover:translate-y-[-52%]"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect fill="#f3f4f6" width="400" height="600"/><text fill="#9ca3af" font-family="Arial" font-size="14" x="50%" y="50%" text-anchor="middle" dy=".3em">${template.name}</text></svg>`)}`
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                        <p className="text-white text-xs font-semibold capitalize">{template.category}</p>
+                        <p className="text-white/70 text-[10px]">{template.font_family}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="py-4 px-4 text-center">
-                <span className="text-gray-700 dark:text-gray-200 font-medium text-sm capitalize">{template.category}</span>
-                <p className="text-xs text-gray-400 mt-0.5">{template.font_family} · {template.usage} uses</p>
+
+                <div className="lg:col-span-2 p-6 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white capitalize">{template.category} Template</h2>
+                        <p className="text-xs text-gray-500">{template.font_family} · {template.button_style} buttons · {template.bg_style} bg</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Primary Color</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: template.primary_color }} />
+                          <p className="text-gray-900 dark:text-white font-medium">{template.primary_color}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Secondary Color</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: template.secondary_color }} />
+                          <p className="text-gray-900 dark:text-white font-medium">{template.secondary_color}</p>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Logo Position</span>
+                        <p className="text-gray-900 dark:text-white font-medium mt-0.5 capitalize">{template.logo_position}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Sections</span>
+                        <p className="text-gray-900 dark:text-white font-medium mt-0.5">{Object.values(template.sections).filter(Boolean).length} enabled</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <Link to={`/consumer/vcard-templates/${template.id}/edit`} className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+                      Edit vCard
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
+          <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
           </div>
-          <p className="text-base font-medium text-gray-900 dark:text-white mb-1">No templates found</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No vCards Yet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Choose a template to create your digital vCard</p>
+          <Link to="/templates" className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200 dark:shadow-none">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            Get Template
+          </Link>
         </div>
       )}
 
-      <PreviewModal card={previewCard} onClose={() => setPreviewCard(null)} />
+      <div className="mt-8 text-center">
+        <Link to="/templates" className="inline-flex items-center gap-2 text-sm text-orange-600 hover:text-orange-700 font-medium">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          Browse More Templates
+        </Link>
+      </div>
     </div>
   )
 }
