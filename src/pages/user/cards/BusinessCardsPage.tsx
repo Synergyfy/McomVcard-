@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockClaimedCards, mockCardDesigns, mockCardBusinesses } from '../../../services/mockData'
 import type { ClaimedCard } from '../../../services/mockData'
@@ -9,11 +9,24 @@ import type { PreviewCardData } from '../../../components/common/PreviewModal'
 const BUSINESS_ID = 1
 
 export default function BusinessCardsPage() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<'claimed' | 'available'>('claimed')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [flipCardId, setFlipCardId] = useState<number | null>(null)
   const [modalCard, setModalCard] = useState<PreviewCardData | null>(null)
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.dropdown-menu') && !target.closest('.dropdown-toggle')) {
+        setOpenDropdownId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const claimedCards: ClaimedCard[] = mockClaimedCards.filter((c) => c.business_id === BUSINESS_ID)
   const claimedDesignIds = claimedCards.map((c) => c.card_design_id)
@@ -152,23 +165,46 @@ export default function BusinessCardsPage() {
                   <div className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-gray-900 dark:text-white">{d.name}</span>
-                      <div className="flex gap-1.5">
+                      <div className="flex items-center gap-1.5">
                         <button onClick={(e) => { e.stopPropagation(); setModalCard(toPreviewCard(d, c.biz)); }} className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" title="Preview">
                           <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); setFlipCardId(isFlipped ? null : c.id); }} className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" title="Flip">
                           <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </button>
+                        {/* 3-dot dropdown */}
+                        <div className="relative">
+                          <button onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === c.id ? null : c.id); }} className="dropdown-toggle w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" title="More">
+                            <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                          </button>
+                          {openDropdownId === c.id && (
+                            <div className="dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50">
+                              <button onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); navigate(`/user/cards/${c.card_design_id}/edit`); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                Edit Design
+                              </button>
+                              <Link to={`/user/vcards/create?card=${c.card_design_id}`} className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" /></svg>
+                                Assign vCard
+                              </Link>
+                              <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={c.active ? "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} /></svg>
+                                {c.active ? 'Deactivate' : 'Activate'}
+                              </button>
+                              <hr className="my-1 border-gray-100 dark:border-gray-700" />
+                              <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <p className="text-[10px] text-gray-400 mb-2">{d.type} · {d.style}</p>
                     <div className="flex items-center justify-between">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{c.active ? 'Active' : 'Inactive'}</span>
                       <span className="text-[10px] text-gray-400">{c.scans.toLocaleString()} scans</span>
-                    </div>
-                    <div className="flex gap-2 mt-2 pt-2 border-t border-gray-50 dark:border-gray-700">
-                      <button className="flex-1 py-1.5 text-[10px] font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">Edit</button>
-                      <button className="flex-1 py-1.5 text-[10px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">Assign vCard</button>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockCardDesigns } from '../services/mockData'
 import PreviewModal from '../components/common/PreviewModal'
@@ -7,7 +8,9 @@ import type { PreviewCardData } from '../components/common/PreviewModal'
 type Tab = 'all' | 'business' | 'consumer'
 
 export default function CardsPage() {
-  const [tab, setTab] = useState<Tab>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = (searchParams.get('tab') as Tab) || 'all'
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [search, setSearch] = useState('')
   const [layoutFilter, setLayoutFilter] = useState('all')
   const [previewCard, setPreviewCard] = useState<PreviewCardData | null>(null)
@@ -54,7 +57,7 @@ export default function CardsPage() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {tabs.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${tab === t.key ? 'bg-orange-500 text-white shadow-lg shadow-orange-200 dark:shadow-none' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+            <button key={t.key} onClick={() => { setTab(t.key); setSearchParams(t.key === 'all' ? {} : { tab: t.key }) }} className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${tab === t.key ? 'bg-orange-500 text-white shadow-lg shadow-orange-200 dark:shadow-none' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
               {t.label} ({t.count})
             </button>
           ))}
