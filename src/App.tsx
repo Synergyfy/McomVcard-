@@ -86,10 +86,13 @@ const GamificationPage = lazy(() => import('./pages/admin/gamification/Gamificat
 const CardsPage = lazy(() => import('./pages/CardsPage'))
 const TemplateCustomizePage = lazy(() => import('./pages/user/templates/TemplateCustomizePage'))
 const BusinessCardsPage = lazy(() => import('./pages/user/cards/BusinessCardsPage'))
+const CardEditPage = lazy(() => import('./pages/user/cards/CardEditPage'))
 const ConsumerDashboardPage = lazy(() => import('./pages/consumer/ConsumerDashboardPage'))
 const ConsumerCardDesignsPage = lazy(() => import('./pages/consumer/ConsumerCardDesignsPage'))
+const ConsumerCardEditPage = lazy(() => import('./pages/consumer/ConsumerCardEditPage'))
 const ConsumerVCardTemplatesPage = lazy(() => import('./pages/consumer/ConsumerVCardTemplatesPage'))
-const ConsumerSavedCardsPage = lazy(() => import('./pages/consumer/ConsumerSavedCardsPage'))
+const ConsumerVCardEditPage = lazy(() => import('./pages/consumer/ConsumerVCardEditPage'))
+
 const ConsumerWalletPage = lazy(() => import('./pages/consumer/ConsumerWalletPage'))
 const ConsumerBookingsPage = lazy(() => import('./pages/consumer/ConsumerBookingsPage'))
 const ConsumerRewardsPage = lazy(() => import('./pages/consumer/ConsumerRewardsPage'))
@@ -135,6 +138,7 @@ export default function App() {
                   <Route path="/user/vcards/:id/edit" element={<VCardEditPage />} />
                   <Route path="/user/templates/:id/customize" element={<TemplateCustomizePage />} />
                   <Route path="/user/cards" element={<BusinessCardsPage />} />
+                <Route path="/user/cards/:id/edit" element={<CardEditPage />} />
                   <Route path="/user/appointments" element={<AppointmentsPage />} />
                   <Route path="/user/analytics" element={<AnalyticsPage />} />
                   <Route path="/user/subscription" element={<SubscriptionPage />} />
@@ -144,8 +148,10 @@ export default function App() {
                 <Route element={<ConsumerLayout />}>
                   <Route path="/consumer" element={<ConsumerDashboardPage />} />
                   <Route path="/consumer/card-designs" element={<ConsumerCardDesignsPage />} />
+                  <Route path="/consumer/cards/:designId/edit" element={<ConsumerCardEditPage />} />
+                  <Route path="/consumer/vcard-templates/:id/edit" element={<ConsumerVCardEditPage />} />
                   <Route path="/consumer/vcard-templates" element={<ConsumerVCardTemplatesPage />} />
-                  <Route path="/consumer/cards" element={<ConsumerSavedCardsPage />} />
+
                   <Route path="/consumer/wallet" element={<ConsumerWalletPage />} />
                   <Route path="/consumer/bookings" element={<ConsumerBookingsPage />} />
                   <Route path="/consumer/rewards" element={<ConsumerRewardsPage />} />
