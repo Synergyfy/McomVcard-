@@ -203,7 +203,7 @@ export default function TemplateCustomizePage() {
 
                 {/* Profile */}
                 <div className={`px-5 -mt-12 ${logoPosition === 'center' ? 'text-center' : logoPosition === 'right' ? 'text-right' : ''}`}>
-                  <div className={`w-20 h-20 rounded-full border-4 border-white shadow-lg mx-${logoPosition === 'center' ? 'auto' : logoPosition === 'right' ? 'ml-auto' : ''} flex items-center justify-center text-white text-xl font-bold`} style={{ backgroundColor: primaryColor }}>
+                  <div className={`w-20 h-20 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-xl font-bold ${logoPosition === 'center' ? 'mx-auto' : logoPosition === 'right' ? 'ml-auto' : ''}`} style={{ backgroundColor: primaryColor }}>
                     {businessName.charAt(0)}
                   </div>
                   <h2 className="mt-3 text-lg font-bold text-gray-900">{businessName}</h2>
