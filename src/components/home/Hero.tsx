@@ -97,9 +97,9 @@ const SLIDES = [
         Save & Connect with <span className="text-purple-600">One Tap</span>
       </>
     ),
-    desc: 'Never lose a contact again. Save business cards to your digital wallet, earn rewards, book appointments, and stay connected with your favorite businesses.',
-    cta: { label: 'Get Started Free', to: '/register', color: 'purple' },
-    secondary: { label: 'Learn More', to: '/features' },
+    desc: 'Your MCOMVCard comes through participating businesses. Find a business, connect, and receive your card — then create or sign in to your MCOM account to access it.',
+    cta: { label: 'Connect with a Business', to: '/find-a-business', color: 'purple' },
+    secondary: { label: 'Sign Up for Business', to: '/register' },
     svg: (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 480" fill="none" className="w-full h-auto drop-shadow-2xl animate-floatSlow">
         {/* Purple background blob */}

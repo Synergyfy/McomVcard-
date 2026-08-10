@@ -1,19 +1,42 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
+import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerBookingsPage() {
   const [profile, setProfile] = useState<{ name: string; savedCards: Array<{ id: number; name: string; business: string; type: string }> } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const loadProfile = () => {
+    setLoading(true)
+    setError(false)
+    consumerService.getProfile()
+      .then(setProfile)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
-    consumerService.getProfile().then(setProfile).finally(() => setLoading(false))
+    loadProfile()
   }, [])
 
   const bookingBusinesses = profile?.savedCards.filter((c) => c.type === 'Appointment' || c.type === 'Membership') || []
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  if (error || !profile) {
+    return (
+      <div>
+        <Helmet><title>Bookings - Consumer - MCOM VCard</title></Helmet>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">My Bookings</h1>
+        <div className="lg:max-w-2xl">
+          <ErrorState title="We couldn't load your bookings" message="Please try again in a moment." onRetry={loadProfile} />
+        </div>
+      </div>
+    )
   }
 
   return (

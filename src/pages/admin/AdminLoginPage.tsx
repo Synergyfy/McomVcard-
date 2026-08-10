@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="admin-app min-h-screen flex">
       <Helmet>
         <title>Admin Login - MCOM VCard Social Bio</title>
       </Helmet>

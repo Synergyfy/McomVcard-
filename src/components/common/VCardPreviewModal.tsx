@@ -173,7 +173,7 @@ export default function VCardPreviewModal({ vcard, onClose }: Props) {
         <div className="flex gap-3 mt-5">
           <a href={`/vcard/${vcard.url_slug}`} target="_blank" rel="noopener noreferrer"
             className="flex-1 text-center py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
-            Open Full Page
+            Load Full Page
           </a>
           <button onClick={onClose} className="px-5 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Close

@@ -1,27 +1,38 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { mockTemplates } from '../../services/mockData'
-import PreviewModal from '../common/PreviewModal'
-import type { PreviewCardData } from '../common/PreviewModal'
+import {
+  combineBizTemplates, combineConTemplates,
+  type BizVCardTemplate, type ConTemplate,
+} from '../../services/vcardTemplateCatalogue'
+import { loadUserTemplatesByType } from '../../services/vcardTemplateStore'
+import { buildPublishedSections as buildBizSections } from '../../pages/admin/card-management/BusinessVCardWorkspace'
+import { buildPublishedSections as buildConSections } from '../../pages/admin/card-management/ConsumerVCardWorkspace'
+import ScrollingVCard from '../common/ScrollingVCard'
 
-const businessTemplates = mockTemplates.filter(t => t.is_business && t.status === 'published').slice(0, 6)
-const consumerTemplates = mockTemplates.filter(t => t.is_consumer && t.status === 'published').slice(0, 6)
+type Tab = 'business' | 'consumer'
 
 export default function TemplateShowcase() {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<'business' | 'consumer'>('business')
-  const [previewCard, setPreviewCard] = useState<PreviewCardData | null>(null)
+  const [activeTab, setActiveTab] = useState<Tab>('business')
+  const [preview, setPreview] = useState<{ name: string; templateId: string; sections: unknown } | null>(null)
+
+  const businessTemplates = combineBizTemplates(loadUserTemplatesByType('business'))
+    .filter(t => t.status === 'Published')
+    .slice(0, 6)
+  const consumerTemplates = combineConTemplates(loadUserTemplatesByType('consumer'))
+    .filter(t => t.status === 'Published')
+    .slice(0, 6)
+
   const templates = activeTab === 'business' ? businessTemplates : consumerTemplates
 
-  const openPreview = (template: typeof mockTemplates[0]) => {
-    setPreviewCard({
-      id: template.id, name: template.name, type: 'Template',
-      style: template.category, primaryColor: template.primary_color,
-      secondaryColor: template.secondary_color, category: template.category,
-      templateUrl: template.template_url, logo: template.category?.charAt(0) || 'T',
-      businessName: template.category, title: template.font_family,
-    })
+  const sectionsFor = (template: BizVCardTemplate | ConTemplate, type: Tab) =>
+    type === 'business'
+      ? buildBizSections(template as BizVCardTemplate)
+      : buildConSections(template as ConTemplate)
+
+  const openPreview = (template: BizVCardTemplate | ConTemplate, type: Tab) => {
+    setPreview({ name: template.name, templateId: template.templateId, sections: sectionsFor(template, type) })
   }
 
   return (
@@ -63,30 +74,20 @@ export default function TemplateShowcase() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
           {templates.map((template) => (
-            <div key={template.id} className="group relative rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-gray-100 bg-white cursor-pointer"
-              onClick={() => openPreview(template)}>
-              <div className="relative aspect-[3/4] overflow-hidden bg-gray-50">
-                <img
-                  src={template.template_url}
-                  alt={template.name}
-                  className="w-full transition-transform duration-[8000ms] ease-linear group-hover:translate-y-[-52%]"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect fill="#f3f4f6" width="400" height="600"/><text fill="#9ca3af" font-family="Arial" font-size="14" x="50%" y="50%" text-anchor="middle" dy=".3em">${template.name}</text></svg>`)}`
-                  }}
+            <div key={template.id} className="flex flex-col items-center group cursor-pointer"
+              onClick={() => openPreview(template, activeTab)}>
+              <div className="transition-transform duration-300 group-hover:scale-[1.03]">
+                <ScrollingVCard
+                  sections={sectionsFor(template, activeTab)}
+                  heightClass="h-[30rem]"
+                  widthClass="w-[300px] sm:w-[340px]"
                 />
-                {/* Hover overlay with eye icon */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                  onClick={(e) => { e.stopPropagation(); openPreview(template) }}>
-                  <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                  </div>
-                </div>
               </div>
               <div className="py-4 text-center">
-                <span className="text-gray-700 font-medium text-sm capitalize">{template.category}</span>
+                <p className="text-gray-700 dark:text-gray-200 font-semibold text-sm">{template.name}</p>
+                <p className="text-gray-400 text-xs mt-0.5">{template.category}</p>
               </div>
             </div>
           ))}
@@ -102,7 +103,25 @@ export default function TemplateShowcase() {
         </div>
       </div>
 
-      <PreviewModal card={previewCard} onClose={() => setPreviewCard(null)} />
+      {/* Auto-scroll phone preview modal */}
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+              <div>
+                <h4 className="text-xs font-semibold text-gray-800 dark:text-white">{preview.name} — {preview.templateId} Preview</h4>
+                <p className="text-[10px] text-gray-400">Hover or tap the card to auto-scroll through it</p>
+              </div>
+              <button onClick={() => setPreview(null)} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 flex items-start justify-center bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+              <ScrollingVCard sections={preview.sections} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

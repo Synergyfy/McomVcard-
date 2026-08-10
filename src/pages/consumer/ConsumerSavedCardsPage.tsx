@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
+import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerSavedCardsPage() {
   const [cards, setCards] = useState<Array<{ id: number; name: string; business: string; type: string }>>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -18,8 +20,17 @@ export default function ConsumerSavedCardsPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const loadCards = () => {
+    setLoading(true)
+    setError(false)
+    consumerService.getSavedCards()
+      .then(setCards)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
-    consumerService.getSavedCards().then(setCards).finally(() => setLoading(false))
+    loadCards()
   }, [])
 
   const handleDelete = (id: number) => {
@@ -46,6 +57,25 @@ export default function ConsumerSavedCardsPage() {
 
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : error ? (
+        <div className="lg:max-w-2xl">
+          <ErrorState title="We couldn't load your saved cards" message="Please try again in a moment." onRetry={loadCards} />
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-10 text-center">
+          <div className="w-20 h-20 mx-auto rounded-full bg-accent-50 dark:bg-accent-500/10 flex items-center justify-center mb-4">
+            <svg className="w-10 h-10 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white">No Saved Cards Yet</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-[260px] mx-auto">
+            Cards you save from businesses you visit will appear here.
+          </p>
+          <a href="/consumer/cards" className="inline-flex items-center justify-center mt-6 h-12 px-6 rounded-2xl bg-accent-500 text-white font-bold active:scale-[0.98] transition-transform">
+            Browse Your Cards
+          </a>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map((card) => (

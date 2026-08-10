@@ -15,13 +15,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (!err.response) {
-      const url = err.config?.url || ''
-      if (url === '/user') {
-        const raw = localStorage.getItem('auth_user')
-        if (raw) {
-          try { return Promise.resolve({ data: JSON.parse(raw) }) } catch {}
-        }
+    const url = err.config?.url || ''
+    if (url === '/user') {
+      const raw = localStorage.getItem('auth_user')
+      if (raw) {
+        try { return Promise.resolve({ data: JSON.parse(raw) }) } catch {}
       }
     }
     if (err.response?.status === 401) {
@@ -108,16 +106,6 @@ export const authService = {
 
   async verifyWithToken(token: string): Promise<{ message: string }> {
     const res = await api.post('/email/verify-token', { token })
-    return res.data
-  },
-
-  async socialLogin(provider: 'google' | 'facebook'): Promise<string> {
-    const res = await api.get(`/auth/${provider}/url`)
-    return res.data.url
-  },
-
-  async handleSocialCallback(provider: 'google' | 'facebook', code: string): Promise<AuthResponse> {
-    const res = await api.post(`/auth/${provider}/callback`, { code })
     return res.data
   },
 
