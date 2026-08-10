@@ -173,10 +173,10 @@
     "privacy_policy": "Privacy Policy",
     "and": "and",
     "referral_code": "Referral Code (optional)",
-    "or_continue_with": "Or continue with",
     "impersonate_banner": "You are impersonating {{name}}. ",
     "stop_impersonating": "Stop Impersonating",
     "validation": {
+      "name_required": "Please enter your full name.",
       "first_name_required": "Please enter your first name.",
       "last_name_required": "Please enter your last name.",
       "email_required": "Please enter your email address.",

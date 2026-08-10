@@ -4,9 +4,16 @@ import { userService } from '../../../services/user'
 import InputField from '../../../components/auth/InputField'
 import type { VCard } from '../../../types'
 
-interface Props { vcard: VCard; onUpdate: (v: VCard) => void }
+interface Props { vcard: VCard; onUpdate: (v: VCard) => void; onFormChange?: (f: typeof defaultForm) => void; onFieldEdit?: (field: string) => void }
 
-export default function VCardEditInfoTab({ vcard, onUpdate }: Props) {
+const defaultForm = {
+  name: '', url_slug: '', occupation: '',
+  description: '', email: '',
+  phone: '', location: '', website: '',
+  status: 0,
+}
+
+export default function VCardEditInfoTab({ vcard, onUpdate, onFormChange, onFieldEdit }: Props) {
   const { t } = useTranslation()
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
@@ -15,6 +22,11 @@ export default function VCardEditInfoTab({ vcard, onUpdate }: Props) {
     phone: vcard.phone || '', location: vcard.location || '', website: vcard.website || '',
     status: vcard.status,
   })
+
+  const updateForm = (next: typeof form) => {
+    setForm(next)
+    onFormChange?.(next)
+  }
   const [preview, setPreview] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -56,23 +68,23 @@ export default function VCardEditInfoTab({ vcard, onUpdate }: Props) {
             if (e.target.files?.[0]) setPreview(URL.createObjectURL(e.target.files[0]))
           }} />
         </div>
-        <InputField label={t('user.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <InputField label={t('user.url_slug')} value={form.url_slug} onChange={(e) => setForm({ ...form, url_slug: e.target.value })} />
-        <InputField label={t('user.occupation')} value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} />
+        <InputField label={t('user.name')} value={form.name} onChange={(e) => updateForm({ ...form, name: e.target.value })} onFocus={() => onFieldEdit?.('name')} />
+        <InputField label={t('user.url_slug')} value={form.url_slug} onChange={(e) => updateForm({ ...form, url_slug: e.target.value })} onFocus={() => onFieldEdit?.('url_slug')} />
+        <InputField label={t('user.occupation')} value={form.occupation} onChange={(e) => updateForm({ ...form, occupation: e.target.value })} onFocus={() => onFieldEdit?.('occupation')} />
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">{t('user.description')}</label>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none" />
+          <textarea value={form.description} onChange={(e) => updateForm({ ...form, description: e.target.value })} onFocus={() => onFieldEdit?.('description')} rows={3} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <InputField label={t('user.email')} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <InputField label={t('user.phone')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <InputField label={t('user.email')} type="email" value={form.email} onChange={(e) => updateForm({ ...form, email: e.target.value })} onFocus={() => onFieldEdit?.('email')} />
+          <InputField label={t('user.phone')} value={form.phone} onChange={(e) => updateForm({ ...form, phone: e.target.value })} onFocus={() => onFieldEdit?.('phone')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <InputField label={t('user.location')} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-          <InputField label={t('user.website')} value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+          <InputField label={t('user.location')} value={form.location} onChange={(e) => updateForm({ ...form, location: e.target.value })} onFocus={() => onFieldEdit?.('location')} />
+          <InputField label={t('user.website')} value={form.website} onChange={(e) => updateForm({ ...form, website: e.target.value })} onFocus={() => onFieldEdit?.('website')} />
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-600">
-          <input type="checkbox" checked={form.status === 1} onChange={(e) => setForm({ ...form, status: e.target.checked ? 1 : 0 })} className="rounded border-gray-300 text-blue-600" />
+          <input type="checkbox" checked={form.status === 1} onChange={(e) => updateForm({ ...form, status: e.target.checked ? 1 : 0 })} className="rounded border-gray-300 text-blue-600" />
           {t('user.active')}
         </label>
         <button type="submit" disabled={loading} className="px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">

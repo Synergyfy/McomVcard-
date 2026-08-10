@@ -1,56 +1,350 @@
 @import "tailwindcss";
 @variant dark (&:is(.dark *));
 
+/* ================================================================ */
+/*  MCOMVCard Business Operations Dashboard — design tokens          */
+/*  Mobile-first. Desktop is an expanded version of mobile.          */
+/* ================================================================ */
+@theme {
+  --color-accent-50: #fff7ed;
+  --color-accent-100: #ffedd5;
+  --color-accent-200: #fed7aa;
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #ff5c00;
+  --color-accent-600: #ea580c;
+  --color-accent-700: #c2410c;
+  --color-accent-800: #9a3412;
+  --color-accent-900: #7c2d12;
+}
+
+/* Hide scrollbars on horizontal tab scrollers while keeping scroll */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Safe-area bottom padding for iOS home indicator (bottom nav) */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch-friendly minimum tap target */
+@utility tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Skeleton shimmer for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.4s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.08) 25%, rgba(148, 163, 184, 0.18) 50%, rgba(148, 163, 184, 0.08) 75%);
+  background-size: 800px 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Card shine sweep that travels across the VCard */
+@keyframes shine {
+  0% {
+    transform: translateX(-160%) rotate(12deg);
+  }
+
+  100% {
+    transform: translateX(160%) rotate(12deg);
+  }
+}
+
+.animate-shine {
+  animation: shine 3.5s ease-in-out infinite;
+}
+
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 @keyframes fadeInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
+
 @keyframes fadeInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
+
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
+
 @keyframes floatSlow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(3deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(3deg);
+  }
 }
+
+@keyframes zoomPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
+}
+
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
+
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
+
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 @keyframes spinSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 @keyframes ping {
-  0% { transform: scale(1); opacity: 0.6; }
-  75%, 100% { transform: scale(2); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
-.animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
-.animate-fadeInLeft { animation: fadeInLeft 0.6s ease-out forwards; }
-.animate-fadeInRight { animation: fadeInRight 0.6s ease-out forwards; }
-.animate-float { animation: float 3s ease-in-out infinite; }
-.animate-floatSlow { animation: floatSlow 4s ease-in-out infinite; }
-.animate-pulse { animation: pulse 2s ease-in-out infinite; }
-.animate-scaleIn { animation: scaleIn 0.5s ease-out forwards; }
-.animate-slideDown { animation: slideDown 0.3s ease-out forwards; }
-.animate-spin-slow { animation: spinSlow 8s linear infinite; }
-.animate-ping { animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fadeInLeft {
+  animation: fadeInLeft 0.6s ease-out forwards;
+}
+
+.animate-fadeInRight {
+  animation: fadeInRight 0.6s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-floatSlow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-zoomPulse {
+  animation: zoomPulse 3.5s ease-in-out infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+.animate-ping {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 @utility delay-* {
   animation-delay: --value(integer);
+}
+
+/* Auto-scrolling phone preview — the inner card scrolls from the top
+   through every section, holds at the last section, then jumps back to
+   the top for the next loop. Offset/duration are set inline by the
+   component; the offset is the scroll distance (content − viewport), so
+   the last section is fully visible when the card stops. */
+@keyframes vcard-scroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  85% {
+    transform: translateY(var(--scroll-offset, -400px));
+  }
+
+  100% {
+    transform: translateY(var(--scroll-offset, -400px));
+  }
+}
+
+.animate-vcard-scroll {
+  animation: vcard-scroll var(--scroll-duration, 14s) linear infinite;
+}
+
+.paused .animate-vcard-scroll {
+  animation-play-state: paused;
+}
+
+/* ================================================================ */
+/*  Admin dashboard font-size bump                                  */
+/*  Every admin page renders inside .admin-app. These rules raise   */
+/*  the smallest text sizes (near-illegible on desktop) while       */
+/*  keeping the rest proportionate. Un-layered rules override       */
+/*  Tailwind's layered utilities, so they also beat responsive      */
+/*  variants such as md:text-sm. Miniature phone-mockup text        */
+/*  (text-[6px]/[7px]) gets only a mild bump so card previews keep  */
+/*  their proportions.                                              */
+/* ================================================================ */
+.admin-app .text-\[6px\] {
+  font-size: 9px;
+}
+
+.admin-app .text-\[7px\] {
+  font-size: 10px;
+}
+
+.admin-app .text-\[8px\] {
+  font-size: 12px;
+}
+
+.admin-app .text-\[9px\] {
+  font-size: 12px;
+}
+
+.admin-app .text-\[10px\] {
+  font-size: 13px;
+}
+
+.admin-app .text-\[11px\] {
+  font-size: 14px;
+}
+
+.admin-app .text-\[12px\] {
+  font-size: 14px;
+}
+
+.admin-app .text-xs {
+  font-size: 14px;
+}
+
+.admin-app .text-sm {
+  font-size: 16px;
+}
+
+.admin-app .text-base {
+  font-size: 17px;
+}
+
+.admin-app .text-lg {
+  font-size: 19px;
+}
+
+.admin-app .text-xl {
+  font-size: 21px;
 }

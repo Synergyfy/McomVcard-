@@ -11,7 +11,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   {
-    to: '/dashboard',
+    to: '/business',
     labelKey: 'user.nav.dashboard',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
   },
@@ -59,7 +59,7 @@ export default function UserSidebar() {
   const { t } = useTranslation()
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white flex flex-col shrink-0 h-screen sticky top-0 overflow-y-auto">
+    <aside className="hidden lg:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white flex-col shrink-0 h-screen sticky top-0 overflow-y-auto">
       <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
         <Logo />
       </div>
@@ -74,7 +74,7 @@ export default function UserSidebar() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/dashboard'}
+                end={item.to === '/business'}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
