@@ -1,12 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockCardDesigns } from '../../services/mockData'
+import type { MockConsumer } from '../../services/mockData'
+import { MembershipLimitCard } from '../../components/membership/MembershipLimitCard'
+import { loadMembershipPricing } from '../../services/membershipPricingStore'
+import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
+import { consumerService } from '../../services/consumer'
+import { parseMembership } from '../../services/consumerMembership'
 
 const MOCK_CLAIMED_CARD_IDS = [5, 6, 7, 8]
-const CONSUMER_NAME = 'Alex Morgan'
-const CONSUMER_PHONE = '+1 (555) 111-2222'
-const CONSUMER_EMAIL = 'alex@morgan.com'
+
+const DEFAULT_CARD_TITLES: Record<number, string> = {
+  5: 'Nature Lover',
+  6: 'Minimalist',
+  7: 'Tech Enthusiast',
+  8: 'Elegant Style',
+}
 
 interface ClaimedCardData {
   designId: number
@@ -16,19 +26,37 @@ interface ClaimedCardData {
   title: string
 }
 
-const initialClaimedData: Record<number, ClaimedCardData> = {
-  5: { designId: 5, name: CONSUMER_NAME, phone: CONSUMER_PHONE, email: CONSUMER_EMAIL, title: 'Nature Lover' },
-  6: { designId: 6, name: CONSUMER_NAME, phone: CONSUMER_PHONE, email: CONSUMER_EMAIL, title: 'Minimalist' },
-  7: { designId: 7, name: CONSUMER_NAME, phone: CONSUMER_PHONE, email: CONSUMER_EMAIL, title: 'Tech Enthusiast' },
-  8: { designId: 8, name: CONSUMER_NAME, phone: CONSUMER_PHONE, email: CONSUMER_EMAIL, title: 'Elegant Style' },
-}
-
 export default function ConsumerCardDesignsPage() {
   const navigate = useNavigate()
   const [flipCardId, setFlipCardId] = useState<number | null>(null)
-  const [claimedData] = useState<Record<number, ClaimedCardData>>(initialClaimedData)
+  const [claimedData, setClaimedData] = useState<Record<number, ClaimedCardData>>({})
+  const [profile, setProfile] = useState<MockConsumer | null>(null)
 
+  const pricingState = useMemo(() => loadMembershipPricing(), [])
   const claimedCards = mockCardDesigns.filter((c) => MOCK_CLAIMED_CARD_IDS.includes(c.id))
+  const membershipLevel = profile ? parseMembership(profile.membership).level : 'Bronze'
+  const conCardLimit = parseLimit(getRuleValue(pricingState, membershipLevel, 'Consumer Cards'))
+  const atLimit = conCardLimit !== null && conCardLimit !== Infinity && claimedCards.length >= conCardLimit
+
+  useEffect(() => {
+    consumerService.getProfile().then((p) => {
+      setProfile(p)
+      setClaimedData(
+        Object.fromEntries(
+          MOCK_CLAIMED_CARD_IDS.map((id) => [
+            id,
+            {
+              designId: id,
+              name: p.name,
+              phone: p.phone,
+              email: p.email,
+              title: DEFAULT_CARD_TITLES[id] || 'MCOM Card',
+            },
+          ]),
+        ),
+      )
+    }).catch(() => {})
+  }, [])
 
   return (
     <div>
@@ -39,9 +67,19 @@ export default function ConsumerCardDesignsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Cards</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{claimedCards.length} cards claimed</p>
         </div>
-        <Link to="/cards?tab=consumer" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
-          Get Card
-        </Link>
+        {atLimit ? (
+          <span className="px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-semibold cursor-not-allowed" title={`Your ${membershipLevel} membership allows ${getRuleValue(pricingState, membershipLevel, 'Consumer Cards')} Consumer Cards`}>
+            Limit reached
+          </span>
+        ) : (
+          <Link to="/cards?tab=consumer" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+            Get Card
+          </Link>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <MembershipLimitCard label="Consumer Cards" used={claimedCards.length} planLevel={membershipLevel} context="consumer" />
       </div>
 
       {claimedCards.length ? (
