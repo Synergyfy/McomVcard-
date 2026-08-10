@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
+import ErrorState from '../../components/common/ErrorState'
 
 const statusColors: Record<string, string> = {
   available: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
@@ -11,10 +12,20 @@ const statusColors: Record<string, string> = {
 export default function ConsumerRewardsPage() {
   const [rewards, setRewards] = useState<Array<{ id: number; reward: string; points: number; date: string; status: string }>>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [filter, setFilter] = useState<string>('all')
 
+  const loadRewards = () => {
+    setLoading(true)
+    setError(false)
+    consumerService.getRewardHistory()
+      .then(setRewards)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
-    consumerService.getRewardHistory().then(setRewards).finally(() => setLoading(false))
+    loadRewards()
   }, [])
 
   const filtered = filter === 'all' ? rewards : rewards.filter((r) => r.status === filter)
@@ -28,6 +39,18 @@ export default function ConsumerRewardsPage() {
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Helmet><title>Rewards - Consumer - MCOM VCard</title></Helmet>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">My Rewards</h1>
+        <div className="lg:max-w-2xl">
+          <ErrorState title="We couldn't load your rewards" message="Please try again in a moment." onRetry={loadRewards} />
+        </div>
+      </div>
+    )
   }
 
   return (

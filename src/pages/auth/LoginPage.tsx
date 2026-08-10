@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import AuthLayout from '../../components/auth/AuthLayout'
 import InputField from '../../components/auth/InputField'
-import SocialLoginButtons from '../../components/auth/SocialLoginButtons'
+import ConsumerPathNote from '../../components/auth/ConsumerPathNote'
 import { useAuth } from '../../contexts/AuthContext'
+import { consumerService } from '../../services/consumer'
+import { inviteQuery } from '../../utils/inviteContext'
 
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
+  const ctx = inviteQuery(searchParams.get('card'), searchParams.get('business'))
 
   const [form, setForm] = useState({ email: '', password: '', remember: false })
   const [showPassword, setShowPassword] = useState(false)
@@ -33,7 +37,19 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(form)
-      navigate('/dashboard')
+      const card = searchParams.get('card')
+      if (card) {
+        const business = searchParams.get('business') || undefined
+        await consumerService.associateCard(card, business)
+        const existing = await consumerService.getProfileByEmail(form.email)
+        if (existing) {
+          navigate('/consumer')
+        } else {
+          navigate(`/consumer/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business || '')}`)
+        }
+      } else {
+        navigate('/business')
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.message || t('auth.errors.login_failed')
       setServerError(msg)
@@ -49,6 +65,8 @@ export default function LoginPage() {
       </Helmet>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <ConsumerPathNote />
+
         {serverError && (
           <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600">
             {serverError}
@@ -107,7 +125,7 @@ export default function LoginPage() {
             />
             {t('auth.remember_me')}
           </label>
-          <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link to={`/forgot-password${ctx}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
             {t('auth.forgot_password')}
           </Link>
         </div>
@@ -120,10 +138,6 @@ export default function LoginPage() {
           {loading ? t('common.loading') : t('auth.login_button')}
         </button>
       </form>
-
-      <div className="mt-6">
-        <SocialLoginButtons />
-      </div>
 
       <div className="relative mt-6">
         <div className="absolute inset-0 flex items-center">
@@ -144,7 +158,7 @@ export default function LoginPage() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/business')}
           className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all hover:shadow-md hover:shadow-blue-200"
         >
           Business
@@ -160,7 +174,7 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-gray-500 mt-6">
         {t('auth.no_account')}{' '}
-        <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+        <Link to={`/register${ctx}`} className="text-blue-600 hover:text-blue-700 font-medium">
           {t('auth.sign_up')}
         </Link>
       </p>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockVcards, mockTemplates } from '../../../services/mockData'
@@ -32,8 +32,8 @@ interface TabDef {
 }
 
 const tabs: TabDef[] = [
-  { key: 'basic', label: 'Basic Details', group: 'Setup', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { key: 'templates', label: 'vCard Templates', group: 'Setup', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg> },
+  { key: 'basic', label: 'Basic Details', group: 'Setup', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { key: 'hours', label: 'Business Hours', group: 'Setup', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { key: 'qr', label: 'Customize QR Code', group: 'Setup', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg> },
   { key: 'services', label: 'Services', group: 'Content', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
@@ -56,19 +56,30 @@ export default function VCardEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [vcard, setVcard] = useState<VCard | null>(null)
-  const [activeTab, setActiveTab] = useState<TabKey>('basic')
+  const [activeTab, setActiveTab] = useState<TabKey>('templates')
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
+  const previewContentRef = useRef<HTMLDivElement>(null)
+  const [previewHours, setPreviewHours] = useState<Record<string, { enabled: boolean; start: string; end: string }> | null>(null)
+  const [previewForm, setPreviewForm] = useState({
+    name: '', url_slug: '', occupation: '',
+    description: '', email: '', phone: '', location: '', website: '',
+    status: 0,
+  })
 
   useEffect(() => {
     if (!id) return
-    // Mock: find vcard from mock data
     const found = mockVcards.find((v) => v.id === Number(id))
     if (found) {
       setVcard(found)
+      setPreviewForm({
+        name: found.name, url_slug: found.url_slug, occupation: found.occupation || '',
+        description: found.description || '', email: found.email || '',
+        phone: found.phone || '', location: found.location || '', website: found.website || '',
+        status: found.status,
+      })
     } else {
-      // Fallback: create a mock vcard from the id
       setVcard({
         id: Number(id), user_id: 1, name: 'My vCard', url_slug: `my-vcard-${id}`,
         occupation: 'Professional', description: 'My digital business card',
@@ -88,12 +99,27 @@ export default function VCardEditPage() {
   if (!vcard) return null
 
   const template = mockTemplates.find((t) => t.id === vcard.template_id)
+  const primaryColor = template?.primary_color || '#FF5C00'
+  const secondaryColor = template?.secondary_color || '#FF8A50'
+
+  const previewFieldMap: Record<string, string> = {
+    name: 'preview-header', occupation: 'preview-header', location: 'preview-header',
+    url_slug: 'preview-header', description: 'preview-desc',
+    email: 'preview-email', phone: 'preview-phone', website: 'preview-website',
+    hours: 'preview-hours',
+  }
+  const handleFieldEdit = (field: string) => {
+    const id = previewFieldMap[field]
+    if (!id || !previewContentRef.current) return
+    const el = previewContentRef.current.querySelector(`#${id}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'basic': return <VCardEditInfoTab vcard={vcard} onUpdate={setVcard} />
+      case 'basic': return <VCardEditInfoTab vcard={vcard} onUpdate={setVcard} onFormChange={setPreviewForm} onFieldEdit={handleFieldEdit} />
       case 'templates': return <VCardEditTemplatesTab vcard={vcard} onUpdate={setVcard} />
-      case 'hours': return <VCardEditBusinessHoursTab />
+      case 'hours': return <VCardEditBusinessHoursTab onHoursChange={setPreviewHours} onFieldEdit={handleFieldEdit} />
       case 'qr': return <VCardEditQRCustomizeTab />
       case 'services': return <VCardEditServicesTab vcardId={vcard.id} />
       case 'products': return <VCardEditProductsTab />
@@ -143,7 +169,7 @@ export default function VCardEditPage() {
         </div>
       </div>
 
-      {/* Main Layout: Sidebar + Content */}
+      {/* Main Layout: Sidebar + Content + Live Preview */}
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className={`${sidebarOpen ? 'w-56' : 'w-14'} shrink-0 transition-all duration-200`}>
@@ -171,9 +197,132 @@ export default function VCardEditPage() {
           </nav>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-          {renderContent()}
+        {/* Content + Live Preview */}
+        <div className="flex-1 min-w-0 flex gap-6">
+          <div className="flex-1 min-w-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+            {renderContent()}
+          </div>
+
+          {/* Live Preview */}
+          <div className="hidden lg:block w-[300px] shrink-0">
+            <div className="sticky top-6">
+              <p className="text-xs text-gray-400 text-center mb-3">Live Preview</p>
+              <div className="w-[280px] max-h-[calc(100vh-160px)] rounded-[2.5rem] border-[5px] border-gray-900 dark:border-gray-700 bg-white shadow-2xl mx-auto flex flex-col overflow-hidden">
+                <div className="relative h-5 shrink-0 bg-gray-900 dark:bg-gray-700">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-gray-900 dark:bg-gray-700 rounded-b-2xl" />
+                  <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-700 dark:bg-gray-500" />
+                </div>
+                <div ref={previewContentRef} className="flex-1 min-h-0 overflow-y-auto" style={{ background: '#f8f9fa' }}>
+                  <div id="preview-header" className="relative" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+                    <div className="text-center pt-8 pb-6 px-5">
+                      <div className="w-20 h-20 rounded-full mx-auto mb-3 border-[3px] border-white/30 overflow-hidden shadow-lg bg-white/20 flex items-center justify-center">
+                        <span className="text-white text-2xl font-bold">{previewForm.name.charAt(0) || vcard.name.charAt(0)}</span>
+                      </div>
+                      <h2 className="text-white font-bold text-base leading-tight">{previewForm.name || vcard.name}</h2>
+                      {previewForm.occupation && <p className="text-white/70 text-[11px] mt-0.5">{previewForm.occupation}</p>}
+                      {previewForm.location && (
+                        <p className="text-white/50 text-[10px] mt-1 flex items-center justify-center gap-1">
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                          {previewForm.location}
+                        </p>
+                      )}
+                    </div>
+                    <svg className="absolute -bottom-1 left-0 right-0 w-full" viewBox="0 0 400 30" fill="none"><path d="M0 30V15C100 0 300 0 400 15V30H0Z" fill="#f8f9fa" /></svg>
+                  </div>
+
+                  <div className="px-4 pb-6 -mt-1">
+                    {previewForm.description && (
+                      <div id="preview-desc" className="text-center mb-4">
+                        <p className="text-[11px] text-gray-500 leading-relaxed">{previewForm.description}</p>
+                      </div>
+                    )}
+
+                    <button className="w-full py-2.5 rounded-xl text-white text-[11px] font-semibold flex items-center justify-center gap-2 mb-4" style={{ background: primaryColor }}>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                      Share Contact
+                    </button>
+
+                    <div className="space-y-2 mb-4">
+                      {previewForm.email && (
+                        <div id="preview-email" className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white shadow-sm">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
+                            <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] text-gray-400 uppercase">Email</p>
+                            <p className="text-[11px] text-gray-900 font-medium truncate">{previewForm.email}</p>
+                          </div>
+                        </div>
+                      )}
+                      {previewForm.phone && (
+                        <div id="preview-phone" className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white shadow-sm">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
+                            <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] text-gray-400 uppercase">Phone</p>
+                            <p className="text-[11px] text-gray-900 font-medium">{previewForm.phone}</p>
+                          </div>
+                        </div>
+                      )}
+                      {previewForm.website && (
+                        <div id="preview-website" className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white shadow-sm">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${primaryColor}15` }}>
+                            <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[9px] text-gray-400 uppercase">Website</p>
+                            <p className="text-[11px] text-gray-900 font-medium truncate">{previewForm.website}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white shadow-sm">
+                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        <span className="text-[8px] text-gray-500">Call</span>
+                      </button>
+                      <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white shadow-sm">
+                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        <span className="text-[8px] text-gray-500">Email</span>
+                      </button>
+                      <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white shadow-sm">
+                        <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span className="text-[8px] text-gray-500">Map</span>
+                      </button>
+                    </div>
+
+                    <div className="flex justify-center gap-2 mb-4">
+                      {['f', 'in', 'tw', 'ig', 'yt'].map((s) => (
+                        <div key={s} className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ background: primaryColor }}>{s}</div>
+                      ))}
+                    </div>
+
+                    {previewHours && (
+                      <div id="preview-hours" className="mb-4 px-2">
+                        <p className="text-[10px] font-semibold text-gray-500 mb-2 uppercase tracking-wider">Business Hours</p>
+                        {Object.entries(previewHours).map(([day, s]) => (
+                          <div key={day} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
+                            <span className={`text-[11px] font-medium ${s.enabled ? 'text-gray-800' : 'text-gray-400'}`}>{day.slice(0, 3)}</span>
+                            {s.enabled ? (
+                              <span className="text-[11px] text-gray-500">{s.start} - {s.end}</span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 italic">Closed</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-center text-[8px] text-gray-400">
+                      Powered by <span className="font-semibold" style={{ color: '#FF5C00' }}>MCOM VCard</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,78 +1,139 @@
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import StatsCard from '../../components/admin/StatsCard'
 
 const MOCK = {
-  revenue: { total: 128450, prev: 98400, growth: 30.5 },
-  active_businesses: 384,
-  active_consumers: 8642,
-  total_vcards: 12560,
-  nfc_devices: 1247,
-  wallet_txns: 8920,
-  campaigns_running: 18,
-  print_orders: 43,
-  revenue_chart: [
-    { month: 'Jan', revenue: 8200, businesses: 10, consumers: 180 },
-    { month: 'Feb', revenue: 9400, businesses: 14, consumers: 220 },
-    { month: 'Mar', revenue: 10800, businesses: 18, consumers: 290 },
-    { month: 'Apr', revenue: 12400, businesses: 22, consumers: 340 },
-    { month: 'May', revenue: 11500, businesses: 20, consumers: 310 },
-    { month: 'Jun', revenue: 14200, businesses: 28, consumers: 420 },
-    { month: 'Jul', revenue: 15600, businesses: 32, consumers: 480 },
-    { month: 'Aug', revenue: 13800, businesses: 30, consumers: 450 },
-    { month: 'Sep', revenue: 16200, businesses: 36, consumers: 510 },
-    { month: 'Oct', revenue: 18500, businesses: 40, consumers: 590 },
-    { month: 'Nov', revenue: 17200, businesses: 38, consumers: 560 },
-    { month: 'Dec', revenue: 20650, businesses: 46, consumers: 670 },
+  businesses: 2450,
+  consumers: 8642,
+  totalVCards: 5420,
+  totalCards: 8750,
+  activeVCards: 4950,
+  activeCards: 8300,
+  pendingVCards: 470,
+  pendingCards: 450,
+  activeMemberships: 3200,
+  newBusinesses: 45,
+  newConsumers: 320,
+  businessVCards: { total: 2100, active: 1950, pending: 150 },
+  consumerVCards: { total: 3320, active: 3000, pending: 320 },
+  businessCards: { total: 2300, active: 2200, pending: 100 },
+  consumerCards: { total: 6450, active: 6100, pending: 350 },
+  additionalEntitlements: { available: 1250, allocated: 3400, active: 3050, pending: 350 },
+  businessActivity: [
+    { business: 'ABC Consulting', action: 'Created Business VCard', time: '5 minutes ago', type: 'vcard' },
+    { business: 'XYZ Restaurant', action: 'Activated Business Card', time: '20 minutes ago', type: 'card' },
+    { business: "John's Barber Shop", action: 'Updated Business VCard', time: '1 hour ago', type: 'vcard' },
+    { business: 'Green Café', action: 'Joined Bronze Membership', time: '2 hours ago', type: 'membership' },
+    { business: 'TechVision Inc', action: 'Activated Business VCard', time: '3 hours ago', type: 'vcard' },
   ],
-  plan_distribution: [
-    { name: 'Free', count: 5200, color: '#94a3b8' },
-    { name: 'Starter', count: 2100, color: '#3b82f6' },
-    { name: 'Business', count: 890, color: '#f59e0b' },
-    { name: 'Enterprise', count: 312, color: '#10b981' },
-    { name: 'Premium NFC', count: 140, color: '#8b5cf6' },
+  consumerActivity: [
+    { consumer: 'John Smith', action: 'Created Consumer VCard', time: '10 minutes ago', type: 'vcard' },
+    { consumer: 'Sarah Jones', action: 'Activated Consumer Card', time: '30 minutes ago', type: 'card' },
+    { consumer: 'David Brown', action: 'Received Additional Card Entitlement', time: '1 hour ago', type: 'entitlement' },
+    { consumer: 'Emma Wilson', action: 'Updated Consumer VCard', time: '2 hours ago', type: 'vcard' },
+    { consumer: 'Mike Patel', action: 'Activated Consumer VCard', time: '4 hours ago', type: 'vcard' },
   ],
-  recent_activity: [
-    { user: 'GreenLeaf Coffee', action: 'activated NFC bundle (50 tags)', time: '12 min ago', type: 'business' },
-    { user: 'Emma Rodriguez', action: 'redeemed loyalty reward ($15)', time: '28 min ago', type: 'consumer' },
-    { user: 'TechVision Inc', action: 'launched summer campaign', time: '1 hour ago', type: 'business' },
-    { user: 'James Chen', action: 'created digital business card', time: '2 hours ago', type: 'consumer' },
-    { user: 'Pizza Roma', action: 'upgraded to Business plan', time: '3 hours ago', type: 'business' },
-    { user: 'Sarah Wilson', action: 'completed NFC tap & connect', time: '4 hours ago', type: 'consumer' },
-    { user: 'FitLife Studio', action: 'placed print order (500 cards)', time: '6 hours ago', type: 'business' },
-    { user: 'Mike Patel', action: 'earned bronze badge level', time: '8 hours ago', type: 'consumer' },
+  recentBusinesses: [
+    { name: 'ABC Ltd', owner: 'John Doe', membership: 'Bronze', vcard: 'Active', card: 'Active', status: 'Active', registered: '10 mins ago' },
+    { name: 'XYZ Ltd', owner: 'Sarah Smith', membership: 'Silver', vcard: 'Pending', card: 'Active', status: 'Active', registered: '20 mins ago' },
+    { name: 'GreenLeaf Coffee', owner: 'Mike Green', membership: 'Bronze', vcard: 'Active', card: 'Pending', status: 'Active', registered: '35 mins ago' },
+    { name: 'TechVision Inc', owner: 'Lisa Chen', membership: 'Enterprise', vcard: 'Active', card: 'Active', status: 'Active', registered: '1 hour ago' },
+    { name: 'FitLife Studio', owner: 'Anna White', membership: 'Bronze', vcard: 'Pending', card: 'Pending', status: 'Pending', registered: '2 hours ago' },
+  ],
+  recentConsumers: [
+    { name: 'John Smith', membership: 'Bronze Pro+', vcard: 'Active', card: 'Active', additional: '3 Available', status: 'Active', registered: 'Today' },
+    { name: 'Sarah Jones', membership: 'Bronze', vcard: 'Active', card: 'Active', additional: '1 Available', status: 'Active', registered: 'Today' },
+    { name: 'David Brown', membership: 'Silver Pro+', vcard: 'Pending', card: 'Active', additional: '5 Available', status: 'Active', registered: 'Yesterday' },
+    { name: 'Emma Wilson', membership: 'Bronze', vcard: 'Active', card: 'Pending', additional: '0', status: 'Active', registered: 'Yesterday' },
+    { name: 'Mike Patel', membership: 'Bronze Pro+', vcard: 'Active', card: 'Active', additional: '2 Available', status: 'Active', registered: '2 days ago' },
+  ],
+  vcardActivity: [
+    { type: 'Business', name: 'ABC Restaurant', action: 'Updated profile', time: '10 minutes ago' },
+    { type: 'Consumer', name: 'John Smith', action: 'VCard activated', time: '20 minutes ago' },
+    { type: 'Business', name: 'TechVision Inc', action: 'VCard created', time: '1 hour ago' },
+    { type: 'Consumer', name: 'Sarah Jones', action: 'VCard shared', time: '2 hours ago' },
+    { type: 'Business', name: 'Green Café', action: 'VCard level changed', time: '3 hours ago' },
+  ],
+  cardActivity: [
+    { type: 'Business', name: 'ABC Restaurant', action: 'Card activated', time: '10 minutes ago' },
+    { type: 'Consumer', name: 'John Smith', action: 'Card shared', time: '25 minutes ago' },
+    { type: 'Consumer', name: 'Sarah Jones', action: 'Dynamic content viewed', time: '1 hour ago' },
+    { type: 'Business', name: 'XYZ Ltd', action: 'Card deactivated', time: '2 hours ago' },
+    { type: 'Consumer', name: 'David Brown', action: 'Card QR scanned', time: '3 hours ago' },
+  ],
+  membershipActivity: [
+    { name: 'John Smith', action: 'Upgraded Bronze → Bronze Pro+', detail: '3 additional card entitlements available', time: '1 hour ago' },
+    { name: 'ABC Consulting', action: 'Joined Enterprise Plan', detail: 'Unlimited VCards & Cards', time: '2 hours ago' },
+    { name: 'Green Café', action: 'Joined Bronze Membership', detail: 'Basic features activated', time: '3 hours ago' },
+    { name: 'Sarah Jones', action: 'Membership upgraded', detail: 'Additional card slot added', time: '5 hours ago' },
+  ],
+  integrations: [
+    { name: 'MCOM Solutions Central Auth', status: 'connected', lastSync: '5 minutes ago' },
+    { name: 'MCOM Rewards', status: 'coming-soon' },
+    { name: 'MCOMMall Cashback', status: 'coming-soon' },
+    { name: 'MCOMSpin Gamification', status: 'coming-soon' },
+    { name: 'FundOrDonate', status: 'coming-soon' },
+    { name: 'E-Card System', status: 'coming-soon' },
+  ],
+  regTrend: [
+    { period: 'Mon', businesses: 4, consumers: 28 },
+    { period: 'Tue', businesses: 6, consumers: 35 },
+    { period: 'Wed', businesses: 5, consumers: 42 },
+    { period: 'Thu', businesses: 8, consumers: 38 },
+    { period: 'Fri', businesses: 7, consumers: 45 },
+    { period: 'Sat', businesses: 3, consumers: 52 },
+    { period: 'Sun', businesses: 2, consumers: 30 },
+  ],
+  cardGrowth: [
+    { period: 'Mon', bizVcards: 12, conVcards: 45, bizCards: 8, conCards: 60 },
+    { period: 'Tue', bizVcards: 15, conVcards: 52, bizCards: 10, conCards: 72 },
+    { period: 'Wed', bizVcards: 10, conVcards: 48, bizCards: 14, conCards: 65 },
+    { period: 'Thu', bizVcards: 18, conVcards: 55, bizCards: 12, conCards: 80 },
+    { period: 'Fri', bizVcards: 14, conVcards: 60, bizCards: 16, conCards: 75 },
+    { period: 'Sat', bizVcards: 8, conVcards: 42, bizCards: 6, conCards: 55 },
+    { period: 'Sun', bizVcards: 6, conVcards: 35, bizCards: 4, conCards: 40 },
   ],
 }
 
-const PLAN_TOTAL = MOCK.plan_distribution.reduce((s, p) => s + p.count, 0)
-const PIE_SEGMENTS = MOCK.plan_distribution.map((p) => ({
-  ...p,
-  percentage: (p.count / PLAN_TOTAL) * 100,
-}))
-let cumPct = 0
-const PIE_CONIC = PIE_SEGMENTS.map((p) => {
-  const start = cumPct
-  cumPct += p.percentage
-  return `${p.color} ${start}% ${cumPct}%`
-}).join(', ')
+type DateFilter = 'Today' | '7 Days' | '30 Days' | '90 Days' | 'Custom'
+type OwnerFilter = 'All' | 'Business' | 'Consumer'
+type CardTypeFilter = 'All' | 'VCard' | 'Card'
+type StatusFilter = 'All' | 'Active' | 'Pending' | 'Inactive'
 
-const maxRev = Math.max(...MOCK.revenue_chart.map((m) => m.revenue))
-const maxBiz = Math.max(...MOCK.revenue_chart.map((m) => m.businesses))
-const maxCon = Math.max(...MOCK.revenue_chart.map((m) => m.consumers))
+function KpiCard({ title, value, subtitle, icon, color, link, children }: {
+  title: string; value: string | number; subtitle?: string; icon?: string; color: string; link?: string; children?: React.ReactNode
+}) {
+  const content = (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all group cursor-pointer">
+      <div className="flex items-start justify-between mb-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</span>
+        {icon && (
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color === 'orange' ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400' : color === 'blue' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : color === 'green' ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400' : color === 'purple' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' : color === 'teal' ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400' : 'bg-gray-50 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400'}`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} />
+            </svg>
+          </div>
+        )}
+      </div>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+      {children}
+    </div>
+  )
+  if (link) return <Link to={link}>{content}</Link>
+  return content
+}
 
 export default function AdminDashboardPage() {
-  const [stats] = useState(MOCK)
-  const period = 'This Month'
+  const [dateFilter, setDateFilter] = useState<DateFilter>('7 Days')
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('All')
+  const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter>('All')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
 
-  const quickActions = [
-    { to: '/admin/users/create', label: 'Add Business', icon: 'M19 7l-7 5-7-5m14 10V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2z', bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', border: 'hover:border-orange-500' },
-    { to: '/admin/templates', label: 'Templates', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z', bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400', border: 'hover:border-purple-500' },
-    { to: '/admin/subscribed-plans', label: 'Subscriptions', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', bg: 'bg-green-50 dark:bg-green-500/10', text: 'text-green-600 dark:text-green-400', border: 'hover:border-green-500' },
-    { to: '/admin/front-cms', label: 'Edit CMS', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z', bg: 'bg-teal-50 dark:bg-teal-500/10', text: 'text-teal-600 dark:text-teal-400', border: 'hover:border-teal-500' },
-    { to: '/admin/plans/create', label: 'New Plan', icon: 'M12 4v16m8-8H4', bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'hover:border-blue-500' },
-    { to: '/admin/settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', bg: 'bg-gray-50 dark:bg-gray-500/10', text: 'text-gray-600 dark:text-gray-400', border: 'hover:border-gray-500' },
-  ]
+  const data = MOCK
+
+  const maxReg = Math.max(...data.regTrend.map((r) => Math.max(r.businesses, r.consumers)))
+  const maxGrowth = Math.max(...data.cardGrowth.map((r) => Math.max(r.bizVcards, r.conVcards, r.bizCards, r.conCards)))
 
   return (
     <div className="space-y-6">
@@ -82,175 +143,464 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Your platform at a glance — {period}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">MCOMVCard ecosystem at a glance</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="hidden sm:inline">System</span> Online
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            System Online
+          </span>
+        </div>
+      </div>
+
+      {/* Global Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Date Range</label>
+            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              {(['Today', '7 Days', '30 Days', '90 Days', 'Custom'] as const).map((d) => <option key={d}>{d}</option>)}
+            </select>
           </div>
-          <Link
-            to="/admin/login"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className="hidden sm:inline">Switch to</span> Site
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Owner Type</label>
+            <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value as OwnerFilter)}
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              {(['All', 'Business', 'Consumer'] as const).map((d) => <option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Card Type</label>
+            <select value={cardTypeFilter} onChange={(e) => setCardTypeFilter(e.target.value as CardTypeFilter)}
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              {(['All', 'VCard', 'Card'] as const).map((d) => <option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Status</label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+              {(['All', 'Active', 'Pending', 'Inactive'] as const).map((d) => <option key={d}>{d}</option>)}
+            </select>
+          </div>
+          <button className="px-4 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors">Apply Filters</button>
+          <button onClick={() => { setDateFilter('7 Days'); setOwnerFilter('All'); setCardTypeFilter('All'); setStatusFilter('All') }}
+            className="px-4 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Reset</button>
+        </div>
+      </div>
+
+      {/* KPI Summary */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Key Metrics</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <KpiCard title="Total Businesses" value={data.businesses.toLocaleString()} subtitle="↑ 12% this month" icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" color="blue" link="/admin/businesses" />
+          <KpiCard title="Total Consumers" value={data.consumers.toLocaleString()} subtitle="↑ 8% this month" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" color="green" link="/admin/consumers" />
+          <KpiCard title="Total VCards" value={data.totalVCards.toLocaleString()} color="purple" link="/admin/vcards">
+            <div className="flex gap-3 mt-1.5 text-xs">
+              <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessVCards.total}</span>
+              <span className="text-green-600 dark:text-green-400">Con: {data.consumerVCards.total}</span>
+            </div>
+          </KpiCard>
+          <KpiCard title="Total Cards" value={data.totalCards.toLocaleString()} color="orange" link="/admin/cards">
+            <div className="flex gap-3 mt-1.5 text-xs">
+              <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessCards.total}</span>
+              <span className="text-green-600 dark:text-green-400">Con: {data.consumerCards.total}</span>
+            </div>
+          </KpiCard>
+          <KpiCard title="Active Memberships" value={data.activeMemberships.toLocaleString()} subtitle="↑ 5% this month" icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="teal" link="/admin/plans" />
+          <KpiCard title="Active VCards" value={data.activeVCards.toLocaleString()} color="purple" link="/admin/vcards">
+            <div className="flex gap-3 mt-1.5 text-xs">
+              <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessVCards.active}</span>
+              <span className="text-green-600 dark:text-green-400">Con: {data.consumerVCards.active}</span>
+            </div>
+          </KpiCard>
+          <KpiCard title="Active Cards" value={data.activeCards.toLocaleString()} color="orange" link="/admin/cards">
+            <div className="flex gap-3 mt-1.5 text-xs">
+              <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessCards.active}</span>
+              <span className="text-green-600 dark:text-green-400">Con: {data.consumerCards.active}</span>
+            </div>
+          </KpiCard>
+          <KpiCard title="New Registrations" value={(data.newBusinesses + data.newConsumers).toLocaleString()} color="blue">
+            <div className="flex gap-3 mt-1.5 text-xs">
+              <Link to="/admin/businesses" className="text-blue-600 dark:text-blue-400 hover:underline">Biz: {data.newBusinesses}</Link>
+              <Link to="/admin/consumers" className="text-green-600 dark:text-green-400 hover:underline">Con: {data.newConsumers}</Link>
+            </div>
+          </KpiCard>
+          <KpiCard title="Pending VCards" value={data.pendingVCards.toLocaleString()} color="teal" link="/admin/vcards" />
+          <KpiCard title="Pending Cards" value={data.pendingCards.toLocaleString()} color="teal" link="/admin/cards" />
+        </div>
+      </div>
+
+      {/* Card Ecosystem Overview - 4 cards */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Card Ecosystem Overview</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link to="/admin/vcards/business" className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800 p-5 hover:shadow-md transition-all group">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Business VCards</p>
+            <p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{data.businessVCards.total.toLocaleString()}</p>
+            <div className="flex gap-4 mt-2 text-xs text-blue-700 dark:text-blue-300">
+              <span>Active: {data.businessVCards.active}</span>
+              <span>Pending: {data.businessVCards.pending}</span>
+            </div>
+            <span className="inline-block mt-3 text-xs font-medium text-blue-600 dark:text-blue-400 group-hover:underline">View →</span>
+          </Link>
+          <Link to="/admin/cards/business" className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800 p-5 hover:shadow-md transition-all group">
+            <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Business Cards</p>
+            <p className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{data.businessCards.total.toLocaleString()}</p>
+            <div className="flex gap-4 mt-2 text-xs text-orange-700 dark:text-orange-300">
+              <span>Active: {data.businessCards.active}</span>
+              <span>Pending: {data.businessCards.pending}</span>
+            </div>
+            <span className="inline-block mt-3 text-xs font-medium text-orange-600 dark:text-orange-400 group-hover:underline">View →</span>
+          </Link>
+          <Link to="/admin/vcards/consumer" className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800 p-5 hover:shadow-md transition-all group">
+            <p className="text-sm font-semibold text-green-800 dark:text-green-300">Consumer VCards</p>
+            <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{data.consumerVCards.total.toLocaleString()}</p>
+            <div className="flex gap-4 mt-2 text-xs text-green-700 dark:text-green-300">
+              <span>Active: {data.consumerVCards.active}</span>
+              <span>Pending: {data.consumerVCards.pending}</span>
+            </div>
+            <span className="inline-block mt-3 text-xs font-medium text-green-600 dark:text-green-400 group-hover:underline">View →</span>
+          </Link>
+          <Link to="/admin/cards/consumer" className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800 p-5 hover:shadow-md transition-all group">
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">Consumer Cards</p>
+            <p className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{data.consumerCards.total.toLocaleString()}</p>
+            <div className="flex gap-4 mt-2 text-xs text-purple-700 dark:text-purple-300">
+              <span>Active: {data.consumerCards.active}</span>
+              <span>Pending: {data.consumerCards.pending}</span>
+            </div>
+            <span className="inline-block mt-3 text-xs font-medium text-purple-600 dark:text-purple-400 group-hover:underline">View →</span>
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Revenue" value={`£${stats.revenue.total.toLocaleString()}`} color="orange" subtitle={`${stats.revenue.growth > 0 ? '+' : ''}${stats.revenue.growth}% vs last month`} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatsCard title="Active Businesses" value={stats.active_businesses.toLocaleString()} color="blue" subtitle="With active subscriptions" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
-        <StatsCard title="Active Consumers" value={stats.active_consumers.toLocaleString()} color="green" subtitle="Engaged in last 30 days" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} />
-        <StatsCard title="Total vCards" value={stats.total_vcards.toLocaleString()} color="purple" subtitle={`${stats.nfc_devices.toLocaleString()} NFC devices active`} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1" /></svg>} />
-      </div>
-
-      {/* Secondary KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Wallet Transactions" value={stats.wallet_txns.toLocaleString()} color="teal" subtitle="This month" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} />
-        <StatsCard title="Campaigns Running" value={stats.campaigns_running} color="pink" subtitle="Across all businesses" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>} />
-        <StatsCard title="Print Orders" value={stats.print_orders} color="orange" subtitle="Pending fulfillment" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>} />
-        <StatsCard title="Rewards Distributed" value="14,280" color="green" subtitle="Points & cashback" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>} />
-      </div>
-
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Overview</h2>
-          <div className="relative h-52">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Registration Trend */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Registration Trend</h2>
+            <div className="flex gap-2 text-[10px]">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-500" /> Businesses</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-green-500" /> Consumers</span>
+            </div>
+          </div>
+          <div className="relative h-40">
             <div className="absolute inset-0 flex items-end gap-2">
-              {stats.revenue_chart.map((m) => (
-                <div key={m.month} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+              {data.regTrend.map((r) => (
+                <div key={r.period} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
                   <div className="w-full flex gap-0.5 items-end justify-center" style={{ height: '100%' }}>
-                    <div
-                      className="w-1/2 bg-orange-500 rounded-t opacity-80 hover:opacity-100 transition-opacity"
-                      style={{ height: `${(m.revenue / maxRev) * 100}%` }}
-                      title={`Revenue: £${m.revenue.toLocaleString()}`}
-                    />
+                    <div className="w-1/3 bg-blue-500 rounded-t opacity-80" style={{ height: `${(r.businesses / maxReg) * 100}%` }} title={`Businesses: ${r.businesses}`} />
+                    <div className="w-1/3 bg-green-500 rounded-t opacity-80" style={{ height: `${(r.consumers / maxReg) * 100}%` }} title={`Consumers: ${r.consumers}`} />
                   </div>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{m.month}</span>
+                  <span className="text-[9px] text-gray-400 mt-1">{r.period}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500" /> Revenue</div>
-          </div>
         </div>
 
-        {/* Plan Distribution */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Plan Distribution</h2>
-          <div className="flex items-center justify-center">
-            <div className="relative w-40 h-40">
-              <div className="w-full h-full rounded-full" style={{ background: `conic-gradient(${PIE_CONIC})` }} />
+        {/* Card Growth */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Card Creation Trend</h2>
+            <div className="flex gap-2 text-[10px] flex-wrap">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-500" /> Biz VCards</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-green-500" /> Con VCards</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-500" /> Biz Cards</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500" /> Con Cards</span>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
-            {stats.plan_distribution.map((p) => (
-              <div key={p.name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
-                  <span className="text-gray-600 dark:text-gray-400">{p.name}</span>
+          <div className="relative h-40">
+            <div className="absolute inset-0 flex items-end gap-1">
+              {data.cardGrowth.map((r) => (
+                <div key={r.period} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                  <div className="w-full flex gap-px items-end justify-center" style={{ height: '100%' }}>
+                    <div className="w-1/5 bg-blue-500 rounded-t" style={{ height: `${(r.bizVcards / maxGrowth) * 100}%` }} title={`Biz VCards: ${r.bizVcards}`} />
+                    <div className="w-1/5 bg-green-500 rounded-t" style={{ height: `${(r.conVcards / maxGrowth) * 100}%` }} title={`Con VCards: ${r.conVcards}`} />
+                    <div className="w-1/5 bg-orange-500 rounded-t" style={{ height: `${(r.bizCards / maxGrowth) * 100}%` }} title={`Biz Cards: ${r.bizCards}`} />
+                    <div className="w-1/5 bg-purple-500 rounded-t" style={{ height: `${(r.conCards / maxGrowth) * 100}%` }} title={`Con Cards: ${r.conCards}`} />
+                  </div>
+                  <span className="text-[9px] text-gray-400 mt-1">{r.period}</span>
                 </div>
-                <span className="font-medium text-gray-900 dark:text-white">{p.count.toLocaleString()}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Growth Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Business & Consumer Growth</h2>
-        <div className="relative h-48">
-          <div className="absolute inset-0 flex items-end gap-2">
-            {stats.revenue_chart.map((m) => (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-                <div className="w-full flex gap-0.5 items-end justify-center" style={{ height: '100%' }}>
-                  <div
-                    className="w-1/3 bg-blue-500 rounded-t opacity-80 hover:opacity-100 transition-opacity"
-                    style={{ height: `${(m.businesses / maxBiz) * 100}%` }}
-                    title={`Businesses: ${m.businesses}`}
-                  />
-                  <div
-                    className="w-1/3 bg-green-500 rounded-t opacity-80 hover:opacity-100 transition-opacity"
-                    style={{ height: `${(m.consumers / maxCon) * 100}%` }}
-                    title={`Consumers: ${m.consumers}`}
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{m.month}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500" /> Businesses</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-500" /> Consumers</div>
-        </div>
-      </div>
-
-      {/* Bottom Row */}
+      {/* Activity Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {quickActions.map((action) => (
-              <Link
-                key={action.to}
-                to={action.to}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 dark:border-gray-700 ${action.border} hover:shadow-md transition-all bg-white dark:bg-gray-800/50 group`}
-              >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.bg} ${action.text} group-hover:scale-110 transition-transform`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} />
-                  </svg>
+        {/* Business Activity */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Business Activity</h2>
+          <div className="space-y-0">
+            {data.businessActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${
+                  a.type === 'vcard' ? 'bg-purple-500' : a.type === 'card' ? 'bg-orange-500' : 'bg-teal-500'
+                }`}>{a.business.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">{a.business}</span>
+                    <span className="text-gray-500 dark:text-gray-400"> {a.action}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
                 </div>
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white">{action.label}</span>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
-            <span className="text-xs text-gray-400 dark:text-gray-500">Live</span>
-          </div>
+        {/* Consumer Activity */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Consumer Activity</h2>
           <div className="space-y-0">
-            {stats.recent_activity.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 ${
-                  a.type === 'business'
-                    ? 'bg-gradient-to-br from-blue-400 to-blue-600'
-                    : 'bg-gradient-to-br from-green-400 to-green-600'
-                }`}>
-                  {a.user.charAt(0)}
+            {data.consumerActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                  {a.consumer.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold">{a.user}</span>{' '}
-                    <span className="text-gray-500 dark:text-gray-400">{a.action}</span>
+                    <span className="font-semibold">{a.consumer}</span>
+                    <span className="text-gray-500 dark:text-gray-400"> {a.action}</span>
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{a.time}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
                 </div>
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                  a.type === 'business'
-                    ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                    : 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400'
-                }`}>
-                  {a.type === 'business' ? 'Biz' : 'User'}
-                </span>
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Recent Registrations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Businesses */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Business Registrations</h2>
+            <Link to="/admin/businesses" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">View All</Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left py-2 font-medium">Business</th>
+                  <th className="text-left py-2 font-medium">Owner</th>
+                  <th className="text-left py-2 font-medium">VCard</th>
+                  <th className="text-left py-2 font-medium">Card</th>
+                  <th className="text-left py-2 font-medium">Status</th>
+                  <th className="text-left py-2 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentBusinesses.map((b, i) => (
+                  <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td className="py-2.5">
+                      <Link to="/admin/businesses" className="font-medium text-gray-900 dark:text-white hover:text-orange-600">{b.name}</Link>
+                    </td>
+                    <td className="text-gray-500">{b.owner}</td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${b.vcard === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600'}`}>{b.vcard}</span></td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${b.card === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600'}`}>{b.card}</span></td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${b.status === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>{b.status}</span></td>
+                    <td>
+                      <Link to="/admin/businesses" className="text-orange-600 dark:text-orange-400 hover:underline font-medium">View</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Recent Consumers */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Consumer Registrations</h2>
+            <Link to="/admin/consumers" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">View All</Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left py-2 font-medium">Consumer</th>
+                  <th className="text-left py-2 font-medium">VCard</th>
+                  <th className="text-left py-2 font-medium">Card</th>
+                  <th className="text-left py-2 font-medium">Additional</th>
+                  <th className="text-left py-2 font-medium">Status</th>
+                  <th className="text-left py-2 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentConsumers.map((c, i) => (
+                  <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td className="py-2.5">
+                      <Link to="/admin/consumers" className="font-medium text-gray-900 dark:text-white hover:text-orange-600">{c.name}</Link>
+                    </td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${c.vcard === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600'}`}>{c.vcard}</span></td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${c.card === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600'}`}>{c.card}</span></td>
+                    <td className="text-gray-500">{c.additional}</td>
+                    <td><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${c.status === 'Active' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>{c.status}</span></td>
+                    <td>
+                      <Link to="/admin/consumers" className="text-orange-600 dark:text-orange-400 hover:underline font-medium">View</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* VCard & Card Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent VCard Activity</h2>
+          <div className="space-y-0">
+            {data.vcardActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${a.type === 'Business' ? 'bg-blue-500' : 'bg-green-500'}`}>{a.name.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded mr-1.5 ${a.type === 'Business' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'bg-green-50 dark:bg-green-500/10 text-green-600'}`}>{a.type} VCard</span>
+                    <span className="font-semibold">{a.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400"> {a.action}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Card Activity</h2>
+          <div className="space-y-0">
+            {data.cardActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${a.type === 'Business' ? 'bg-orange-500' : 'bg-purple-500'}`}>{a.name.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded mr-1.5 ${a.type === 'Business' ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600' : 'bg-purple-50 dark:bg-purple-500/10 text-purple-600'}`}>{a.type} Card</span>
+                    <span className="font-semibold">{a.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400"> {a.action}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Membership Activity + Additional Card Entitlements */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Membership Activity</h2>
+          <div className="space-y-0">
+            {data.membershipActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 py-2.5 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                <div className="w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">{a.name.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">{a.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400"> {a.action}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">{a.detail} · {a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Link to="/admin/plans" className="block mt-3 text-xs text-orange-600 dark:text-orange-400 hover:underline font-medium">View All Membership Activity →</Link>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Additional Card Entitlements</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-teal-50 dark:bg-teal-500/10 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold text-teal-700 dark:text-teal-300">{data.additionalEntitlements.available.toLocaleString()}</p>
+              <p className="text-xs text-teal-600 dark:text-teal-400">Available</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{data.additionalEntitlements.allocated.toLocaleString()}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">Allocated</p>
+            </div>
+            <div className="bg-green-50 dark:bg-green-500/10 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{data.additionalEntitlements.active.toLocaleString()}</p>
+              <p className="text-xs text-green-600 dark:text-green-400">Active</p>
+            </div>
+            <div className="bg-yellow-50 dark:bg-yellow-500/10 rounded-lg p-4 text-center">
+              <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{data.additionalEntitlements.pending.toLocaleString()}</p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-400">Pending Allocation</p>
+            </div>
+          </div>
+          <Link to="/admin/consumers" className="block mt-3 text-xs text-orange-600 dark:text-orange-400 hover:underline font-medium">View Consumers with Available Slots →</Link>
+        </div>
+      </div>
+
+      {/* Integration Status */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Integration Status</h2>
+          <Link to="/admin/integrations" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">Manage Integrations</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {data.integrations.map((int) => (
+            <Link key={int.name} to="/admin/integrations" className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                int.status === 'connected' ? 'bg-green-500' : int.status === 'coming-soon' ? 'bg-gray-300 dark:bg-gray-600' : 'bg-red-500'
+              }`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{int.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {int.status === 'connected' ? `● Connected · ${int.lastSync}` : int.status === 'coming-soon' ? '○ Coming Soon' : '● Connection Error'}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[
+            { to: '/admin/vcards/business', label: 'Create Business VCard', icon: 'M12 4v16m8-8H4', color: 'blue' },
+            { to: '/admin/cards/business', label: 'Create Business Card', icon: 'M12 4v16m8-8H4', color: 'orange' },
+            { to: '/admin/vcards/consumer', label: 'Create Consumer VCard', icon: 'M12 4v16m8-8H4', color: 'green' },
+            { to: '/admin/cards/consumer', label: 'Create Consumer Card', icon: 'M12 4v16m8-8H4', color: 'purple' },
+            { to: '/admin/plans', label: 'Create Membership Plan', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'teal' },
+            { to: '/admin/vcard-levels', label: 'Manage VCard Levels', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z', color: 'purple' },
+            { to: '/admin/templates', label: 'VCard Templates', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z', color: 'blue' },
+            { to: '/admin/card-templates', label: 'Card Templates', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z', color: 'orange' },
+          ].map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className={`flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-sm transition-all group ${
+                action.color === 'blue' ? 'hover:border-blue-300 dark:hover:border-blue-700' :
+                action.color === 'orange' ? 'hover:border-orange-300 dark:hover:border-orange-700' :
+                action.color === 'green' ? 'hover:border-green-300 dark:hover:border-green-700' :
+                action.color === 'purple' ? 'hover:border-purple-300 dark:hover:border-purple-700' :
+                'hover:border-teal-300 dark:hover:border-teal-700'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                action.color === 'blue' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600' :
+                action.color === 'orange' ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-600' :
+                action.color === 'green' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' :
+                action.color === 'purple' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600' :
+                'bg-teal-50 dark:bg-teal-500/10 text-teal-600'
+              }`}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} />
+                </svg>
+              </div>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">{action.label}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

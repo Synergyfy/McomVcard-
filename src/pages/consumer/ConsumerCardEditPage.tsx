@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import QRCode from 'qrcode'
 import { mockCardDesigns } from '../../services/mockData'
+import { consumerService } from '../../services/consumer'
+import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
 
 const LAYOUTS = ['split', 'centered', 'header', 'minimal', 'bold', 'diagonal'] as const
 const COLOR_PRESETS = ['#0F172A', '#D4AF37', '#FFFFFF', '#0D9488', '#F0FDFA', '#DC2626', '#1F2937', '#7C3AED', '#EC4899', '#059669', '#FEF3C7', '#2563EB', '#06B6D4', '#92400E', '#FFFBEB', '#18181B', '#FAFAFA', '#E11D48', '#14B8A6', '#0EA5E9', '#10B981', '#B45309', '#8B5CF6', '#EF4444', '#F59E0B']
@@ -20,6 +23,45 @@ const tooltips: Record<string, string> = {
   customFields: 'Add extra fields like social links, address, or website',
 }
 
+interface CollapsibleSectionProps {
+  title: string
+  tooltipKey?: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}
+
+function CollapsibleSection({ title, tooltipKey, open, onToggle, children }: CollapsibleSectionProps) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="group w-full flex items-center justify-between gap-2 px-5 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+          {tooltipKey && (
+            <span className="relative w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-600 text-[9px] flex items-center justify-center text-gray-500 cursor-help">
+              ?
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-20 hidden group-hover:block pointer-events-none">{tooltips[tooltipKey]}</span>
+            </span>
+          )}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  )
+}
+
 interface CustomField {
   id: number
   label: string
@@ -31,10 +73,10 @@ export default function ConsumerCardEditPage() {
   const design = mockCardDesigns.find((d) => d.id === Number(designId))
   const navigate = useNavigate()
 
-  const [name, setName] = useState('Alex Morgan')
+  const [name, setName] = useState('Your Name')
   const [title, setTitle] = useState('Nature Lover')
-  const [phone, setPhone] = useState('+1 (555) 111-2222')
-  const [email, setEmail] = useState('alex@morgan.com')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [description, setDescription] = useState('Passionate about connecting people through beautiful card designs.')
   const [primaryColor, setPrimaryColor] = useState(design?.primaryColor || '#0F172A')
   const [secondaryColor, setSecondaryColor] = useState(design?.secondaryColor || '#D4AF37')
@@ -42,12 +84,56 @@ export default function ConsumerCardEditPage() {
   const [layout, setLayout] = useState(design?.layout || 'split')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([
-    { id: 1, label: 'Website', value: 'alexmorgan.com' },
+    { id: 1, label: 'Website', value: 'mcomvcard.link' },
   ])
   const [nextFieldId, setNextFieldId] = useState(2)
   const [flipped, setFlipped] = useState(false)
   const [tooltip, setTooltip] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [openSection, setOpenSection] = useState<string | null>(null)
+
+  const toggleSection = (key: string) => setOpenSection((prev) => (prev === key ? null : key))
+
+  // Card share link + QR
+  const [cardId, setCardId] = useState('CARD-CNS-000001')
+  const [cardUrl, setCardUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    consumerService.getProfile()
+      .then((p) => {
+        setCardId(p.cardId || 'CARD-CNS-000001')
+        setName(p.name)
+        setPhone(p.phone)
+        setEmail(p.email)
+        setCustomFields((fields) => [
+          ...fields.map((f) => (f.label === 'Website' ? { ...f, value: p.cardId ? `mcomvcard.link/c/${p.cardId.toLowerCase()}` : f.value } : f)),
+        ])
+      })
+      .catch(() => { /* keep default */ })
+  }, [])
+
+  useEffect(() => {
+    setCardUrl(`https://mcomvcard.link/c/${cardId}`)
+  }, [cardId])
+
+  useEffect(() => {
+    if (!cardUrl) return
+    QRCode.toDataURL(cardUrl, { width: 96, margin: 1, errorCorrectionLevel: 'H', color: { dark: '#000000', light: '#ffffff' } })
+      .then(setQrDataUrl)
+      .catch(() => { /* ignore render errors */ })
+  }, [cardUrl])
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard?.writeText(cardUrl)
+    } catch {
+      /* clipboard unavailable */
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   if (!design) {
     return (
@@ -120,15 +206,7 @@ export default function ConsumerCardEditPage() {
         {/* Left: Controls */}
         <div className="lg:col-span-3 space-y-4">
           {/* Basic Info */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Basic Info</h3>
-              <div className="relative">
-                <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-600 text-[9px] flex items-center justify-center text-gray-500 cursor-help" onMouseEnter={() => setTooltip('name')} onMouseLeave={() => setTooltip(null)}>?</span>
-                {tooltip === 'name' && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-10">{tooltips.name}</div>}
-              </div>
-            </div>
-
+          <CollapsibleSection title="Basic Info" tooltipKey="name" open={openSection === 'basic'} onToggle={() => toggleSection('basic')}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
@@ -182,17 +260,10 @@ export default function ConsumerCardEditPage() {
               </div>
               <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
             </div>
-          </div>
+          </CollapsibleSection>
 
           {/* Logo Upload */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Logo / Avatar</h3>
-              <div className="relative">
-                <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-600 text-[9px] flex items-center justify-center text-gray-500 cursor-help" onMouseEnter={() => setTooltip('logo')} onMouseLeave={() => setTooltip(null)}>?</span>
-                {tooltip === 'logo' && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-10">{tooltips.logo}</div>}
-              </div>
-            </div>
+          <CollapsibleSection title="Logo / Avatar" tooltipKey="logo" open={openSection === 'logo'} onToggle={() => toggleSection('logo')}>
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-600">
                 {logoPreview ? (
@@ -210,18 +281,12 @@ export default function ConsumerCardEditPage() {
               )}
             </div>
             {logoError && <p className="text-xs text-red-500">{logoError}</p>}
-          </div>
+          </CollapsibleSection>
 
           {/* Custom Fields */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Custom Fields</h3>
-                <div className="relative">
-                  <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-600 text-[9px] flex items-center justify-center text-gray-500 cursor-help" onMouseEnter={() => setTooltip('customFields')} onMouseLeave={() => setTooltip(null)}>?</span>
-                  {tooltip === 'customFields' && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-10">{tooltips.customFields}</div>}
-                </div>
-              </div>
+          <CollapsibleSection title="Custom Fields" tooltipKey="customFields" open={openSection === 'custom'} onToggle={() => toggleSection('custom')}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Social links, website, or any other info.</p>
               <button onClick={addField} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Add Field
@@ -242,18 +307,10 @@ export default function ConsumerCardEditPage() {
             ) : (
               <p className="text-xs text-gray-400">No custom fields yet. Click "Add Field" to add social links, website, or any other info.</p>
             )}
-          </div>
+          </CollapsibleSection>
 
           {/* Colors & Layout */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Colors & Layout</h3>
-              <div className="relative">
-                <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-600 text-[9px] flex items-center justify-center text-gray-500 cursor-help" onMouseEnter={() => setTooltip('primaryColor')} onMouseLeave={() => setTooltip(null)}>?</span>
-                {tooltip === 'primaryColor' && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded shadow-lg whitespace-nowrap z-10">{tooltips.primaryColor}</div>}
-              </div>
-            </div>
-
+          <CollapsibleSection title="Colors & Layout" tooltipKey="primaryColor" open={openSection === 'colors'} onToggle={() => toggleSection('colors')}>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Primary Color</label>
@@ -315,7 +372,28 @@ export default function ConsumerCardEditPage() {
                 ))}
               </div>
             </div>
-          </div>
+          </CollapsibleSection>
+
+          {/* Card Security & Passcode */}
+          <CollapsibleSection title="Card Security & Passcode" open={openSection === 'security'} onToggle={() => toggleSection('security')}>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              The QR on your card opens your shared card. The balance area is protected by the passcode you set here.
+            </p>
+
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Card Link</label>
+            <div className="flex items-center gap-2 mb-4">
+              <input readOnly value={cardUrl} onFocus={(e) => e.target.select()} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              <button onClick={copyLink} className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${copied ? 'bg-green-500 text-white' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30'}`}>
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            <CardProtectionPanel
+              cardId={cardId}
+              title="Protect My Shared Card"
+              description="Require a passcode to view the balance area"
+            />
+          </CollapsibleSection>
         </div>
 
         {/* Right: Live Preview */}
@@ -328,7 +406,7 @@ export default function ConsumerCardEditPage() {
                 {flipped ? 'Show Front' : 'Show Back'}
               </button>
             </div>
-            <div className="w-[320px]">
+            <div className="w-full max-w-[320px]">
               {!flipped ? (
                 <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700">
                   <div className="h-44 relative flex flex-col justify-between p-5" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
@@ -345,8 +423,12 @@ export default function ConsumerCardEditPage() {
                           <div key={i} className="w-5 h-5 rounded-full border border-white/30" style={{ background: color }} />
                         ))}
                       </div>
-                      <div className="w-10 h-10 rounded bg-white/20 flex items-center justify-center">
-                        <div className="w-7 h-7 grid grid-cols-3 gap-[1px]">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="bg-white/80 rounded-[1px]" />)}</div>
+                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+                        {qrDataUrl ? (
+                          <img src={qrDataUrl} alt="Card QR code" className="w-11 h-11 object-contain" />
+                        ) : (
+                          <div className="w-10 h-10 animate-pulse bg-gray-100" />
+                        )}
                       </div>
                     </div>
                   </div>

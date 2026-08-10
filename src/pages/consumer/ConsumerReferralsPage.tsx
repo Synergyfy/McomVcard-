@@ -1,15 +1,33 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
+import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerReferralsPage() {
   const [referrals, setReferrals] = useState<Array<{ name: string; email: string; joined: string; reward: string }>>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [referralLink, setReferralLink] = useState('')
+
+  const loadReferrals = () => {
+    setLoading(true)
+    setError(false)
+    Promise.all([
+      consumerService.getReferrals(),
+      consumerService.getProfile(),
+    ])
+      .then(([refs, profile]) => {
+        setReferrals(refs)
+        setReferralLink(`https://mcomvcard.link/ref/${(profile.cardId || 'mc-cns-000001').toLowerCase()}`)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
-    consumerService.getReferrals().then(setReferrals).finally(() => setLoading(false))
+    loadReferrals()
   }, [])
 
   const handleInvite = (e: React.FormEvent) => {
@@ -22,6 +40,18 @@ export default function ConsumerReferralsPage() {
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Helmet><title>Referrals - Consumer - MCOM VCard</title></Helmet>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Refer & Earn</h1>
+        <div className="lg:max-w-2xl">
+          <ErrorState title="We couldn't load your referrals" message="Please try again in a moment." onRetry={loadReferrals} />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -88,8 +118,8 @@ export default function ConsumerReferralsPage() {
       <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Share Your Referral Link</h2>
         <div className="flex gap-2">
-          <input type="text" readOnly value="https://mcomvcard.link/ref/emma123" className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-500 dark:text-gray-400" />
-          <button onClick={() => navigator.clipboard?.writeText('https://mcomvcard.link/ref/emma123')} className="px-4 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+          <input type="text" readOnly value={referralLink} className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-500 dark:text-gray-400" />
+          <button onClick={() => navigator.clipboard?.writeText(referralLink)} className="px-4 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
             Copy
           </button>
         </div>
