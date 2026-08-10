@@ -18,12 +18,17 @@ const initialHours: Record<string, DaySchedule> = {
   Sunday: { enabled: false, start: '10:00', end: '14:00' },
 }
 
-export default function VCardEditBusinessHoursTab() {
+interface TabProps { onHoursChange?: (h: Record<string, DaySchedule>) => void; onFieldEdit?: (field: string) => void }
+
+export default function VCardEditBusinessHoursTab({ onHoursChange, onFieldEdit }: TabProps) {
   const [hours, setHours] = useState<Record<string, DaySchedule>>(initialHours)
   const [saved, setSaved] = useState(false)
 
   const updateDay = (day: string, field: keyof DaySchedule, value: boolean | string) => {
-    setHours({ ...hours, [day]: { ...hours[day], [field]: value } })
+    const next = { ...hours, [day]: { ...hours[day], [field]: value } }
+    setHours(next)
+    onHoursChange?.(next)
+    onFieldEdit?.('hours')
     setSaved(false)
   }
 

@@ -2,43 +2,87 @@ import { useState, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import StatsCard from '../../../components/admin/StatsCard'
 import { mockConsumers } from '../../../services/mockData'
 
-const STATUSES = ['All', 'active', 'inactive', 'suspended']
-type SortKey = 'name' | 'wallet' | 'rewards' | 'cards' | 'referrals' | 'status' | 'joined'
+type SortKey = 'consumer' | 'membership' | 'status' | 'joined' | 'lastActivity'
 type SortDir = 'asc' | 'desc'
+
+const PER_PAGE_OPTIONS = [25, 50, 100] as const
+const MEMBERSHIPS = ['Bronze', 'Bronze Pro', 'Silver Pro', 'Gold', 'Gold Pro', 'Platinum Pro', 'Platinum Pro+']
+const BUSINESSES = Array.from(new Set(mockConsumers.map(c => c.primaryIssuingBusiness)))
+const SOURCES = Array.from(new Set(mockConsumers.map(c => c.registrationSource)))
 
 export default function ConsumerListPage() {
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [selected, setSelected] = useState<number[]>([])
-  const [sortKey, setSortKey] = useState<SortKey>('name')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
-  const perPage = 8
+  const [perPage, setPerPage] = useState<number>(25)
+  const [sortKey, setSortKey] = useState<SortKey>('consumer')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [selected, setSelected] = useState<number[]>([])
+  const [showFilters, setShowFilters] = useState(false)
+  const [menuOpen, setMenuOpen] = useState<number | null>(null)
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    accountStatus: 'All',
+    membership: 'All',
+    vcardStatus: 'All',
+    cardStatus: 'All',
+    addlEntitlement: 'All',
+    allocationType: 'All',
+    issuingBusiness: 'All',
+    regSource: 'All',
+    dateRange: 'All',
+    activity: 'All',
+  })
+
+  const kpiTotals = useMemo(() => ({
+    total: mockConsumers.length,
+    active: mockConsumers.filter(c => c.status === 'active').length,
+    withVCards: mockConsumers.filter(c => c.vcardStatus === 'Active').length,
+    withCards: mockConsumers.filter(c => c.cardStatus === 'Active').length,
+    activeMemberships: mockConsumers.filter(c => c.membershipStatus === 'Active').length,
+    addlCardsAllocated: mockConsumers.reduce((s, c) => s + c.allocatedAdditionalCards, 0),
+    pendingEntitlements: mockConsumers.reduce((s, c) => s + c.unallocatedEntitlements, 0),
+  }), [])
 
   const filtered = useMemo(() => {
     let items = [...mockConsumers]
     if (search) {
       const q = search.toLowerCase()
-      items = items.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.location.toLowerCase().includes(q))
+      items = items.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.phone.toLowerCase().includes(q) ||
+        c.consumerId.toLowerCase().includes(q) ||
+        c.centralUserId.toLowerCase().includes(q) ||
+        c.primaryIssuingBusiness.toLowerCase().includes(q)
+      )
     }
-    if (statusFilter !== 'All') items = items.filter(c => c.status === statusFilter)
+    if (filters.accountStatus !== 'All') items = items.filter(c => c.status === filters.accountStatus)
+    if (filters.membership !== 'All') items = items.filter(c => c.membership === filters.membership)
+    if (filters.vcardStatus !== 'All') items = items.filter(c => c.vcardStatus === filters.vcardStatus)
+    if (filters.cardStatus !== 'All') items = items.filter(c => c.cardStatus === filters.cardStatus)
+    if (filters.addlEntitlement === 'Has unused') items = items.filter(c => c.unallocatedEntitlements > 0)
+    else if (filters.addlEntitlement === 'Fully allocated') items = items.filter(c => c.additionalEntitlements > 0 && c.unallocatedEntitlements === 0)
+    else if (filters.addlEntitlement === 'No additional') items = items.filter(c => c.additionalEntitlements === 0)
+    if (filters.allocationType !== 'All') items = items.filter(c => c.allocationType === filters.allocationType)
+    if (filters.issuingBusiness !== 'All') items = items.filter(c => c.primaryIssuingBusiness === filters.issuingBusiness)
+    if (filters.regSource !== 'All') items = items.filter(c => c.registrationSource === filters.regSource)
     items.sort((a, b) => {
       let cmp = 0
-      if (sortKey === 'name') cmp = a.name.localeCompare(b.name)
-      else if (sortKey === 'wallet') cmp = a.wallet.balance - b.wallet.balance
-      else if (sortKey === 'rewards') cmp = a.stats.rewards - b.stats.rewards
-      else if (sortKey === 'cards') cmp = a.stats.cards - b.stats.cards
-      else if (sortKey === 'referrals') cmp = a.stats.referrals - b.stats.referrals
+      if (sortKey === 'consumer') cmp = a.name.localeCompare(b.name)
+      else if (sortKey === 'membership') cmp = a.membership.localeCompare(b.membership)
       else if (sortKey === 'status') cmp = a.status.localeCompare(b.status)
       else if (sortKey === 'joined') cmp = a.joined.localeCompare(b.joined)
+      else if (sortKey === 'lastActivity') cmp = a.lastActivityAt.localeCompare(b.lastActivityAt)
       return sortDir === 'asc' ? cmp : -cmp
     })
     return items
-  }, [search, statusFilter, sortKey, sortDir])
+  }, [search, filters, sortKey, sortDir])
 
   const totalPages = Math.ceil(filtered.length / perPage)
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
@@ -51,141 +95,443 @@ export default function ConsumerListPage() {
   const toggleSelect = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleAll = () => setSelected(selected.length === paginated.length ? [] : paginated.map(c => c.id))
 
+  const clearFilters = () => {
+    setFilters({ accountStatus: 'All', membership: 'All', vcardStatus: 'All', cardStatus: 'All', addlEntitlement: 'All', allocationType: 'All', issuingBusiness: 'All', regSource: 'All', dateRange: 'All', activity: 'All' })
+    setSearch('')
+    setPage(0)
+  }
+
   const handleBulkAction = (action: string) => {
     if (selected.length === 0) { toast.error('Select consumers first'); return }
-    const msgs: Record<string, string> = { suspend: 'Consumers suspended', reward: 'Reward issued to selected', email: 'Email sent', delete: 'Consumers deactivated' }
-    toast.success(`${msgs[action] || action} (${selected.length})`)
+    if (action === 'export') {
+      toast.success(`Exporting ${selected.length} consumer records`)
+      setSelected([])
+      return
+    }
+    const actionMap: Record<string, string> = {
+      suspend: 'Suspended',
+      reactivate: 'Reactivated',
+      notify: 'Notification sent to',
+    }
+    const msg = actionMap[action] || action
+    toast.success(`${msg} ${selected.length} consumer(s)`)
     setSelected([])
   }
 
-  const statusColor = (s: string) => s === 'active' ? 'text-green-600 dark:text-green-400' : s === 'suspended' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'
-  const statusBg = (s: string) => s === 'active' ? 'bg-green-500' : s === 'suspended' ? 'bg-red-500' : 'bg-gray-400'
-  const planBadge = (b: number) => b >= 10000 ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300' : b >= 2000 ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-300'
+  const handleRowAction = (c: typeof mockConsumers[0], action: string) => {
+    setMenuOpen(null)
+    switch (action) {
+      case 'viewDetails': navigate(`/admin/consumers/${c.id}`); break
+      case 'viewVCard': navigate(`/admin/consumers/${c.id}?tab=vcard`); break
+      case 'viewCard': navigate(`/admin/consumers/${c.id}?tab=card`); break
+      case 'viewMembership': navigate(`/admin/consumers/${c.id}?tab=membership`); break
+      case 'viewActivity': navigate(`/admin/consumers/${c.id}?tab=activity`); break
+      case 'suspend': toast.success(`Consumer ${c.name} suspended`); break
+      case 'reactivate': toast.success(`Consumer ${c.name} reactivated`); break
+      case 'centralAccount': toast.success(`Opening central account for ${c.name}`); break
+      default: break
+    }
+  }
+
+  const statusColor = (s: string) =>
+    s === 'active' ? 'text-green-600 dark:text-green-400' :
+    s === 'suspended' ? 'text-red-600 dark:text-red-400' :
+    s === 'inactive' ? 'text-gray-500' :
+    s === 'Pending' ? 'text-yellow-600' : 'text-gray-500'
+
+  const statusBg = (s: string) =>
+    s === 'active' || s === 'Active' ? 'bg-green-500' :
+    s === 'suspended' || s === 'Suspended' ? 'bg-red-500' :
+    s === 'Pending' || s === 'pending' ? 'bg-yellow-500' :
+    s === 'Not Assigned' ? 'bg-gray-300 dark:bg-gray-600' :
+    'bg-gray-400'
+
+  const renderKpiCard = (label: string, value: string | number, active: boolean, onClick: () => void, color: string) => (
+    <button onClick={onClick} className={`${active ? 'bg-white dark:bg-gray-800 border-orange-500 ring-1 ring-orange-500 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'} rounded-xl border p-3 text-left hover:shadow-sm transition-all`}>
+      <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
+    </button>
+  )
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return null
+    return (
+      <svg className={`w-3 h-3 transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    )
+  }
+
+  const activeFilterCount = Object.entries(filters).filter(([, v]) => v !== 'All').length
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-3">
+          <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">We couldn't load consumers.</p>
+        <div className="flex gap-2">
+          <button onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 500) }} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">Try Again</button>
+          <button onClick={() => toast.success('Opening system status')} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Check System Status</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Helmet><title>Consumers - MCOM VCard</title></Helmet>
+        <div className="h-8 w-32 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-4 w-64 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          {Array.from({ length: 7 }, (_, i) => <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />)}
+        </div>
+        <div className="h-10 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
+        <div className="space-y-2">
+          {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-14 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <Helmet><title>Consumers - MCOM VCard Social Bio</title></Helmet>
+      <Helmet><title>Consumers - MCOM VCard</title></Helmet>
+
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Consumers</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">End users across the platform — {mockConsumers.length} consumers</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage and monitor all consumers using MCOMVCard, including their VCards, Cards, memberships, entitlements, allocations, and activity.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => toast.success('Opening invitation workflow')} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600">Add / Import Consumer</button>
+          <div className="relative">
+            <button onClick={() => setShowFilters(true)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              Filters
+              {activeFilterCount > 0 && <span className="bg-orange-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{activeFilterCount}</span>}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatsCard title="Total Consumers" value={mockConsumers.length} color="green" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} subtitle={`${mockConsumers.filter(c => c.status === 'active').length} active`} />
-        <StatsCard title="Total Wallet" value={`$${mockConsumers.reduce((s, c) => s + c.wallet.balance, 0).toLocaleString()}`} color="orange" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} subtitle={`Avg. $${(mockConsumers.reduce((s, c) => s + c.wallet.balance, 0) / mockConsumers.length).toFixed(0)}`} />
-        <StatsCard title="Total Rewards" value={mockConsumers.reduce((s, c) => s + c.stats.rewards, 0)} color="purple" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>} subtitle="Redeemed & available" />
-        <StatsCard title="Referrals" value={mockConsumers.reduce((s, c) => s + c.stats.referrals, 0)} color="teal" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>} subtitle={`${mockConsumers.filter(c => c.stats.referrals > 0).length} referrers`} />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        {renderKpiCard('Total Consumers', kpiTotals.total, filters.accountStatus === 'All' && filters.vcardStatus === 'All' && filters.cardStatus === 'All' && filters.membership === 'All', () => { clearFilters(); toast.success('Showing all consumers') }, 'text-gray-900 dark:text-white')}
+        {renderKpiCard('Active', kpiTotals.active, filters.accountStatus === 'active', () => { setFilters(prev => ({ ...prev, accountStatus: prev.accountStatus === 'active' ? 'All' : 'active' })); setPage(0) }, 'text-green-600')}
+        {renderKpiCard('With VCards', kpiTotals.withVCards, filters.vcardStatus === 'Active', () => { setFilters(prev => ({ ...prev, vcardStatus: prev.vcardStatus === 'Active' ? 'All' : 'Active' })); setPage(0) }, 'text-blue-600')}
+        {renderKpiCard('With Cards', kpiTotals.withCards, filters.cardStatus === 'Active', () => { setFilters(prev => ({ ...prev, cardStatus: prev.cardStatus === 'Active' ? 'All' : 'Active' })); setPage(0) }, 'text-purple-600')}
+        {renderKpiCard('Active Memberships', kpiTotals.activeMemberships, filters.membership !== 'All', () => { setFilters(prev => ({ ...prev, membership: prev.membership !== 'All' ? 'All' : 'Silver Pro' })); setPage(0) }, 'text-orange-600')}
+        {renderKpiCard('Addl Cards Allocated', kpiTotals.addlCardsAllocated, filters.addlEntitlement === 'Fully allocated', () => { setFilters(prev => ({ ...prev, addlEntitlement: prev.addlEntitlement === 'Fully allocated' ? 'All' : 'Fully allocated' })); setPage(0) }, 'text-indigo-600')}
+        {renderKpiCard('Pending Entitlements', kpiTotals.pendingEntitlements, filters.addlEntitlement === 'Has unused', () => { setFilters(prev => ({ ...prev, addlEntitlement: prev.addlEntitlement === 'Has unused' ? 'All' : 'Has unused' })); setPage(0) }, 'text-amber-600')}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+      {/* Search + Bulk Actions + Pagination Top */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[240px]">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input type="text" placeholder="Search name, email, location..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500" />
+            <input type="text" placeholder="Search by name, email, phone, Consumer ID, VCard ID, or Card ID" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50" />
           </div>
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0) }} className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500/50">
-            {STATUSES.map(s => <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-          </select>
+          {selected.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{selected.length} selected</span>
+              <button onClick={() => handleBulkAction('suspend')} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600">Suspend</button>
+              <button onClick={() => handleBulkAction('reactivate')} className="px-3 py-1.5 rounded-lg bg-green-500 text-white text-xs font-medium hover:bg-green-600">Reactivate</button>
+              <button onClick={() => handleBulkAction('export')} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600">Export</button>
+              <button onClick={() => setSelected([])} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Clear</button>
+            </div>
+          )}
+          {selected.length === 0 && (
+            <button onClick={() => toast.success('Exporting all filtered consumers')} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Export
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Bulk Actions */}
-      {selected.length > 0 && (
-        <div className="bg-orange-50 dark:bg-orange-500/10 rounded-2xl border border-orange-100 dark:border-orange-500/20 p-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{selected.length} selected</span>
-          <div className="flex gap-2">
-            <button onClick={() => handleBulkAction('reward')} className="px-3 py-1.5 rounded-lg bg-purple-500 text-white text-xs font-medium hover:bg-purple-600">Issue Reward</button>
-            <button onClick={() => handleBulkAction('suspend')} className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-medium hover:bg-orange-600">Suspend</button>
-            <button onClick={() => handleBulkAction('email')} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600">Email</button>
-            <button onClick={() => handleBulkAction('delete')} className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600">Deactivate</button>
-            <button onClick={() => setSelected([])} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Clear</button>
-          </div>
+      {/* Active Filters Chips */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {Object.entries(filters).filter(([, v]) => v !== 'All').map(([key, val]) => (
+            <span key={key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-medium">
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}: {val}
+              <button onClick={() => { setFilters(prev => ({ ...prev, [key]: 'All' })); setPage(0) }} className="ml-0.5 hover:text-orange-800">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </span>
+          ))}
+          <button onClick={clearFilters} className="text-[10px] text-gray-500 hover:text-orange-600 underline">Clear all</button>
         </div>
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-                <th className="px-4 py-3 w-10"><input type="checkbox" checked={paginated.length > 0 && selected.length === paginated.length} onChange={toggleAll} className="rounded border-gray-300 dark:border-gray-600 text-orange-500 focus:ring-orange-500" /></th>
-                {([{ key: 'name', label: 'Consumer' }, { key: 'wallet', label: 'Wallet' }, { key: 'rewards', label: 'Rewards' }, { key: 'cards', label: 'Cards', hide: 'sm' }, { key: 'referrals', label: 'Referrals', hide: 'md' }, { key: 'status', label: 'Status' }, { key: 'joined', label: 'Joined', hide: 'lg' }] as { key: SortKey; label: string; hide?: string }[]).map(col => (
-                  <th key={col.key} className={`text-left px-4 py-3 font-medium ${col.hide ? `hidden ${col.hide === 'sm' ? 'sm:table-cell' : col.hide === 'md' ? 'md:table-cell' : 'lg:table-cell'}` : ''}`}>
-                    <button onClick={() => toggleSort(col.key)} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">
-                      {col.label}
-                      {sortKey === col.key && <svg className={`w-3 h-3 transition-transform ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>}
-                    </button>
-                  </th>
-                ))}
-                <th className="text-right px-4 py-3 font-medium">Actions</th>
+              <tr className="text-[11px] text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <th className="px-3 py-3 w-10"><input type="checkbox" checked={paginated.length > 0 && selected.length === paginated.length} onChange={toggleAll} className="rounded border-gray-300 dark:border-gray-600 text-orange-500 focus:ring-orange-500" /></th>
+                <th className="text-left px-3 py-3 font-medium"><button onClick={() => toggleSort('consumer')} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">Consumer {sortIcon('consumer')}</button></th>
+                <th className="text-left px-3 py-3 font-medium">Consumer ID</th>
+                <th className="text-left px-3 py-3 font-medium hidden md:table-cell">Email / Phone</th>
+                <th className="text-left px-3 py-3 font-medium"><button onClick={() => toggleSort('membership')} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">Membership {sortIcon('membership')}</button></th>
+                <th className="text-left px-3 py-3 font-medium hidden lg:table-cell">VCard</th>
+                <th className="text-left px-3 py-3 font-medium hidden lg:table-cell">Card</th>
+                <th className="text-right px-3 py-3 font-medium hidden xl:table-cell">Entitlements</th>
+                <th className="text-right px-3 py-3 font-medium hidden xl:table-cell">Allocated</th>
+                <th className="text-left px-3 py-3 font-medium hidden xl:table-cell">Allocation</th>
+                <th className="text-left px-3 py-3 font-medium hidden lg:table-cell">Issued By</th>
+                <th className="text-left px-3 py-3 font-medium"><button onClick={() => toggleSort('status')} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">Status {sortIcon('status')}</button></th>
+                <th className="text-left px-3 py-3 font-medium hidden sm:table-cell"><button onClick={() => toggleSort('lastActivity')} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">Last Activity {sortIcon('lastActivity')}</button></th>
+                <th className="text-left px-3 py-3 font-medium hidden 2xl:table-cell"><button onClick={() => toggleSort('joined')} className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200">Registered {sortIcon('joined')}</button></th>
+                <th className="text-right px-3 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((c) => (
                 <tr key={c.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer" onClick={() => navigate(`/admin/consumers/${c.id}`)}>
-                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggleSelect(c.id)} className="rounded border-gray-300 dark:border-gray-600 text-orange-500 focus:ring-orange-500" />
                   </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">{c.name.charAt(0)}</div>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">{c.name.charAt(0)}</div>
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{c.email} · {c.location}</p>
+                        <p className="text-[10px] text-gray-400">Consumer</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${planBadge(c.wallet.balance)}`}>${c.wallet.balance.toLocaleString()}</span>
+                  <td className="px-3 py-3">
+                    <span className="text-xs font-mono text-gray-600 dark:text-gray-300">{c.consumerId}</span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400">{c.stats.rewards}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{c.stats.cards}</td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{c.stats.referrals}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusColor(c.status)}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.status)}`} />
-                      {c.status}
+                  <td className="px-3 py-3 hidden md:table-cell">
+                    <p className="text-xs text-gray-700 dark:text-gray-300">{c.email}</p>
+                    <p className="text-[10px] text-gray-400">{c.phone}</p>
+                  </td>
+                  <td className="px-3 py-3">
+                    <p className="text-xs font-medium text-gray-900 dark:text-white">{c.membership}</p>
+                    <span className={`inline-flex items-center gap-1 text-[10px] ${statusColor(c.membershipStatus === 'Active' ? 'active' : c.membershipStatus === 'Suspended' ? 'suspended' : 'inactive')}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.membershipStatus)}`} />
+                      {c.membershipStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">{c.joined}</td>
-                  <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => navigate(`/admin/consumers/${c.id}`)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="View">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                      </button>
-                      <button onClick={() => toast.success('Reward issued to ' + c.name)} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Issue Reward">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                      </button>
-                      <button onClick={() => toast.success('Gift card added to ' + c.name)} className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors" title="Add Gift Card">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                      </button>
-                      <button onClick={() => toast.success('Coupon added to ' + c.name)} className="p-1.5 rounded-lg text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-colors" title="Add Coupon">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                      </button>
+                  <td className="px-3 py-3 hidden lg:table-cell">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.vcardStatus === 'Active' ? 'text-green-600' : c.vcardStatus === 'Suspended' ? 'text-red-600' : c.vcardStatus === 'Not Assigned' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.vcardStatus)}`} />
+                      {c.vcardStatus}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 hidden lg:table-cell">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.cardStatus === 'Active' ? 'text-green-600' : c.cardStatus === 'Suspended' ? 'text-red-600' : c.cardStatus === 'Not Assigned' ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.cardStatus)}`} />
+                      {c.cardStatus}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right hidden xl:table-cell">
+                    <span className="text-xs font-mono font-medium text-gray-900 dark:text-white">{c.additionalEntitlements}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right hidden xl:table-cell">
+                    <span className="text-xs font-mono text-orange-600">{c.allocatedAdditionalCards}</span>
+                    {c.unallocatedEntitlements > 0 && (
+                      <span className="text-[9px] text-amber-600 ml-1">({c.unallocatedEntitlements} avail)</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 hidden xl:table-cell">
+                    <div className="text-[10px]">
+                      {c.familyAllocations > 0 && <span className="text-gray-600 dark:text-gray-300">{c.familyAllocations} Family</span>}
+                      {c.familyAllocations > 0 && c.friendAllocations > 0 && <span className="text-gray-400 mx-0.5">·</span>}
+                      {c.friendAllocations > 0 && <span className="text-gray-600 dark:text-gray-300">{c.friendAllocations} Friend</span>}
+                      {c.familyAllocations === 0 && c.friendAllocations === 0 && <span className="text-gray-400">—</span>}
                     </div>
+                  </td>
+                  <td className="px-3 py-3 hidden lg:table-cell">
+                    <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/businesses/${c.primaryIssuingBusinessId}`) }} className="text-xs text-orange-600 hover:underline">{c.primaryIssuingBusiness}</button>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusColor(c.status)}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.status)}`} />
+                      {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 hidden sm:table-cell">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.lastActivityAt}</span>
+                  </td>
+                  <td className="px-3 py-3 hidden 2xl:table-cell">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.joined}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right relative" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => setMenuOpen(menuOpen === c.id ? null : c.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                    </button>
+                    {menuOpen === c.id && (
+                      <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-lg py-1">
+                        {[
+                          { key: 'viewDetails', label: 'View Details', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
+                          { key: 'viewVCard', label: 'View VCard', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1' },
+                          { key: 'viewCard', label: 'View Card', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
+                          { key: 'viewMembership', label: 'View Membership', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+                          { key: 'viewActivity', label: 'View Activity', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+                          { type: 'divider' },
+                          c.status === 'active' ? { key: 'suspend', label: 'Suspend Account', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' } : { key: 'reactivate', label: 'Reactivate Account', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+                          { type: 'divider' },
+                          { key: 'centralAccount', label: 'Open Central Account', icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512a9.025 9.025 0 015.488 5.488z' },
+                        ].map((item: any, idx: number) =>
+                          item.type === 'divider' ? <div key={idx} className="border-t border-gray-100 dark:border-gray-700 my-1" /> :
+                          <button key={item.key} onClick={() => handleRowAction(c, item.key)} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-left">
+                            <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} /></svg>
+                            {item.label}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
-              {paginated.length === 0 && <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-400">No consumers match your filters</td></tr>}
+              {paginated.length === 0 && (
+                <tr>
+                  <td colSpan={15} className="px-3 py-16 text-center">
+                    {search || activeFilterCount > 0 ? (
+                      <div>
+                        <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No consumers match your filters.</p>
+                        <button onClick={clearFilters} className="mt-3 px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Clear Filters</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No consumers yet</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-md mx-auto">Consumers will appear here after they register through the MCOM Solutions centralized account system and are connected to MCOMVCard.</p>
+                        <button onClick={() => toast.success('Opening integration status')} className="mt-3 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">View Integration Status</button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page + 1} of {totalPages} ({filtered.length} results)</span>
-          <div className="flex gap-1">
-            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700">Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} onClick={() => setPage(i)} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${page === i ? 'bg-orange-500 text-white' : 'border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>{i + 1}</button>
-            ))}
-            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700">Next</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <span>Showing {page * perPage + 1}–{Math.min((page + 1) * perPage, filtered.length)} of {filtered.length} consumers</span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <span>Rows per page:</span>
+          <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0) }} className="text-xs border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+            {PER_PAGE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div className="flex gap-1">
+          <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700">Prev</button>
+          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+            const start = Math.max(0, Math.min(page - 3, totalPages - 7))
+            const p = start + i
+            if (p >= totalPages) return null
+            return (
+              <button key={p} onClick={() => setPage(p)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${page === p ? 'bg-orange-500 text-white' : 'border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>{p + 1}</button>
+            )
+          })}
+          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700">Next</button>
+        </div>
+      </div>
+
+      {/* Filter Drawer */}
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowFilters(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-gray-800 shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-5 py-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Filters</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={clearFilters} className="text-xs text-orange-600 hover:underline">Clear all</button>
+                <button onClick={() => setShowFilters(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-5 space-y-5 text-xs">
+              {/* Account Status */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Account Status</label>
+                <select value={filters.accountStatus} onChange={e => { setFilters(prev => ({ ...prev, accountStatus: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'active', 'suspended', 'inactive', 'pending'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                </select>
+              </div>
+              {/* Membership */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Membership</label>
+                <select value={filters.membership} onChange={e => { setFilters(prev => ({ ...prev, membership: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="All">All Memberships</option>
+                  {MEMBERSHIPS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              {/* VCard Status */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">VCard Status</label>
+                <select value={filters.vcardStatus} onChange={e => { setFilters(prev => ({ ...prev, vcardStatus: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Active', 'Inactive', 'Suspended', 'Not Assigned'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>)}
+                </select>
+              </div>
+              {/* Card Status */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Card Status</label>
+                <select value={filters.cardStatus} onChange={e => { setFilters(prev => ({ ...prev, cardStatus: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Active', 'Inactive', 'Suspended', 'Not Assigned'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>)}
+                </select>
+              </div>
+              {/* Additional Card Entitlement */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Additional Card Entitlement</label>
+                <select value={filters.addlEntitlement} onChange={e => { setFilters(prev => ({ ...prev, addlEntitlement: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Has unused', 'Fully allocated', 'No additional'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {/* Allocation Type */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Allocation Type</label>
+                <select value={filters.allocationType} onChange={e => { setFilters(prev => ({ ...prev, allocationType: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Primary consumer only', 'Family', 'Friend', 'Mixed Family & Friends', 'Unallocated'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {/* Issuing Business */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Issuing / Origin Business</label>
+                <select value={filters.issuingBusiness} onChange={e => { setFilters(prev => ({ ...prev, issuingBusiness: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="All">All Businesses</option>
+                  {BUSINESSES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              {/* Registration Source */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Registration Source</label>
+                <select value={filters.regSource} onChange={e => { setFilters(prev => ({ ...prev, regSource: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="All">All Sources</option>
+                  {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {/* Date Range */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Registration Date</label>
+                <select value={filters.dateRange} onChange={e => { setFilters(prev => ({ ...prev, dateRange: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Today', 'Last 7 days', 'Last 30 days', 'Last 90 days'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {/* Activity */}
+              <div>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1 font-medium">Activity</label>
+                <select value={filters.activity} onChange={e => { setFilters(prev => ({ ...prev, activity: e.target.value })); setPage(0) }} className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  {['All', 'Active recently', 'No recent activity'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <button onClick={() => setShowFilters(false)} className="w-full px-3 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Apply Filters</button>
+            </div>
           </div>
         </div>
       )}

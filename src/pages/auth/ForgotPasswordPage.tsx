@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import AuthLayout from '../../components/auth/AuthLayout'
 import InputField from '../../components/auth/InputField'
 import { authService } from '../../services/auth'
+import { inviteQuery } from '../../utils/inviteContext'
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const ctx = inviteQuery(searchParams.get('card'), searchParams.get('business'))
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -43,7 +46,7 @@ export default function ForgotPasswordPage() {
           <div className="p-4 rounded-lg bg-green-50 border border-green-100 text-sm text-green-700">
             {message}
           </div>
-          <Link to="/login" className="inline-block text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link to={`/login${ctx}`} className="inline-block text-sm text-blue-600 hover:text-blue-700 font-medium">
             {t('auth.back_to_login')}
           </Link>
         </div>
@@ -80,7 +83,7 @@ export default function ForgotPasswordPage() {
           </button>
 
           <p className="text-center">
-            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link to={`/login${ctx}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
               {t('auth.back_to_login')}
             </Link>
           </p>

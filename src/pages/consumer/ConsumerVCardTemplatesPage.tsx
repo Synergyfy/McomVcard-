@@ -1,11 +1,19 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockTemplates } from '../../services/mockData'
+import { MembershipLimitCard } from '../../components/membership/MembershipLimitCard'
+import { loadMembershipPricing } from '../../services/membershipPricingStore'
+import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
 
 const MOCK_CLAIMED_TEMPLATE_IDS = [1, 4, 9, 13]
+const CONSUMER_PLAN: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Bronze'
 
 export default function ConsumerVCardTemplatesPage() {
+  const pricingState = useMemo(() => loadMembershipPricing(), [])
   const claimedTemplates = mockTemplates.filter((t) => MOCK_CLAIMED_TEMPLATE_IDS.includes(t.id))
+  const conVCardLimit = parseLimit(getRuleValue(pricingState, CONSUMER_PLAN, 'Consumer VCards'))
+  const atLimit = conVCardLimit !== null && conVCardLimit !== Infinity && claimedTemplates.length >= conVCardLimit
 
   return (
     <div>
@@ -16,9 +24,19 @@ export default function ConsumerVCardTemplatesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My vCards</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{claimedTemplates.length} templates claimed</p>
         </div>
-        <Link to="/templates" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
-          Get Template
-        </Link>
+        {atLimit ? (
+          <span className="px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-semibold cursor-not-allowed" title={`Your ${CONSUMER_PLAN} membership allows ${getRuleValue(pricingState, CONSUMER_PLAN, 'Consumer VCards')} Consumer VCards`}>
+            Limit reached
+          </span>
+        ) : (
+          <Link to="/templates" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+            Get Template
+          </Link>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <MembershipLimitCard label="Consumer VCards" used={claimedTemplates.length} planLevel={CONSUMER_PLAN} context="consumer" />
       </div>
 
       {claimedTemplates.length ? (
@@ -27,7 +45,7 @@ export default function ConsumerVCardTemplatesPage() {
             <div key={template.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
                 <div className="lg:col-span-1 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
-                  <div className="w-[280px] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-600">
+                  <div className="w-full max-w-[280px] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-600">
                     <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-gray-700">
                       <img
                         src={template.template_url}

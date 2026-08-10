@@ -14,9 +14,9 @@ export default function Header() {
 
   const navLinks = [
     { to: '/', label: t('nav.home'), hash: '#home' },
-    { to: '/#features', label: t('nav.features'), hash: '#features' },
-    { to: '/#about', label: 'About', hash: '#about' },
-    { to: '/#pricing', label: t('nav.pricing'), hash: '#pricing' },
+    { to: '/features', label: t('nav.features'), hash: '' },
+    { to: '/about', label: 'About', hash: '' },
+    { to: '/membership', label: t('nav.pricing'), hash: '' },
     { to: '/contact', label: t('nav.contact'), hash: '' },
   ]
 
@@ -54,18 +54,26 @@ export default function Header() {
           <LanguageSwitcher />
           {isAuthenticated ? (
             <Link
-              to="/dashboard"
+              to="/business"
               className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 hover:shadow-md hover:shadow-blue-200"
             >
               {t('nav.dashboard')}
             </Link>
           ) : (
-            <Link
-              to="/login"
-              className="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 hover:shadow-md hover:shadow-blue-200"
-            >
-              {t('nav.login')}
-            </Link>
+            <>
+              <Link
+                to="/register"
+                className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all duration-200 hover:shadow-md hover:shadow-orange-200"
+              >
+                Get Started
+              </Link>
+              <Link
+                to="/login"
+                className="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-all duration-200"
+              >
+                {t('nav.login')}
+              </Link>
+            </>
           )}
         </div>
 
@@ -122,20 +130,29 @@ export default function Header() {
           <div className="pt-2">
             {isAuthenticated ? (
               <Link
-                to="/dashboard"
+                to="/business"
                 onClick={() => setMobileOpen(false)}
                 className="block text-center px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg"
               >
                 {t('nav.dashboard')}
               </Link>
             ) : (
-              <Link
-                to="/login"
-                onClick={() => setMobileOpen(false)}
-                className="block text-center px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg"
-              >
-                {t('nav.login')}
-              </Link>
+              <>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="block text-center px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-semibold rounded-lg mb-2"
+                >
+                  Get Started
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="block text-center px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg"
+                >
+                  {t('nav.login')}
+                </Link>
+              </>
             )}
           </div>
         </div>
