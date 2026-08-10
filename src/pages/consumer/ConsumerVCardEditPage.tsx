@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { mockTemplates } from '../../services/mockData'
+import { consumerService } from '../../services/consumer'
 
 const TEMPLATE_COLORS = ['#FF5C00', '#2563EB', '#7C3AED', '#059669', '#DC2626', '#EC4899', '#0891B2', '#F59E0B', '#1E293B', '#18181B']
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Display', 'Lora', 'DM Sans', 'Space Grotesk']
@@ -19,13 +20,23 @@ export default function ConsumerVCardEditPage() {
   const [bgStyle, setBgStyle] = useState(template.bg_style)
   const [buttonStyle, setButtonStyle] = useState(template.button_style)
   const [logoPosition, setLogoPosition] = useState(template.logo_position)
-  const [displayName, setDisplayName] = useState('Alex Morgan')
+  const [displayName, setDisplayName] = useState('Your Name')
   const [tagline, setTagline] = useState('Digital Marketing Professional')
-  const [phone, setPhone] = useState('+1 (555) 111-2222')
-  const [email, setEmail] = useState('alex@morgan.com')
-  const [website, setWebsite] = useState('alexmorgan.com')
-  const [address, setAddress] = useState('San Francisco, CA')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [website, setWebsite] = useState('')
+  const [address, setAddress] = useState('')
   const [tab, setTab] = useState<'style' | 'content' | 'sections'>('style')
+
+  useEffect(() => {
+    consumerService.getProfile().then((p) => {
+      setDisplayName(p.name)
+      setPhone(p.phone)
+      setEmail(p.email)
+      setAddress(p.location)
+      if (p.cardId) setWebsite(`mcomvcard.link/c/${p.cardId.toLowerCase()}`)
+    }).catch(() => {})
+  }, [])
 
   const btnRadius = buttonStyle === 'pill' ? '9999px' : buttonStyle === 'square' ? '4px' : '8px'
 
@@ -186,7 +197,7 @@ export default function ConsumerVCardEditPage() {
         <div className="lg:col-span-3 flex justify-center">
           <div className="sticky top-6">
             <p className="text-xs text-gray-400 text-center mb-3">Live Preview</p>
-            <div className="w-[320px] rounded-[2.5rem] border-[6px] border-gray-900 dark:border-gray-700 shadow-2xl overflow-hidden bg-white">
+            <div className="w-full max-w-[320px] rounded-[2.5rem] border-[6px] border-gray-900 dark:border-gray-700 shadow-2xl overflow-hidden bg-white">
               <div className="h-7 bg-gray-900 flex items-center justify-between px-5">
                 <span className="text-[9px] text-white/70 font-medium">9:41</span>
                 <div className="flex gap-1">
