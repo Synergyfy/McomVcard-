@@ -28,7 +28,7 @@ export default function NearbyOffers({ offers }: NearbyOffersProps) {
                     {offers.map((offer) => (
                         <Link
                             key={offer.id}
-                            to="/consumer/rewards"
+                            to="/c/rewards"
                             className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors active:scale-[0.99]"
                         >
                             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${offer.gradient} flex items-center justify-center text-white shrink-0 shadow-md`}>

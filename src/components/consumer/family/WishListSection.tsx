@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { familyService } from '../../../services/familyCards'
 import type { FamilyCardMember } from '../../../services/familyCards'
 
@@ -11,15 +11,25 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
     const [adding, setAdding] = useState(false)
     const [title, setTitle] = useState('')
     const [price, setPrice] = useState('')
+    const [image, setImage] = useState('')
     const [working, setWorking] = useState(false)
+    const fileRef = useRef<HTMLInputElement>(null)
+
+    const readFile = (file: File) => {
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = () => setImage(String(reader.result || ''))
+        reader.readAsDataURL(file)
+    }
 
     const handleAdd = async () => {
         if (title.trim() === '' || working) return
         setWorking(true)
-        const updated = await familyService.addWish(member.id, title.trim(), price.trim() || undefined)
+        const updated = await familyService.addWish(member.id, title.trim(), price.trim() || undefined, image || undefined)
         if (updated) onUpdated(updated)
         setTitle('')
         setPrice('')
+        setImage('')
         setAdding(false)
         setWorking(false)
     }
@@ -64,6 +74,39 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
                             placeholder="Price (optional)"
                             className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                         />
+                        <div>
+                            <input
+                                ref={fileRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => readFile(e.target.files?.[0] as File)}
+                                className="hidden"
+                            />
+                            {image ? (
+                                <div className="relative h-40 rounded-xl overflow-hidden">
+                                    <img src={image} alt="Wish preview" className="w-full h-full object-cover" />
+                                    <button
+                                        onClick={() => { setImage(''); if (fileRef.current) fileRef.current.value = '' }}
+                                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center"
+                                        aria-label="Remove image"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => fileRef.current?.click()}
+                                    className="w-full h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-gray-500"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="text-[11px] font-medium">Add a photo (optional)</span>
+                                </button>
+                            )}
+                        </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setAdding(false)}
@@ -92,19 +135,26 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
             ) : (
                 <div className="grid grid-cols-2 gap-3">
                     {member.wishlist.map((wish) => (
-                        <div key={wish.id} className={`rounded-2xl p-4 bg-gradient-to-br ${wish.gradient} border border-black/5 dark:border-white/10 relative`}>
-                            <button
-                                onClick={() => handleRemove(wish.id)}
-                                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/10 dark:bg-black/30 flex items-center justify-center text-gray-500 dark:text-white/70"
-                                aria-label={`Remove ${wish.title}`}
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                            <div className="text-3xl mb-2">{wish.emoji}</div>
-                            <p className="text-sm font-bold text-gray-900 dark:text-white leading-snug">{wish.title}</p>
-                            {wish.price && <p className="text-xs font-semibold text-accent-600 dark:text-accent-400 mt-0.5">{wish.price}</p>}
+                        <div key={wish.id} className={`rounded-2xl overflow-hidden bg-gradient-to-br ${wish.gradient} border border-black/5 dark:border-white/10 relative`}>
+                            {wish.image && (
+                                <div className="h-28">
+                                    <img src={wish.image} alt={wish.title} className="w-full h-full object-cover" />
+                                </div>
+                            )}
+                            <div className="p-4">
+                                {!wish.image && <div className="text-3xl mb-2">{wish.emoji}</div>}
+                                <button
+                                    onClick={() => handleRemove(wish.id)}
+                                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/10 dark:bg-black/30 flex items-center justify-center text-gray-500 dark:text-white/70"
+                                    aria-label={`Remove ${wish.title}`}
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white leading-snug">{wish.title}</p>
+                                {wish.price && <p className="text-xs font-semibold text-accent-600 dark:text-accent-400 mt-0.5">{wish.price}</p>}
+                            </div>
                         </div>
                     ))}
                 </div>

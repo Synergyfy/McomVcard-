@@ -437,7 +437,7 @@ export default function CardContentEditorPage() {
   const handlePublish = () => {
     saveCardEditorContent(cardId, sections)
     toast.success('Card published — new version created')
-    navigate(`/business/cards/${cardId}`)
+    navigate(`/b/cards/${cardId}`)
   }
 
   const handleReset = () => {
@@ -453,7 +453,7 @@ export default function CardContentEditorPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Card not found</p>
           <p className="text-xs text-gray-400 mt-1 mb-4">This Card may have been removed by your Admin.</p>
-          <Link to="/business/cards" className="text-xs font-semibold text-orange-600 hover:underline">Back to My Cards</Link>
+          <Link to="/b/cards" className="text-xs font-semibold text-orange-600 hover:underline">Back to My Cards</Link>
         </div>
       </div>
     )
@@ -471,9 +471,9 @@ export default function CardContentEditorPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <Link to="/business/cards" className="hover:text-orange-600">My Cards</Link>
+        <Link to="/b/cards" className="hover:text-orange-600">My Cards</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-        <Link to={`/business/cards/${row.id}`} className="hover:text-orange-600">{row.name}</Link>
+        <Link to={`/b/cards/${row.id}`} className="hover:text-orange-600">{row.name}</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         <span className="text-gray-900 dark:text-white font-medium">Edit Content</span>
       </div>
@@ -500,7 +500,7 @@ export default function CardContentEditorPage() {
             Publish
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
-          <Link to={`/business/cards/${row.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
+          <Link to={`/b/cards/${row.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
         </div>
       </div>
 

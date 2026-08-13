@@ -10,7 +10,15 @@ import ConsumerLayout from './components/consumer/ConsumerLayout'
 import BusinessLayout from './components/business/layout/BusinessLayout'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
-const FeaturesPage = lazy(() => import('./pages/FeaturesPage'))
+const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
+const McomVCardBusinessPage = lazy(() => import('./pages/landing/McomVCardBusinessPage'))
+const McomVCardConsumerPage = lazy(() => import('./pages/landing/McomVCardConsumerPage'))
+const FeaturesPage = lazy(() => import('./pages/features/FeaturesHubPage'))
+const BusinessFeaturesPage = lazy(() => import('./pages/features/BusinessFeaturesPage'))
+const ConsumerFeaturesPage = lazy(() => import('./pages/features/ConsumerFeaturesPage'))
+const SeasonalLandingPage = lazy(() => import('./pages/features/SeasonalLandingPage'))
+const SeasonalGiftsPage = lazy(() => import('./pages/features/SeasonalGiftsPage'))
+const SeasonalRewardsPage = lazy(() => import('./pages/features/SeasonalRewardsPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
@@ -65,6 +73,8 @@ const TranslationsPage = lazy(() => import('./pages/admin/languages/Translations
 const CouponListPage = lazy(() => import('./pages/admin/coupon-codes/CouponListPage'))
 const CouponFormPage = lazy(() => import('./pages/admin/coupon-codes/CouponFormPage'))
 const FrontCMSPage = lazy(() => import('./pages/admin/front-cms/FrontCMSPage'))
+const HeroSlidersPage = lazy(() => import('./pages/admin/landing/HeroSlidersPage'))
+const ContentEmbedsPage = lazy(() => import('./pages/admin/landing/ContentEmbedsPage'))
 const EmailTemplateListPage = lazy(() => import('./pages/admin/email-templates/EmailTemplateListPage'))
 const EmailTemplateFormPage = lazy(() => import('./pages/admin/email-templates/EmailTemplateFormPage'))
 const ActivityLogsPage = lazy(() => import('./pages/admin/activity-logs/ActivityLogsPage'))
@@ -134,6 +144,7 @@ const ConsumerVCardEditPage = lazy(() => import('./pages/consumer/ConsumerVCardE
 const ConsumerMyVCardPage = lazy(() => import('./pages/consumer/ConsumerMyVCardPage'))
 
 const ConsumerWalletPage = lazy(() => import('./pages/consumer/ConsumerWalletPage'))
+const ConsumerWishlistPage = lazy(() => import('./pages/consumer/ConsumerWishlistPage'))
 const ConsumerBookingsPage = lazy(() => import('./pages/consumer/ConsumerBookingsPage'))
 const ConsumerRewardsPage = lazy(() => import('./pages/consumer/ConsumerRewardsPage'))
 const ConsumerReferralsPage = lazy(() => import('./pages/consumer/ConsumerReferralsPage'))
@@ -151,6 +162,7 @@ const BusinessCardContentEditorPage = lazy(() => import('./pages/business/card/C
 const BusinessMembershipPage = lazy(() => import('./pages/business/MembershipPage'))
 const BusinessMembershipPlansPage = lazy(() => import('./pages/business/MembershipPlansPage'))
 const BusinessMembershipConfirmationPage = lazy(() => import('./pages/business/MembershipConfirmationPage'))
+const BusinessMembershipPaymentPage = lazy(() => import('./pages/business/MembershipPaymentPage'))
 const BusinessReportsPage = lazy(() => import('./pages/business/ReportsPage'))
 const BusinessIntegrationsPage = lazy(() => import('./pages/business/IntegrationsPage'))
 const BusinessHelpSupportPage = lazy(() => import('./pages/business/HelpSupportPage'))
@@ -191,7 +203,15 @@ export default function App() {
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/mcomvcard" element={<McomVCardLandingPage />} />
+                  <Route path="/business" element={<McomVCardBusinessPage />} />
+                  <Route path="/consumer" element={<McomVCardConsumerPage />} />
                   <Route path="/features" element={<FeaturesPage />} />
+                  <Route path="/features/business" element={<BusinessFeaturesPage />} />
+                  <Route path="/features/consumer" element={<ConsumerFeaturesPage />} />
+                  <Route path="/features/seasonal" element={<SeasonalLandingPage />} />
+                  <Route path="/features/seasonal/gifts" element={<SeasonalGiftsPage />} />
+                  <Route path="/features/seasonal/rewards" element={<SeasonalRewardsPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/templates" element={<TemplatesPage />} />
                   <Route path="/cards" element={<CardsPage />} />
@@ -215,18 +235,18 @@ export default function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route path="/consumer/setup" element={<ConsumerSetupPage />} />
+                <Route path="/c/setup" element={<ConsumerSetupPage />} />
 
                 <Route element={<UserLayout />}>
-                  <Route path="/dashboard" element={<Navigate to="/business" replace />} />
+                  <Route path="/dashboard" element={<Navigate to="/b/dashboard" replace />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/user/vcards" element={<UserVCardListPage />} />
                   {/* Design-oriented routes redirect to the operations dashboard */}
-                  <Route path="/user/vcards/create" element={<Navigate to="/business/vcards" replace />} />
-                  <Route path="/user/vcards/:id/edit" element={<Navigate to="/business/vcards" replace />} />
-                  <Route path="/user/templates/:id/customize" element={<Navigate to="/business/vcards" replace />} />
+                  <Route path="/user/vcards/create" element={<Navigate to="/b/vcards" replace />} />
+                  <Route path="/user/vcards/:id/edit" element={<Navigate to="/b/vcards" replace />} />
+                  <Route path="/user/templates/:id/customize" element={<Navigate to="/b/vcards" replace />} />
                   <Route path="/user/cards" element={<BusinessCardsPage />} />
-                  <Route path="/user/cards/:id/edit" element={<Navigate to="/business/cards" replace />} />
+                  <Route path="/user/cards/:id/edit" element={<Navigate to="/b/cards" replace />} />
                   <Route path="/user/appointments" element={<AppointmentsPage />} />
                   <Route path="/user/analytics" element={<AnalyticsPage />} />
                   <Route path="/user/subscription" element={<SubscriptionPage />} />
@@ -235,58 +255,60 @@ export default function App() {
 
                 {/* ── MCOMVCard Business Operations Dashboard ── */}
                 <Route element={<BusinessLayout />}>
-                  <Route path="/business" element={<MyBusinessPage />} />
-                  <Route path="/business/vcards" element={<BusinessVCardsPage />} />
-                  <Route path="/business/vcards/:id" element={<BusinessVCardDetailPage />} />
-                  <Route path="/business/vcards/:id/edit" element={<BusinessVCardContentEditorPage />} />
-                  <Route path="/business/cards" element={<BusinessMyCardsPage />} />
-                  <Route path="/business/cards/:id" element={<BusinessCardDetailPage />} />
-                  <Route path="/business/cards/:id/edit" element={<BusinessCardContentEditorPage />} />
-                  <Route path="/business/membership" element={<BusinessMembershipPage />} />
-                  <Route path="/business/membership/plans" element={<BusinessMembershipPlansPage />} />
-                  <Route path="/business/membership/confirmation" element={<BusinessMembershipConfirmationPage />} />
-                  <Route path="/business/reports" element={<BusinessReportsPage />} />
-                  <Route path="/business/integrations" element={<BusinessIntegrationsPage />} />
-                  <Route path="/business/help" element={<BusinessHelpSupportPage />} />
-                  <Route path="/business/settings" element={<BusinessSettingsPage />} />
-                  <Route path="/business/customers" element={<BusinessCustomersPage />} />
-                  <Route path="/business/customers/:id" element={<BusinessCustomerDetailPage />} />
-                  <Route path="/business/rewards" element={<BusinessRewardsPage />} />
-                  <Route path="/business/rewards/issue" element={<BusinessIssueRewardPage />} />
-                  <Route path="/business/rewards/campaigns" element={<BusinessCampaignsPage />} />
-                  <Route path="/business/rewards/coupons" element={<BusinessCouponsPage />} />
-                  <Route path="/business/rewards/cashback" element={<BusinessCashbackPage />} />
-                  <Route path="/business/rewards/gift-cards" element={<BusinessGiftCardsPage />} />
-                  <Route path="/business/rewards/history" element={<BusinessRedeemHistoryPage />} />
-                  <Route path="/business/rewards/issued" element={<BusinessRewardsIssuedPage />} />
-                  <Route path="/business/rewards/pending" element={<BusinessPendingRewardsPage />} />
-                  <Route path="/business/family" element={<BusinessFamilyPage />} />
-                  <Route path="/business/appointments" element={<BusinessAppointmentsPage />} />
-                  <Route path="/business/analytics" element={<BusinessAnalyticsPage />} />
-                  <Route path="/business/notifications" element={<BusinessNotificationsPage />} />
-                  <Route path="/business/wallet" element={<BusinessWalletPage />} />
-                  <Route path="/business/qr" element={<BusinessQRCodePage />} />
+                  <Route path="/b/dashboard" element={<MyBusinessPage />} />
+                  <Route path="/b/vcards" element={<BusinessVCardsPage />} />
+                  <Route path="/b/vcards/:id" element={<BusinessVCardDetailPage />} />
+                  <Route path="/b/vcards/:id/edit" element={<BusinessVCardContentEditorPage />} />
+                  <Route path="/b/cards" element={<BusinessMyCardsPage />} />
+                  <Route path="/b/cards/:id" element={<BusinessCardDetailPage />} />
+                  <Route path="/b/cards/:id/edit" element={<BusinessCardContentEditorPage />} />
+                  <Route path="/b/membership" element={<BusinessMembershipPage />} />
+                  <Route path="/b/membership/plans" element={<BusinessMembershipPlansPage />} />
+                  <Route path="/b/membership/payment" element={<BusinessMembershipPaymentPage />} />
+                  <Route path="/b/membership/confirmation" element={<BusinessMembershipConfirmationPage />} />
+                  <Route path="/b/reports" element={<BusinessReportsPage />} />
+                  <Route path="/b/integrations" element={<BusinessIntegrationsPage />} />
+                  <Route path="/b/help" element={<BusinessHelpSupportPage />} />
+                  <Route path="/b/settings" element={<BusinessSettingsPage />} />
+                  <Route path="/b/customers" element={<BusinessCustomersPage />} />
+                  <Route path="/b/customers/:id" element={<BusinessCustomerDetailPage />} />
+                  <Route path="/b/rewards" element={<BusinessRewardsPage />} />
+                  <Route path="/b/rewards/issue" element={<BusinessIssueRewardPage />} />
+                  <Route path="/b/rewards/campaigns" element={<BusinessCampaignsPage />} />
+                  <Route path="/b/rewards/coupons" element={<BusinessCouponsPage />} />
+                  <Route path="/b/rewards/cashback" element={<BusinessCashbackPage />} />
+                  <Route path="/b/rewards/gift-cards" element={<BusinessGiftCardsPage />} />
+                  <Route path="/b/rewards/history" element={<BusinessRedeemHistoryPage />} />
+                  <Route path="/b/rewards/issued" element={<BusinessRewardsIssuedPage />} />
+                  <Route path="/b/rewards/pending" element={<BusinessPendingRewardsPage />} />
+                  <Route path="/b/family" element={<BusinessFamilyPage />} />
+                  <Route path="/b/appointments" element={<BusinessAppointmentsPage />} />
+                  <Route path="/b/analytics" element={<BusinessAnalyticsPage />} />
+                  <Route path="/b/notifications" element={<BusinessNotificationsPage />} />
+                  <Route path="/b/wallet" element={<BusinessWalletPage />} />
+                  <Route path="/b/qr" element={<BusinessQRCodePage />} />
                 </Route>
 
                 <Route element={<ConsumerLayout />}>
-                  <Route path="/consumer" element={<ConsumerHomePage />} />
-                  <Route path="/consumer/cards" element={<ConsumerCardsPage />} />
-                  <Route path="/consumer/family" element={<ConsumerFamilyPage />} />
-                  <Route path="/consumer/family/:id" element={<ConsumerFamilyMemberPage />} />
-                  <Route path="/consumer/activity" element={<ConsumerActivityPage />} />
-                  <Route path="/consumer/notifications" element={<ConsumerNotificationsPage />} />
-                  <Route path="/consumer/membership" element={<ConsumerMembershipPage />} />
-                  <Route path="/consumer/card-designs" element={<ConsumerCardDesignsPage />} />
-                  <Route path="/consumer/cards/:designId/edit" element={<ConsumerCardEditPage />} />
-                  <Route path="/consumer/vcard-templates/:id/edit" element={<ConsumerVCardEditPage />} />
-                  <Route path="/consumer/vcard-templates" element={<ConsumerVCardTemplatesPage />} />
+                  <Route path="/c/dashboard" element={<ConsumerHomePage />} />
+                  <Route path="/c/cards" element={<ConsumerCardsPage />} />
+                  <Route path="/c/family" element={<ConsumerFamilyPage />} />
+                  <Route path="/c/family/:id" element={<ConsumerFamilyMemberPage />} />
+                  <Route path="/c/activity" element={<ConsumerActivityPage />} />
+                  <Route path="/c/notifications" element={<ConsumerNotificationsPage />} />
+                  <Route path="/c/membership" element={<ConsumerMembershipPage />} />
+                  <Route path="/c/card-designs" element={<ConsumerCardDesignsPage />} />
+                  <Route path="/c/cards/:designId/edit" element={<ConsumerCardEditPage />} />
+                  <Route path="/c/vcard-templates/:id/edit" element={<ConsumerVCardEditPage />} />
+                  <Route path="/c/vcard-templates" element={<ConsumerVCardTemplatesPage />} />
 
-                  <Route path="/consumer/vcard" element={<ConsumerMyVCardPage />} />
-                  <Route path="/consumer/wallet" element={<ConsumerWalletPage />} />
-                  <Route path="/consumer/bookings" element={<ConsumerBookingsPage />} />
-                  <Route path="/consumer/rewards" element={<ConsumerRewardsPage />} />
-                  <Route path="/consumer/referrals" element={<ConsumerReferralsPage />} />
-                  <Route path="/consumer/settings" element={<ConsumerSettingsPage />} />
+                  <Route path="/c/vcard" element={<ConsumerMyVCardPage />} />
+                  <Route path="/c/wallet" element={<ConsumerWalletPage />} />
+                  <Route path="/c/wishlist" element={<ConsumerWishlistPage />} />
+                  <Route path="/c/bookings" element={<ConsumerBookingsPage />} />
+                  <Route path="/c/rewards" element={<ConsumerRewardsPage />} />
+                  <Route path="/c/referrals" element={<ConsumerReferralsPage />} />
+                  <Route path="/c/settings" element={<ConsumerSettingsPage />} />
                 </Route>
 
                 <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -403,6 +425,9 @@ export default function App() {
                   <Route path="/admin/coupon-codes/create" element={<CouponFormPage />} />
                   <Route path="/admin/coupon-codes/:id/edit" element={<CouponFormPage />} />
                   <Route path="/admin/front-cms" element={<FrontCMSPage />} />
+                  <Route path="/admin/landing" element={<Navigate to="/admin/landing/sliders" replace />} />
+                  <Route path="/admin/landing/sliders" element={<HeroSlidersPage />} />
+                  <Route path="/admin/landing/embeds" element={<ContentEmbedsPage />} />
                   <Route path="/admin/email-templates" element={<EmailTemplateListPage />} />
                   <Route path="/admin/email-templates/:id/edit" element={<EmailTemplateFormPage />} />
                   <Route path="/admin/activity-logs" element={<ActivityLogsPage />} />

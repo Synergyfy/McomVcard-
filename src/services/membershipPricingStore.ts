@@ -1,10 +1,11 @@
 /* ------------------------------------------------------------------ */
 /*  Membership pricing & rules — the 4 plan cards (Bronze, Silver,     */
 /*  Gold, Platinum) each with Normal / Pro / Pro+ pricing tiers and    */
-/*  Monthly / Quarterly / Annual billing (Quarterly = 90-day access    */
-/*  is the primary target). Shared by the admin Pricing & Plans page   */
-/*  (editor) and the public pricing page (/membership). Persisted in   */
-/*  localStorage.                                                      */
+/*  90-day / 180-day / Annual billing (90-day access is the primary    */
+/*  target). `monthly` is kept in the data model for promo pricing     */
+/*  only and is never offered as a standard cycle. Shared by the       */
+/*  admin Pricing & Plans page (editor) and the public pricing page    */
+/*  (/membership). Persisted in localStorage.                          */
 /*                                                                     */
 /*  Rules carry a `scope` so each rule can be enforced where it is     */
 /*  meant to control things: admin setup, business usage, consumer     */
@@ -13,17 +14,18 @@
 
 export type PlanTier = 'Normal' | 'Pro' | 'Pro+'
 export type PlanLevel = 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
-export type BillingCycle = 'monthly' | 'quarterly' | 'annual'
+export type BillingCycle = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type RuleScope = 'All' | 'Admin setup' | 'Business usage' | 'Consumer usage' | 'Public page'
 
 export const PLAN_TIERS: PlanTier[] = ['Normal', 'Pro', 'Pro+']
 export const PLAN_LEVELS: PlanLevel[] = ['Bronze', 'Silver', 'Gold', 'Platinum']
-export const BILLING_CYCLES: BillingCycle[] = ['monthly', 'quarterly', 'annual']
+export const BILLING_CYCLES: BillingCycle[] = ['monthly', 'quarterly', 'semiannual', 'annual']
 export const RULE_SCOPES: RuleScope[] = ['All', 'Admin setup', 'Business usage', 'Consumer usage', 'Public page']
 
 export interface PlanTierPricing {
   monthly: number
   quarterly: number
+  semiannual: number
   annual: number
   setupFee: number
   trialDays: number
@@ -78,6 +80,7 @@ export interface MembershipPricingState {
 const t = (monthly: number, annual: number, trialDays = 14): PlanTierPricing => ({
   monthly,
   quarterly: Math.round(monthly * 2.7),
+  semiannual: Math.round(monthly * 5.4),
   annual,
   setupFee: 0,
   trialDays,
@@ -248,6 +251,7 @@ function normalizePlan(raw: any): PlanCard | null {
     return {
       monthly,
       quarterly: Number(tr?.quarterly) || Math.round(monthly * 2.7),
+      semiannual: Number(tr?.semiannual) || Math.round(monthly * 5.4),
       annual: Number(tr?.annual) || 0,
       setupFee: Number(tr?.setupFee) || 0,
       trialDays: Number(tr?.trialDays) || 0,

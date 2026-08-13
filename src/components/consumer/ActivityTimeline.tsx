@@ -79,7 +79,7 @@ export default function ActivityTimeline({ activity, limit = 8, showHeader = tru
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold text-gray-900 dark:text-white">Recent Activity</h2>
                     {showSeeAll && (
-                        <Link to="/consumer/activity" className="flex items-center gap-1 text-xs font-semibold text-accent-500">
+                        <Link to="/c/activity" className="flex items-center gap-1 text-xs font-semibold text-accent-500">
                             See all
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
