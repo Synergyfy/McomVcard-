@@ -306,7 +306,7 @@ export default function VCardsPage() {
                                             <span className="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-[9px] font-medium">{t.membershipSupport.slice(0, 2).join(', ')}{t.membershipSupport.length > 2 ? ' +' : ''} plans</span>
                                         </div>
                                         <button
-                                            onClick={() => isEligible(t) ? setClaimTemplate(t) : navigate('/business/membership/plans')}
+                                            onClick={() => isEligible(t) ? setClaimTemplate(t) : navigate('/b/membership/plans')}
                                             disabled={atLimit && isEligible(t)}
                                             className={`mt-3 w-full py-2 rounded-lg text-xs font-semibold transition-colors ${
                                                 isEligible(t)
@@ -411,7 +411,7 @@ export default function VCardsPage() {
                                 </thead>
                                 <tbody>
                                     {filtered.map(v => (
-                                        <tr key={v.id} onClick={() => navigate(`/business/vcards/${v.id}`)}
+                                        <tr key={v.id} onClick={() => navigate(`/b/vcards/${v.id}`)}
                                             className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
                                             <td className="px-2 py-1.5" onClick={e => e.stopPropagation()}>
                                                 <input type="checkbox" checked={selectedIds.includes(v.id)} onChange={() => toggleOne(v.id)}
@@ -441,9 +441,9 @@ export default function VCardsPage() {
                                             <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap">{v.lastAdminUpdate}</td>
                                             <td className="px-2 py-1.5" onClick={e => e.stopPropagation()}>
                                                 <ActionDropdown actions={[
-                                                    { label: 'Open', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zm-12.542 0C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', onClick: () => navigate(`/business/vcards/${v.id}`) },
+                                                    { label: 'Open', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zm-12.542 0C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', onClick: () => navigate(`/b/vcards/${v.id}`) },
                                                     { label: 'Preview', icon: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h.01M5 20H4m0-4h.01M6 4h.01M8 4h.01M4 8h.01M20 8h.01M20 4h.01M20 12h.01', onClick: () => setPreviewId(v.id) },
-                                                    { label: 'Edit Content', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', onClick: () => navigate(`/business/vcards/${v.id}/edit`) },
+                                                    { label: 'Edit Content', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', onClick: () => navigate(`/b/vcards/${v.id}/edit`) },
                                                 ]} />
                                             </td>
                                         </tr>
@@ -496,7 +496,7 @@ export default function VCardsPage() {
                         </div>
                         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-gray-700">
                             <span className="text-[10px] text-gray-400">{previewVCard.sections.length} sections · {previewVCard.views.toLocaleString()} views</span>
-                            <button onClick={() => navigate(`/business/vcards/${previewVCard.id}/edit`)} className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600">Edit Content</button>
+                            <button onClick={() => navigate(`/b/vcards/${previewVCard.id}/edit`)} className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600">Edit Content</button>
                         </div>
                     </div>
                 </div>
@@ -509,7 +509,7 @@ export default function VCardsPage() {
                     onClose={() => setClaimTemplate(null)}
                     onClaimed={(id) => {
                         setClaimTemplate(null)
-                        navigate(`/business/vcards/${id}`)
+                        navigate(`/b/vcards/${id}`)
                     }}
                 />
             )}

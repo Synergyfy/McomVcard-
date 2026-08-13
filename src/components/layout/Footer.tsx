@@ -16,6 +16,10 @@ export default function Footer() {
           <h3 className="text-white font-semibold mb-4">{t('footer.quick_links')}</h3>
           <ul className="space-y-2 text-sm">
             <li><Link to="/" className="hover:text-white transition-colors">{t('footer.home')}</Link></li>
+            <li><Link to="/features" className="hover:text-white transition-colors">{t('nav.features')}</Link></li>
+            <li><Link to="/features/business" className="hover:text-white transition-colors">Business Features</Link></li>
+            <li><Link to="/features/consumer" className="hover:text-white transition-colors">Consumer Features</Link></li>
+            <li><Link to="/features/seasonal" className="hover:text-white transition-colors">Seasonal</Link></li>
             <li><Link to="/templates" className="hover:text-white transition-colors">{t('footer.templates')}</Link></li>
             <li><Link to="/#pricing" className="hover:text-white transition-colors">{t('footer.pricing')}</Link></li>
             <li><Link to="/contact" className="hover:text-white transition-colors">{t('footer.contact')}</Link></li>

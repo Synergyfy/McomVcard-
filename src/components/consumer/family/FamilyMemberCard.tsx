@@ -22,7 +22,7 @@ export default function FamilyMemberCard({ member, onEdit, onShare, onToggleSusp
     const navigate = useNavigate()
 
     const handleAction = (key: (typeof cardActions)[number]['key']) => {
-        if (key === 'view') navigate(`/consumer/family/${member.id}`)
+        if (key === 'view') navigate(`/c/family/${member.id}`)
         if (key === 'edit') onEdit(member)
         if (key === 'share') onShare(member)
         if (key === 'suspend') onToggleSuspend(member)

@@ -750,7 +750,7 @@ export default function VCardContentEditorPage() {
     saveBusinessCentreControls(vcardId, centreControls)
     saveAppointmentSettings(vcardId, appointment)
     toast.success('VCard published — new version created')
-    navigate(`/business/vcards/${vcardId}`)
+    navigate(`/b/vcards/${vcardId}`)
   }
 
   const handleReset = () => {
@@ -772,7 +772,7 @@ export default function VCardContentEditorPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">VCard not found</p>
           <p className="text-xs text-gray-400 mt-1 mb-4">This VCard may have been removed by your Admin.</p>
-          <Link to="/business/vcards" className="text-xs font-semibold text-orange-600 hover:underline">Back to My VCards</Link>
+          <Link to="/b/vcards" className="text-xs font-semibold text-orange-600 hover:underline">Back to My VCards</Link>
         </div>
       </div>
     )
@@ -786,9 +786,9 @@ export default function VCardContentEditorPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <Link to="/business/vcards" className="hover:text-orange-600">My VCards</Link>
+        <Link to="/b/vcards" className="hover:text-orange-600">My VCards</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-        <Link to={`/business/vcards/${vcard.id}`} className="hover:text-orange-600">{vcard.name}</Link>
+        <Link to={`/b/vcards/${vcard.id}`} className="hover:text-orange-600">{vcard.name}</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         <span className="text-gray-900 dark:text-white font-medium">Edit Content</span>
       </div>
@@ -815,7 +815,7 @@ export default function VCardContentEditorPage() {
             Publish
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
-          <Link to={`/business/vcards/${vcard.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
+          <Link to={`/b/vcards/${vcard.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
         </div>
       </div>
 
