@@ -43,12 +43,12 @@ export default function LoginPage() {
         await consumerService.associateCard(card, business)
         const existing = await consumerService.getProfileByEmail(form.email)
         if (existing) {
-          navigate('/consumer')
+          navigate('/c/dashboard')
         } else {
-          navigate(`/consumer/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business || '')}`)
+          navigate(`/c/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business || '')}`)
         }
       } else {
-        navigate('/business')
+        navigate('/b/dashboard')
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || t('auth.errors.login_failed')
@@ -158,14 +158,14 @@ export default function LoginPage() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/business')}
+          onClick={() => navigate('/b/dashboard')}
           className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all hover:shadow-md hover:shadow-blue-200"
         >
           Business
         </button>
         <button
           type="button"
-          onClick={() => navigate('/consumer')}
+          onClick={() => navigate('/c/dashboard')}
           className="px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-all hover:shadow-md hover:shadow-emerald-200"
         >
           Consumer

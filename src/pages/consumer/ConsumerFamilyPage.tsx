@@ -159,7 +159,7 @@ export default function ConsumerFamilyPage() {
                 </div>
             ) : (
                 <button
-                    onClick={() => navigate('/consumer/membership')}
+                    onClick={() => navigate('/c/membership')}
                     className="w-full h-14 rounded-2xl bg-gradient-to-r from-accent-500 to-accent-600 text-white font-bold shadow-lg shadow-accent-500/20 flex items-center justify-center gap-2 active:scale-[0.99] transition-transform"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

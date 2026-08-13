@@ -26,6 +26,12 @@ const PLAN_COLORS: Record<PlanLevel, string> = {
   Platinum: 'bg-blue-600',
 }
 
+const TIER_LABEL: Record<PlanTier, string> = {
+  Normal: 'Standard',
+  Pro: 'Pro',
+  'Pro+': 'Pro+',
+}
+
 const SCOPE_STYLES: Record<RuleScope, string> = {
   All: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
   'Admin setup': 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
@@ -115,7 +121,7 @@ export function EntitlementsSection({ state, update }: {
         <div>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white">Entitlements & Allocation</h2>
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-            What each plan includes, per tier. Choose a plan, then set the Normal, Pro and Pro+ offerings.
+            What each plan includes, per access level. Choose a plan, then set the Standard, Pro and Pro+ offerings.
           </p>
         </div>
 
@@ -160,7 +166,7 @@ export function EntitlementsSection({ state, update }: {
                 <th className="w-64 px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Resource</th>
                 {PLAN_TIERS.map(t => (
                   <th key={t} className="px-3 py-3 text-left">
-                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">{t}</span>
+                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">{TIER_LABEL[t]}</span>
                     <span className="block text-[9px] font-medium text-gray-400">
                       {t === 'Normal' ? 'Get started' : t === 'Pro' ? 'Best value' : 'Maximum power'}
                     </span>

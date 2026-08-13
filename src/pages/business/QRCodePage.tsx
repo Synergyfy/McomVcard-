@@ -230,7 +230,7 @@ export default function BusinessQRCodePage() {
 
                 <p className="text-[11px] text-gray-400 mt-3">
                     Scan rules are governed by your membership configuration. See what's included on the{' '}
-                    <Link to="/business/membership" className="text-orange-600 dark:text-orange-400 font-semibold">Membership</Link> page.
+                    <Link to="/b/membership" className="text-orange-600 dark:text-orange-400 font-semibold">Membership</Link> page.
                 </p>
             </div>
         </div>

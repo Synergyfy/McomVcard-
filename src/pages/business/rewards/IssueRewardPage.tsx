@@ -90,7 +90,7 @@ export default function IssueRewardPage() {
                     Issue Reward
                 </button>
                 <p className="text-center">
-                    <Link to="/business/rewards" className="text-xs text-gray-400">Cancel</Link>
+                    <Link to="/b/rewards" className="text-xs text-gray-400">Cancel</Link>
                 </p>
             </form>
         </div>

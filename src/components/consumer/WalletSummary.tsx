@@ -32,7 +32,7 @@ export default function WalletSummary({ wallet }: WalletSummaryProps) {
 
     return (
         <Link
-            to="/consumer/wallet"
+            to="/c/wallet"
             className="block bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-5 active:scale-[0.99] transition-transform"
         >
             <div className="flex items-center justify-between mb-4">

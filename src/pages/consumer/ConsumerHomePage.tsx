@@ -122,7 +122,7 @@ const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,
                                     <span className="px-3 py-1 rounded-full bg-orange-200/25 text-orange-50 border border-orange-200/20 whitespace-nowrap">{profile.membership}</span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{profile.membershipStatus}</span>
                                 </div>
-                                <Link to="/consumer/membership" className="text-xs font-semibold text-accent-500 hover:underline shrink-0">View Details</Link>
+                                <Link to="/c/membership" className="text-xs font-semibold text-accent-500 hover:underline shrink-0">View Details</Link>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/60 p-3">
@@ -150,7 +150,7 @@ const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,
                                 <span className="text-sm font-medium">Points: {profile.wallet.points}</span>
                                 <span className="text-sm font-medium">Available Rewards: {rewardHistory.filter(r => r.status === 'available').length}</span>
                             </div>
-                            <Link to="/consumer/rewards" className="text-xs font-semibold text-accent-500 hover:underline">View Rewards</Link>
+                            <Link to="/c/rewards" className="text-xs font-semibold text-accent-500 hover:underline">View Rewards</Link>
                         </div>
                     </div>
                     <FamilyPreview profile={profile} />
@@ -166,7 +166,7 @@ const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,
                             ) : (
                                 <span className="text-sm text-gray-500">No e‑card available</span>
                             )}
-                            <Link to="/consumer/cards" className="text-xs font-semibold text-accent-500 hover:underline">View Cards</Link>
+                            <Link to="/c/cards" className="text-xs font-semibold text-accent-500 hover:underline">View Cards</Link>
                         </div>
                     </div>
                     <div className="mt-4">

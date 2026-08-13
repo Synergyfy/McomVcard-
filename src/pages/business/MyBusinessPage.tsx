@@ -46,7 +46,7 @@ export default function BusinessHomePage() {
             value: '12,480',
             icon: vcardIcon,
             gradient: 'from-orange-500 to-amber-500',
-            to: '/business/vcards',
+            to: '/b/vcards',
         },
         {
             label: 'My Business Card',
@@ -54,7 +54,7 @@ export default function BusinessHomePage() {
             value: '8,342',
             icon: cardIcon,
             gradient: 'from-slate-600 to-slate-800',
-            to: '/business/cards',
+            to: '/b/cards',
         },
         {
             label: 'Membership',
@@ -62,7 +62,7 @@ export default function BusinessHomePage() {
             value: mockBusinessProfile.membership,
             icon: membershipIcon,
             gradient: 'from-amber-500 to-orange-600',
-            to: '/business/membership',
+            to: '/b/membership',
         },
         {
             label: 'Customers',
@@ -70,7 +70,7 @@ export default function BusinessHomePage() {
             value: '2,451',
             icon: customersIcon,
             gradient: 'from-blue-500 to-indigo-600',
-            to: '/business/customers',
+            to: '/b/customers',
         },
         {
             label: 'Rewards',
@@ -78,7 +78,7 @@ export default function BusinessHomePage() {
             value: '1,208',
             icon: rewardsIcon,
             gradient: 'from-purple-500 to-violet-600',
-            to: '/business/rewards',
+            to: '/b/rewards',
         },
         {
             label: 'Wallet / Smart Money',
@@ -86,7 +86,7 @@ export default function BusinessHomePage() {
             value: '£4,850',
             icon: walletIcon,
             gradient: 'from-emerald-500 to-teal-600',
-            to: '/business/rewards/cashback',
+            to: '/b/rewards/cashback',
         },
     ]
 
@@ -104,19 +104,19 @@ export default function BusinessHomePage() {
 
     /* ── Quick actions (all eight) ── */
     const actionItems = [
-        { label: 'View VCard', subtitle: 'Digital profile', icon: vcardIcon, color: 'from-orange-500 to-amber-500', to: '/business/vcards' },
-        { label: 'View Business Card', subtitle: '85 × 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/business/cards' },
+        { label: 'View VCard', subtitle: 'Digital profile', icon: vcardIcon, color: 'from-orange-500 to-amber-500', to: '/b/vcards' },
+        { label: 'View Business Card', subtitle: '85 × 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/b/cards' },
         { label: 'Share', subtitle: 'Send to anyone', icon: quickActions[0].icon, color: 'from-blue-500 to-cyan-500', to: businessVCardLink('share') },
-        { label: 'Show QR', subtitle: 'Scan & connect', icon: quickActions[1].icon, color: 'from-purple-500 to-violet-600', to: '/business/qr' },
-        { label: 'Reward Customer', subtitle: 'Points & perks', icon: quickActions[2].icon, color: 'from-emerald-500 to-teal-600', to: '/business/rewards/issue' },
-        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: quickActions[4].icon, color: 'from-cyan-500 to-sky-600', to: '/business/appointments' },
-        { label: 'View Membership', subtitle: 'Plan & benefits', icon: membershipIcon, color: 'from-amber-500 to-orange-600', to: '/business/membership' },
-        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/business/rewards/cashback' },
+        { label: 'Show QR', subtitle: 'Scan & connect', icon: quickActions[1].icon, color: 'from-purple-500 to-violet-600', to: '/b/qr' },
+        { label: 'Reward Customer', subtitle: 'Points & perks', icon: quickActions[2].icon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue' },
+        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: quickActions[4].icon, color: 'from-cyan-500 to-sky-600', to: '/b/appointments' },
+        { label: 'View Membership', subtitle: 'Plan & benefits', icon: membershipIcon, color: 'from-amber-500 to-orange-600', to: '/b/membership' },
+        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/rewards/cashback' },
     ]
 
     /* ── Alerts — grouped by type ── */
     const alerts = [
-        { tone: 'warning' as const, title: 'Membership expiry', description: `Your Gold membership expires in ${mockMembership.daysRemaining} days (${mockMembership.renewalDate}). Renew to keep Premium benefits active.`, time: '2 hrs ago', to: '/business/membership' },
+        { tone: 'warning' as const, title: 'Membership expiry', description: `Your Gold membership expires in ${mockMembership.daysRemaining} days (${mockMembership.renewalDate}). Renew to keep Premium benefits active.`, time: '2 hrs ago', to: '/b/membership' },
         { tone: 'success' as const, title: 'Template activation', description: `Your ${activeVCardTemplate.name} VCard template and ${activeCardTemplate.name} card are active and live.`, time: 'Today' },
         { tone: 'success' as const, title: 'Reward activity', description: '23 customers redeemed rewards today. Great engagement — rewards are working.', time: '5 hrs ago' },
         { tone: 'info' as const, title: 'Appointment activity', description: `${pendingAppointments} appointment${pendingAppointments === 1 ? '' : 's'} awaiting confirmation for today.`, time: 'Today' },
@@ -174,7 +174,7 @@ export default function BusinessHomePage() {
                     </div>
                     <div className="flex items-center justify-between mt-1.5 text-[10px] text-white/80">
                         <span>{mockMembership.daysRemaining} of {mockMembership.totalDays} days left</span>
-                        <Link to="/business/membership" className="underline font-semibold">View plan</Link>
+                        <Link to="/b/membership" className="underline font-semibold">View plan</Link>
                     </div>
                 </div>
             </section>
@@ -211,7 +211,7 @@ export default function BusinessHomePage() {
             <section>
                 <div className="flex items-center justify-between mb-3">
                     <SectionTitle>Performance</SectionTitle>
-                    <Link to="/business/analytics" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View analytics</Link>
+                    <Link to="/b/analytics" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View analytics</Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {performance.map(({ label, kpi }) => (
@@ -339,7 +339,7 @@ export default function BusinessHomePage() {
                 <section>
                     <div className="flex items-center justify-between mb-3">
                         <SectionTitle>Recent Activity</SectionTitle>
-                        <Link to="/business/reports" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View all</Link>
+                        <Link to="/b/reports" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View all</Link>
                     </div>
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
                         {mockActivity.slice(0, 5).map(a => (
