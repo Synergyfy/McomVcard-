@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
                         </div>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">Membership</p>
                     </div>
-                    <Link to="/business/membership" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View plan</Link>
+                    <Link to="/b/membership" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View plan</Link>
                 </div>
 
                 {/* Current membership */}

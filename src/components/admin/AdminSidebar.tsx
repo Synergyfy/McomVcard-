@@ -88,6 +88,21 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Content & SEO',
+    items: [
+      {
+        label: 'Landing Pages',
+        icon: 'M3 17l6-6-6-6m8 12h10',
+        sub: [
+          { to: '/admin/landing/sliders', label: 'Hero Sliders' },
+          { to: '/admin/landing/embeds', label: 'Content Embeds' },
+          { to: '/admin/front-cms', label: 'Front CMS (Hero/About/FAQ)' },
+          { to: '/admin/features', label: 'Features' },
+        ],
+      },
+    ],
+  },
+  {
     label: 'System',
     items: [
       {

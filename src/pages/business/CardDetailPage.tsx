@@ -148,7 +148,7 @@ export default function CardDetailPage() {
           <svg className="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
         </div>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Card not found.</p>
-        <Link to="/business/cards" className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Back to My Cards</Link>
+        <Link to="/b/cards" className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Back to My Cards</Link>
       </div>
     )
   }
@@ -181,9 +181,9 @@ export default function CardDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Link to="/business" className="text-[10px] text-orange-600 hover:underline">Business Dashboard</Link>
+              <Link to="/b/dashboard" className="text-[10px] text-orange-600 hover:underline">Business Dashboard</Link>
               <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              <Link to="/business/cards" className="text-[10px] text-orange-600 hover:underline">My Cards</Link>
+              <Link to="/b/cards" className="text-[10px] text-orange-600 hover:underline">My Cards</Link>
               <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
               <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">{row.name}</h1>
             </div>
@@ -230,7 +230,7 @@ export default function CardDetailPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-1.5">
-            <Link to={`/business/cards/${row.id}/edit`} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-[11px] font-semibold hover:bg-orange-600">
+            <Link to={`/b/cards/${row.id}/edit`} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-[11px] font-semibold hover:bg-orange-600">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               Edit Content
             </Link>
@@ -319,7 +319,7 @@ export default function CardDetailPage() {
           cardType="business"
           faces={faces}
           badge={previewFor.category}
-          onEdit={() => { setPreviewFor(null); navigate(`/business/cards/${previewFor.id}/edit`) }}
+          onEdit={() => { setPreviewFor(null); navigate(`/b/cards/${previewFor.id}/edit`) }}
           onClose={() => setPreviewFor(null)}
         />
       )}

@@ -104,7 +104,7 @@ export default function ConsumerSetupPage() {
     }
   }
 
-  const goHome = () => navigate('/consumer', { replace: true })
+  const goHome = () => navigate('/c/dashboard', { replace: true })
 
   const stepDots = (current: number) => (
     <div className="flex items-center gap-2 mb-8">

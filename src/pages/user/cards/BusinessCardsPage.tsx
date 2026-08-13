@@ -78,7 +78,7 @@ export default function BusinessCardsPage() {
             Limit reached
           </span>
         ) : (
-          <Link to="/business/cards" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+          <Link to="/b/cards" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
             Browse Cards
           </Link>
         )}
@@ -201,7 +201,7 @@ export default function BusinessCardsPage() {
                     </button>
                   </div>
                   <p className="text-[10px] text-gray-400 mb-2">{row.templateId} · v{row.version} · {row.businessesUsing.toLocaleString()} businesses</p>
-                  <Link to="/business/cards" className="block text-center py-1.5 text-[10px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                  <Link to="/b/cards" className="block text-center py-1.5 text-[10px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
                     Use This Card
                   </Link>
                 </div>
