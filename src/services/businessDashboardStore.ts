@@ -91,11 +91,11 @@ const qa = {
 
 export const quickActions: QuickActionItem[] = [
   { label: 'Share My Card', subtitle: 'Send to anyone', icon: qa.share, to: businessVCardLink('share'), color: 'from-orange-500 to-orange-600' },
-  { label: 'Show QR', subtitle: 'Scan & connect', icon: qa.qr, to: '/business/qr', color: 'from-blue-500 to-blue-600' },
-  { label: 'Reward Customer', subtitle: 'Points & perks', icon: qa.reward, to: '/business/rewards/issue', color: 'from-purple-500 to-purple-600' },
-  { label: 'Create Offer', subtitle: 'Launch a promo', icon: qa.offer, to: '/business/rewards/campaigns', color: 'from-emerald-500 to-emerald-600' },
-  { label: 'Book Appointment', subtitle: 'Manage bookings', icon: qa.book, to: '/business/appointments', color: 'from-cyan-500 to-cyan-600' },
-  { label: 'View Wallet', subtitle: 'Balance & history', icon: qa.wallet, to: '/business/wallet', color: 'from-rose-500 to-rose-600' },
+  { label: 'Show QR', subtitle: 'Scan & connect', icon: qa.qr, to: '/b/qr', color: 'from-blue-500 to-blue-600' },
+  { label: 'Reward Customer', subtitle: 'Points & perks', icon: qa.reward, to: '/b/rewards/issue', color: 'from-purple-500 to-purple-600' },
+  { label: 'Create Offer', subtitle: 'Launch a promo', icon: qa.offer, to: '/b/rewards/campaigns', color: 'from-emerald-500 to-emerald-600' },
+  { label: 'Book Appointment', subtitle: 'Manage bookings', icon: qa.book, to: '/b/appointments', color: 'from-cyan-500 to-cyan-600' },
+  { label: 'View Wallet', subtitle: 'Balance & history', icon: qa.wallet, to: '/b/wallet', color: 'from-rose-500 to-rose-600' },
 ]
 
 /* ── Guidance notifications ───────────────────────────────────────── */
@@ -112,15 +112,15 @@ export interface GuidanceNotification {
 }
 
 export const mockNotifications: GuidanceNotification[] = [
-  { id: 1, title: 'Your Gold Membership expires in 21 days', description: 'Keep your Premium benefits active.', category: 'Membership', tone: 'warning', actionLabel: 'Renew now', actionTo: '/business/membership', time: '2 hrs ago' },
+  { id: 1, title: 'Your Gold Membership expires in 21 days', description: 'Keep your Premium benefits active.', category: 'Membership', tone: 'warning', actionLabel: 'Renew now', actionTo: '/b/membership', time: '2 hrs ago' },
   { id: 2, title: '23 customers redeemed rewards today', description: 'Great engagement. Rewards are working.', category: 'Rewards', tone: 'success', time: '5 hrs ago' },
-  { id: 3, title: 'Your QR has been scanned 143 times', description: 'Since this morning at the King Street store.', category: 'VCard', tone: 'info', actionLabel: 'View QR', actionTo: '/business/qr', time: 'Yesterday' },
-  { id: 4, title: '5 customers have not redeemed their vouchers', description: 'Consider sending a gentle reminder.', category: 'Customers', tone: 'warning', actionLabel: 'View customers', actionTo: '/business/customers', time: '2 days ago' },
-  { id: 5, title: 'New booking request from Jordan Smith', description: 'Haircut · Tomorrow, 10:30 AM — confirm your slot.', category: 'Appointments', tone: 'info', actionLabel: 'View booking', actionTo: '/business/appointments', time: '1 hr ago' },
-  { id: 6, title: 'Your Summer Sale campaign reached 1,200 people', description: '212 views and 39 redemptions so far.', category: 'Campaigns', tone: 'success', actionLabel: 'View campaign', actionTo: '/business/rewards/campaigns', time: '4 hrs ago' },
-  { id: 7, title: 'E-Gift Card stock is running low', description: 'Fewer than 10 E-Gift Cards left on sale.', category: 'Cards', tone: 'warning', actionLabel: 'Manage cards', actionTo: '/business/cards', time: 'Yesterday' },
+  { id: 3, title: 'Your QR has been scanned 143 times', description: 'Since this morning at the King Street store.', category: 'VCard', tone: 'info', actionLabel: 'View QR', actionTo: '/b/qr', time: 'Yesterday' },
+  { id: 4, title: '5 customers have not redeemed their vouchers', description: 'Consider sending a gentle reminder.', category: 'Customers', tone: 'warning', actionLabel: 'View customers', actionTo: '/b/customers', time: '2 days ago' },
+  { id: 5, title: 'New booking request from Jordan Smith', description: 'Haircut · Tomorrow, 10:30 AM — confirm your slot.', category: 'Appointments', tone: 'info', actionLabel: 'View booking', actionTo: '/b/appointments', time: '1 hr ago' },
+  { id: 6, title: 'Your Summer Sale campaign reached 1,200 people', description: '212 views and 39 redemptions so far.', category: 'Campaigns', tone: 'success', actionLabel: 'View campaign', actionTo: '/b/rewards/campaigns', time: '4 hrs ago' },
+  { id: 7, title: 'E-Gift Card stock is running low', description: 'Fewer than 10 E-Gift Cards left on sale.', category: 'Cards', tone: 'warning', actionLabel: 'Manage cards', actionTo: '/b/cards', time: 'Yesterday' },
   { id: 8, title: 'Someone saved your VCard today', description: 'Your VCard was viewed 12 times this week.', category: 'VCard', tone: 'info', time: '6 hrs ago' },
-  { id: 9, title: '£127.40 cashback earned this week', description: 'Loyalty cashback returned to your business.', category: 'Smart Money', tone: 'success', actionLabel: 'View wallet', actionTo: '/business/wallet', time: '3 hrs ago' },
+  { id: 9, title: '£127.40 cashback earned this week', description: 'Loyalty cashback returned to your business.', category: 'Smart Money', tone: 'success', actionLabel: 'View wallet', actionTo: '/b/wallet', time: '3 hrs ago' },
   { id: 10, title: 'MCOM maintenance scheduled for Sunday 2 AM', description: 'A short downtime window is expected.', category: 'System', tone: 'info', time: '1 day ago' },
 ]
 

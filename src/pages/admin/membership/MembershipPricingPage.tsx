@@ -6,6 +6,18 @@ import {
   loadMembershipPricing, saveMembershipPricing, resetMembershipPricing,
   type MembershipPricingState,
 } from '../../../services/membershipPricingStore'
+import {
+  loadConsumerPricing, saveConsumerPricing, resetConsumerPricing,
+} from '../../../services/consumerPricingStore'
+
+type Scope = 'business' | 'consumer'
+
+const loadScope = (scope: Scope): MembershipPricingState =>
+  scope === 'business' ? loadMembershipPricing() : loadConsumerPricing()
+const saveScope = (scope: Scope, state: MembershipPricingState): MembershipPricingState =>
+  scope === 'business' ? saveMembershipPricing(state) : saveConsumerPricing(state)
+const resetScope = (scope: Scope): MembershipPricingState =>
+  scope === 'business' ? resetMembershipPricing() : resetConsumerPricing()
 import { PlansPricingSection } from '../../../components/admin/pricing/PlansPricingSection'
 import { EntitlementsSection } from '../../../components/admin/pricing/EntitlementsSection'
 import { PromotionsSection } from '../../../components/admin/pricing/PromotionsSection'
@@ -35,12 +47,20 @@ const toSection = (s: string | null): Section => (s && NAV.some(n => n.id === s)
 export default function MembershipPricingPage() {
   const [params, setParams] = useSearchParams()
   const [section, setSection] = useState<Section>(() => toSection(params.get('section')))
-  const [state, setState] = useState<MembershipPricingState>(() => loadMembershipPricing())
+  const [scope, setScope] = useState<Scope>(() => (params.get('scope') === 'consumer' ? 'consumer' : 'business'))
+  const [state, setState] = useState<MembershipPricingState>(() => loadScope(scope))
   const [dirty, setDirty] = useState(false)
 
   const switchSection = (s: Section) => {
     setSection(s)
-    setParams(s === 'plans' ? {} : { section: s }, { replace: true })
+    setParams(s === 'plans' ? { scope } : { section: s, scope }, { replace: true })
+  }
+
+  const switchScope = (next: Scope) => {
+    setScope(next)
+    setState(loadScope(next))
+    setDirty(false)
+    setParams(section === 'plans' ? { scope: next } : { section, scope: next }, { replace: true })
   }
 
   const update = (fn: (s: MembershipPricingState) => MembershipPricingState) => {
@@ -49,17 +69,17 @@ export default function MembershipPricingPage() {
   }
 
   const handleSave = () => {
-    const next = saveMembershipPricing(state)
+    const next = saveScope(scope, state)
     setState(next)
     setDirty(false)
-    toast.success('Changes saved — live on the public pricing page')
+    toast.success(scope === 'business' ? 'Business changes saved — live on the public pricing page' : 'Consumer changes saved — live on the consumer plans')
   }
 
   const handleReset = () => {
-    const fresh = resetMembershipPricing()
+    const fresh = resetScope(scope)
     setState(fresh)
     setDirty(true)
-    toast.success('Reset to default pricing')
+    toast.success(scope === 'business' ? 'Reset to default business pricing' : 'Reset to default consumer pricing')
   }
 
   return (
@@ -74,14 +94,18 @@ export default function MembershipPricingPage() {
             <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             <h1 className="text-sm font-bold text-gray-900 dark:text-white">Pricing &amp; Plans</h1>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400">One place to manage plans, entitlements, promotions, plan changes and settings.</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">One place to manage plans, entitlements, promotions, plan changes and settings for businesses and consumers.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] text-gray-400 mr-1">Last updated {state.updatedAt} · {state.currency}</span>
+          <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-600 p-0.5 mr-1">
+            <button onClick={() => switchScope('business')} className={`px-3 py-1.5 rounded-md text-[10px] font-semibold transition-colors ${scope === 'business' ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>Business</button>
+            <button onClick={() => switchScope('consumer')} className={`px-3 py-1.5 rounded-md text-[10px] font-semibold transition-colors ${scope === 'consumer' ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>Consumers</button>
+          </div>
+          <span className="text-[10px] text-gray-400 mr-1">{scope === 'consumer' ? 'Consumer' : 'Business'} · Last updated {state.updatedAt} · {state.currency}</span>
           {dirty && <span className="text-[9px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded-full">Unsaved changes</span>}
           <button onClick={handleReset} className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-[10px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Reset</button>
-          <Link to="/membership" className="px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-500/40 text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">View Public Page</Link>
-          <button onClick={handleSave} className="px-3 py-2 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600">Save Pricing</button>
+          <Link to={scope === 'consumer' ? '/membership?audience=consumer' : '/membership'} className="px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-500/40 text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">View Public Page</Link>
+          <button onClick={handleSave} className="px-3 py-2 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600">Save {scope === 'consumer' ? 'Consumer' : 'Pricing'}</button>
         </div>
       </div>
 

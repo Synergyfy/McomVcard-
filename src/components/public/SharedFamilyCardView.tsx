@@ -56,7 +56,7 @@ export default function SharedFamilyCardView({ member, protection }: SharedFamil
             </div>
         ) },
         { key: 'rewards', ...SECTION_STYLES.rewards, title: 'Wish List', content: member.wishlist.length > 0
-            ? member.wishlist.map((w, i) => <Row key={i} title={w.title} desc={w.price || 'No price set'} value="Wish" />)
+            ? member.wishlist.map((w, i) => <Row key={i} title={w.title} desc={w.price || 'No price set'} value="Wish" image={w.image} />)
             : <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3">No wishes added yet.</p> },
         { key: 'services', ...SECTION_STYLES.services, title: 'Services', content: SERVICES.map((s, i) => <Row key={i} title={s.name} desc={s.desc} value={s.price} />) },
         { key: 'appointments', ...SECTION_STYLES.appointments, title: 'Appointments', content: APPOINTMENTS.map((a, i) => <Row key={i} title={a.title} desc={a.when} value={a.business} />) },

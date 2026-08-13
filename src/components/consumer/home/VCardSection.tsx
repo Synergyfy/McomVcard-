@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function VCardSection() {
     return (
-        <Link to="/consumer/vcard" className="block group">
+        <Link to="/c/vcard" className="block group">
             <div className="bg-gradient-to-br from-accent-500 to-accent-700 rounded-3xl p-5 shadow-lg shadow-accent-500/20 transition-transform active:scale-[0.98]">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-4 min-w-0">

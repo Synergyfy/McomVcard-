@@ -448,5 +448,5 @@ export function getPrimaryVCardId(): number {
 
 export function businessVCardLink(centre?: string): string {
     const id = getPrimaryVCardId()
-    return centre ? `/business/vcards/${id}?centre=${centre}` : `/business/vcards/${id}`
+    return centre ? `/b/vcards/${id}?centre=${centre}` : `/b/vcards/${id}`
 }

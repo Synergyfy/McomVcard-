@@ -27,7 +27,7 @@ export default function LockedState({
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 max-w-sm mx-auto">{message}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                 <Link
-                    to="/business/membership"
+                    to="/b/membership"
                     className="inline-flex items-center justify-center px-4 py-2.5 min-h-[44px] w-full sm:w-auto bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors"
                 >
                     View Membership

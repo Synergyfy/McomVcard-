@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { loadMembershipPricing, PLAN_TIERS, type BillingCycle, type PlanTier } from '../../services/membershipPricingStore'
-import { BillingToggle, PricingCard, PricingTierTabs } from '../../components/public/PricingCards'
+import { loadMembershipPricing, PLAN_TIERS, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BillingToggle, TIER_LABEL } from '../../components/public/PricingCards'
 import { mockMembership } from '../../services/businessDashboardStore'
 import { mockBusinessProfile } from '../../services/businessStore'
 
 /* ------------------------------------------------------------------ */
-/*  Business — Plans & Pricing (/business/membership/plans)            */
-/*  Shows exactly the pricing plans the Admin created in              */
-/*  /admin/membership/pricing (membershipPricingStore) — every plan    */
-/*  is rendered, nothing is missing. Upgrades are requested via the    */
-/*  Admin, matching how membership is managed on the business side.    */
+/*  Business — Plans & Pricing (/b/membership/plans)            */
+/*  Two-step flow (level → access) driven by the Admin's pricing       */
+/*  store — Standard / Pro / Pro+, where Pro+ is the annual option.    */
+/*  Defaults to the business's current level and access. Upgrades are  */
+/*  requested via the Admin, matching how membership is managed.       */
 /* ------------------------------------------------------------------ */
 
 export default function MembershipPlansPage() {
@@ -20,16 +20,17 @@ export default function MembershipPlansPage() {
   const [state] = useState(() => loadMembershipPricing())
   const currentPlan = mockMembership.plan // e.g. "Gold Pro"
 
-  /* Default the tier to the one the business is currently on. */
+  /* Default to the level/access the business is currently on. */
+  const currentLevel = (state.plans.find(p => currentPlan.toLowerCase().includes(p.id.toLowerCase()))?.id ?? 'Gold') as PlanLevel
   const currentTier = (PLAN_TIERS as string[]).find(t => currentPlan.toLowerCase().includes(t.toLowerCase())) as PlanTier | undefined
+  const [level, setLevel] = useState<PlanLevel>(currentLevel)
   const [tier, setTier] = useState<PlanTier>(currentTier ?? 'Normal')
   const [billing, setBilling] = useState<BillingCycle>('quarterly')
 
-  const currentLevel = state.plans.find(p => currentPlan.toLowerCase().includes(p.id.toLowerCase()))?.id
-
-  const choose = (name: string) => {
-    toast.success(`Upgrade request submitted — ${mockBusinessProfile.name} will move to ${name}`)
-    navigate('/business/membership/confirmation')
+  const choose = (lvl: PlanLevel, t: PlanTier) => {
+    const target = `${lvl} ${t === 'Normal' ? 'Standard' : t}`
+    toast.success(`Upgrade request submitted — ${mockBusinessProfile.name} will move to ${target}`)
+    navigate('/b/membership/confirmation')
   }
 
   return (
@@ -39,13 +40,13 @@ export default function MembershipPlansPage() {
       {/* Breadcrumb + header */}
       <div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <Link to="/business/membership" className="hover:text-orange-600">Membership</Link>
+          <Link to="/b/membership" className="hover:text-orange-600">Membership</Link>
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
           <span className="text-gray-900 dark:text-white font-medium">Plans &amp; Pricing</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">Plans &amp; Pricing</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Every plan your Admin offers, exactly as configured in the Admin pricing dashboard. No plan is hidden.
+          Every plan your Admin offers, exactly as configured in the Admin pricing dashboard. Standard is access, Pro is the upgrade, Pro+ is the annual membership.
         </p>
       </div>
 
@@ -58,7 +59,7 @@ export default function MembershipPlansPage() {
             <p className="text-xs text-white/80 mt-0.5">{mockMembership.season} · {mockMembership.daysRemaining} days left · renews {mockMembership.renewalDate}</p>
           </div>
           <Link
-            to="/business/membership"
+            to="/b/membership"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-orange-600 text-xs font-bold hover:opacity-95 self-start sm:self-auto"
           >
             Membership overview
@@ -67,53 +68,37 @@ export default function MembershipPlansPage() {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <PricingTierTabs tier={tier} onChange={setTier} />
-        <BillingToggle billing={billing} onChange={setBilling} />
+      {/* Step 1 — level */}
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Step 1 · Choose your membership level</p>
+        <LevelDropdown state={state} level={level} onChange={setLevel} />
       </div>
 
-      {/* All plans — rendered from the Admin's pricing store */}
-      <PricingCard state={state} tier={tier} billing={billing} onChoose={choose} currentPlan={currentLevel} />
+      {/* Step 2 — access */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
+        {tier !== 'Pro+' ? (
+          <BillingToggle billing={billing} onChange={setBilling} />
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
+            Pro+ · Annual membership
+          </span>
+        )}
+      </div>
+
+      <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={choose} />
 
       {/* Comparison table */}
-      {state.plans[0] && (
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">Compare what's included</h2>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 mb-4">
-            {tier} tier · how every plan scales its limits across the full catalogue.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-[11px] min-w-[640px]">
-              <thead>
-                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Allocation</th>
-                  {state.plans.map(plan => (
-                    <th key={plan.id} className={`py-2.5 pr-4 font-semibold ${plan.id === currentLevel ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-200'}`}>
-                      {plan.name}{plan.id === currentLevel && <span className="ml-1 text-[9px] font-bold text-orange-500">· current</span>}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {state.plans[0].rules.map((rule, ri) => (
-                  <tr key={ri} className="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
-                    <td className="py-2.5 pr-4 text-gray-500 dark:text-gray-400">{rule.label}</td>
-                    {state.plans.map(plan => (
-                      <td key={plan.id} className={`py-2.5 pr-4 font-medium ${plan.id === currentLevel ? 'text-orange-700 dark:text-orange-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                        {plan.rules[ri]?.values[tier] ?? '—'}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-[10px] text-gray-400 mt-4">
-            Plan changes are managed by MCOM Solutions on the Admin dashboard. Selecting a plan submits an upgrade request.
-          </p>
-        </div>
-      )}
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <h2 className="text-base font-bold text-gray-900 dark:text-white">Compare {level} access</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 mb-4">
+          {TIER_LABEL[tier]} · how the three access levels scale for {level}. Pro+ is the annual membership.
+        </p>
+        <AccessComparison state={state} level={level} />
+        <p className="text-[10px] text-gray-400 mt-4">
+          Plan changes are managed by MCOM Solutions on the Admin dashboard. Selecting a plan submits an upgrade request.
+        </p>
+      </div>
     </div>
   )
 }

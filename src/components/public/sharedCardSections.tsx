@@ -67,11 +67,14 @@ export function SectionCard({ title, icon, color, children, locked }: { title: s
     )
 }
 
-export function Row({ title, desc, value, icon }: { title: string; desc?: string; value?: string; icon?: keyof typeof CONTACT_ICONS }) {
+export function Row({ title, desc, value, icon, image }: { title: string; desc?: string; value?: string; icon?: keyof typeof CONTACT_ICONS; image?: string }) {
     return (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60">
             <div className="flex items-center gap-3 min-w-0">
-                {icon && (
+                {image && (
+                    <img src={image} alt={title} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                )}
+                {icon && !image && (
                     <span className="w-9 h-9 rounded-xl bg-accent-50 dark:bg-accent-500/10 text-accent-500 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={CONTACT_ICONS[icon]} />

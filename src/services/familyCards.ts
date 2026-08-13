@@ -6,6 +6,7 @@ export interface WishItem {
   price?: string
   emoji: string
   gradient: string
+  image?: string
 }
 
 export type MemberKind = 'Family' | 'Friend'
@@ -254,7 +255,7 @@ export const familyService = {
       return { ...updated, wishlist: [...updated.wishlist] }
     })
   },
-  async addWish(memberId: number, title: string, price?: string): Promise<FamilyCardMember | undefined> {
+  async addWish(memberId: number, title: string, price?: string, image?: string): Promise<FamilyCardMember | undefined> {
     return delay().then(() => {
       const idx = members.findIndex((m) => m.id === memberId)
       if (idx === -1) return undefined
@@ -264,13 +265,14 @@ export const familyService = {
         price: price || undefined,
         emoji: '🎁',
         gradient: wishGradients[members[idx].wishlist.length % wishGradients.length],
+        image: image || undefined,
       }
       members = members.map((m, i) => (i === idx ? { ...m, wishlist: [...m.wishlist, item] } : m))
       const updated = members[idx]
       return { ...updated, wishlist: [...updated.wishlist] }
     })
   },
-  async updateWish(memberId: number, wishId: number, patch: Partial<Pick<WishItem, 'title' | 'price'>>): Promise<FamilyCardMember | undefined> {
+  async updateWish(memberId: number, wishId: number, patch: Partial<Pick<WishItem, 'title' | 'price' | 'image'>>): Promise<FamilyCardMember | undefined> {
     return delay().then(() => {
       const idx = members.findIndex((m) => m.id === memberId)
       if (idx === -1) return undefined
