@@ -47,7 +47,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
     description: 'Consumer vCards the business can issue.',
     scope: 'Consumer usage',
     pages: [
-      { label: 'Consumer vCards', href: '/consumer/vcard-templates' },
+      { label: 'Consumer vCards', href: '/c/vcard-templates' },
       { label: 'Admin · Consumer vCard templates', href: '/admin/vcard-management/consumer-vcard-templates' },
     ],
     usage: {
@@ -72,7 +72,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
     description: 'Consumer cards issued to customers.',
     scope: 'Consumer usage',
     pages: [
-      { label: 'Consumer Cards', href: '/consumer/cards' },
+      { label: 'Consumer Cards', href: '/c/cards' },
     ],
     usage: {
       used: mockConsumers[CONSUMER_ID]?.savedCards?.length ?? 0,
@@ -97,7 +97,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
     scope: 'Consumer usage',
     pages: [
       { label: 'Admin · Wallet', href: '/admin/wallet' },
-      { label: 'Consumer · Wallet', href: '/consumer/wallet' },
+      { label: 'Consumer · Wallet', href: '/c/wallet' },
     ],
     usage: {
       used: 0,

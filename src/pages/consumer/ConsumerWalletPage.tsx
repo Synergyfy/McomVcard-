@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import { mockRedeemItems } from '../../services/mockData'
+import { consumerWishlistService } from '../../services/consumerWishlist'
+import { mockRedeemItems, mockNearbyOffers } from '../../services/mockData'
 import BottomSheet from '../../components/business/primitives/BottomSheet'
 import FundCardSheet from '../../components/consumer/wallet/FundCardSheet'
 import ErrorState from '../../components/common/ErrorState'
 
-type WalletKey = 'cashback' | 'rewards' | 'giftCards' | 'coupons' | 'redeemable'
+type WalletKey = 'giftCards' | 'vouchers' | 'coupons' | 'deals' | 'cashback' | 'rewards' | 'redeemable' | 'wishlist'
 
 export default function ConsumerWalletPage() {
     const [wallet, setWallet] = useState<{ balance: number; points: number; cashback: number; giftCards: number; coupons: number; vouchers: number; pending?: number; locked?: number } | null>(null)
@@ -17,15 +18,17 @@ export default function ConsumerWalletPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
     const [detail, setDetail] = useState<WalletKey | null>(null)
+    const [wishCount, setWishCount] = useState(0)
 
     const loadWallet = () => {
         setLoading(true)
         setError(false)
-        Promise.all([consumerService.getWallet(), consumerService.getCardBalance(), consumerService.getCardActivity()])
-            .then(([w, b, a]) => {
+        Promise.all([consumerService.getWallet(), consumerService.getCardBalance(), consumerService.getCardActivity(), consumerWishlistService.getWishlist()])
+            .then(([w, b, a, wish]) => {
                 setWallet(w)
                 setCardBalance(b)
                 setTransactions(a || [])
+                setWishCount(wish.length)
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false))
@@ -55,16 +58,35 @@ export default function ConsumerWalletPage() {
     }
 
     const redeemable = mockRedeemItems.length
+    const deals = mockNearbyOffers.length
 
-    const items: { key: WalletKey; label: string; value: string; sub: string; icon: string; color: string; bg: string }[] = [
+    const items: { key: WalletKey; label: string; value: string; sub: string; icon: string; color: string; bg: string; to?: string }[] = [
+        { key: 'giftCards', label: 'Gift Cards', value: wallet.giftCards.toString(), sub: 'In your wallet', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+        { key: 'vouchers', label: 'Vouchers', value: wallet.vouchers.toString(), sub: 'Active vouchers', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+        { key: 'coupons', label: 'Coupons', value: wallet.coupons.toString(), sub: 'Ready to use', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z', color: 'text-pink-600 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-900/20' },
+        { key: 'deals', label: 'Deals', value: deals.toString(), sub: 'Nearby offers', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: 'text-fuchsia-600 dark:text-fuchsia-400', bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/20' },
         { key: 'cashback', label: 'Cashback', value: `£${wallet.cashback.toFixed(2)}`, sub: 'Available to use', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
         { key: 'rewards', label: 'Rewards', value: wallet.points.toLocaleString(), sub: `${wallet.vouchers} active vouchers`, icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-        { key: 'giftCards', label: 'Gift Cards', value: wallet.giftCards.toString(), sub: 'In your wallet', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-        { key: 'coupons', label: 'Coupons', value: wallet.coupons.toString(), sub: 'Ready to use', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
         { key: 'redeemable', label: 'Redeemable', value: redeemable.toString(), sub: 'Ready to redeem now', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+        { key: 'wishlist', label: 'My Wishlist', value: wishCount.toString(), sub: 'Things you want', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20', to: '/c/wishlist' },
     ]
 
     const detailContent: Record<WalletKey, { title: string; rows: { label: string; value: string }[]; cta: string }> = {
+        giftCards: { title: 'Gift Cards', rows: [
+            { label: 'Gift cards in wallet', value: wallet.giftCards.toString() },
+            { label: '£2 e-Card Voucher', value: '£2.00' },
+        ], cta: 'Use Gift Card' },
+        vouchers: { title: 'Vouchers', rows: [
+            { label: 'Active vouchers', value: wallet.vouchers.toString() },
+            { label: 'Free Coffee', value: 'Free' },
+            { label: 'Free Class Pass', value: '1 free class' },
+        ], cta: 'Use Voucher' },
+        coupons: { title: 'Coupons', rows: [
+            { label: 'Active coupons', value: wallet.coupons.toString() },
+            { label: '10% Off Voucher', value: '10% off' },
+            { label: 'Free Class Pass', value: '1 free class' },
+        ], cta: 'Use Coupon' },
+        deals: { title: 'Deals Near You', rows: mockNearbyOffers.map((o) => ({ label: o.offer, value: o.discount })), cta: 'Browse Deals' },
         cashback: { title: 'Cashback', rows: [
             { label: 'Available cashback', value: `£${wallet.cashback.toFixed(2)}` },
             { label: 'From GreenLeaf Coffee', value: '£2.00' },
@@ -76,16 +98,8 @@ export default function ConsumerWalletPage() {
             { label: 'Active vouchers', value: wallet.vouchers.toString() },
             { label: 'Rewards earned', value: '6' },
         ], cta: 'View Rewards' },
-        giftCards: { title: 'Gift Cards', rows: [
-            { label: 'Gift cards in wallet', value: wallet.giftCards.toString() },
-            { label: '£2 e-Card Voucher', value: '£2.00' },
-        ], cta: 'Use Gift Card' },
-        coupons: { title: 'Coupons', rows: [
-            { label: 'Active coupons', value: wallet.coupons.toString() },
-            { label: '10% Off Voucher', value: '10% off' },
-            { label: 'Free Class Pass', value: '1 free class' },
-        ], cta: 'Use Coupon' },
         redeemable: { title: 'Redeemable Now', rows: mockRedeemItems.map((r) => ({ label: r.title, value: r.value })), cta: 'Redeem Now' },
+        wishlist: { title: 'My Wishlist', rows: [{ label: 'Saved items', value: wishCount.toString() }], cta: 'View Wishlist' },
     }
 
     const pending = wallet.pending ?? 0
@@ -152,33 +166,48 @@ export default function ConsumerWalletPage() {
                     <svg className="w-4 h-4 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 8a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17h3.839a.75.75 0 00.53-.919c-.083-.322-.173-.657-.263-1.003m0 0a15.976 15.976 0 00-2.595-6.625" />
                     </svg>
-                    <Link to="/consumer/family" className="text-xs font-semibold text-white underline underline-offset-2">
+                    <Link to="/c/family" className="text-xs font-semibold text-white underline underline-offset-2">
                         Send money to family cards
                     </Link>
                 </div>
             </section>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {items.map((item) => (
-                    <button
-                        key={item.key}
-                        onClick={() => setDetail(item.key)}
-                        className="text-left bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 active:scale-[0.98] transition-transform"
-                    >
-                        <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-3`}>
-                            <svg className={`w-5 h-5 ${item.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
-                            </svg>
-                        </div>
-                        <p className="text-lg font-extrabold text-gray-900 dark:text-white leading-tight">{item.value}</p>
-                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{item.label}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">{item.sub}</p>
-                    </button>
-                ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {items.map((item) => {
+                    const body = (
+                        <>
+                            <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-3`}>
+                                <svg className={`w-5 h-5 ${item.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                                </svg>
+                            </div>
+                            <p className="text-lg font-extrabold text-gray-900 dark:text-white leading-tight">{item.value}</p>
+                            <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{item.label}</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">{item.sub}</p>
+                        </>
+                    )
+                    return item.to ? (
+                        <Link
+                            key={item.key}
+                            to={item.to}
+                            className="text-left bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 active:scale-[0.98] transition-transform"
+                        >
+                            {body}
+                        </Link>
+                    ) : (
+                        <button
+                            key={item.key}
+                            onClick={() => setDetail(item.key)}
+                            className="text-left bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 active:scale-[0.98] transition-transform"
+                        >
+                            {body}
+                        </button>
+                    )
+                })}
             </div>
 
             <Link
-                to="/consumer/rewards"
+                to="/c/rewards"
                 className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-accent-500 text-white text-sm font-bold shadow-lg shadow-accent-500/25 hover:bg-accent-600 transition-colors"
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,9 +227,15 @@ export default function ConsumerWalletPage() {
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full py-3.5 min-h-[46px] rounded-2xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600 transition-colors">
-                            {detailContent[detail].cta}
-                        </button>
+                        {detail === 'wishlist' ? (
+                            <Link to="/c/wishlist" className="block w-full py-3.5 min-h-[46px] rounded-2xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600 transition-colors text-center">
+                                {detailContent[detail].cta}
+                            </Link>
+                        ) : (
+                            <button className="w-full py-3.5 min-h-[46px] rounded-2xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600 transition-colors">
+                                {detailContent[detail].cta}
+                            </button>
+                        )}
                     </div>
                 )}
             </BottomSheet>

@@ -28,8 +28,9 @@ export interface OnboardingSelection {
 const KEY = 'mcom.onboarding.selection'
 
 export const BILLING_LABEL: Record<BillingCycle, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly (90 days)',
+  monthly: 'Monthly (promo)',
+  quarterly: '90 days Access',
+  semiannual: '180 days Access',
   annual: 'Annual',
 }
 
@@ -58,6 +59,7 @@ export function buildSelection(
   const end = new Date(start)
   if (billing === 'monthly') end.setMonth(end.getMonth() + 1)
   else if (billing === 'quarterly') end.setMonth(end.getMonth() + 3)
+  else if (billing === 'semiannual') end.setMonth(end.getMonth() + 6)
   else end.setFullYear(end.getFullYear() + 1)
 
   const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })

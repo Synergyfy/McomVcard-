@@ -1,22 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
-import { loadMembershipPricing, type BillingCycle, type PlanTier } from '../../services/membershipPricingStore'
-import { BillingToggle, PricingCard, PricingTierTabs } from '../../components/public/PricingCards'
+import { useSearchParams } from 'react-router-dom'
+import { loadMembershipPricing, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { loadConsumerPricing } from '../../services/consumerPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BillingToggle, type PricingAudience } from '../../components/public/PricingCards'
 
 /* ------------------------------------------------------------------ */
 /*  Public pricing page — /membership                                  */
-/*  Normal / Pro / Pro+ tabs switch the price on all 4 plan cards      */
-/*  (Bronze, Silver, Gold, Platinum). Data comes from the admin        */
-/*  Pricing & Plans page (membershipPricingStore).                     */
+/*  Two-step selection, never hard-codes prices or durations:          */
+/*    Step 1  Choose the membership level (Bronze/Silver/Gold/Plat.)   */
+/*    Step 2  Choose the access level (Standard / Pro / Pro+) —        */
+/*            Pro+ is presented as the Annual Membership option.       */
+/*  A Business / Consumer switch frames the audience. Everything       */
+/*  renders from the admin's pricing store configuration — business    */
+/*  pricing for businesses, consumer pricing for consumers, each       */
+/*  configured separately by the admin.                                */
 /* ------------------------------------------------------------------ */
 
 export default function PublicPricingPage() {
-  const [state] = useState(() => loadMembershipPricing())
+  const [searchParams, setSearchParams] = useSearchParams()
+  const audienceParam = searchParams.get('audience') as PricingAudience | null
+  const [audience, setAudience] = useState<PricingAudience>(audienceParam ?? 'business')
+  const [state, setState] = useState(() => audience === 'consumer' ? loadConsumerPricing() : loadMembershipPricing())
+  const [level, setLevel] = useState<PlanLevel>('Gold')
   const [tier, setTier] = useState<PlanTier>('Normal')
   const [billing, setBilling] = useState<BillingCycle>('quarterly')
 
-  const choose = (name: string) => toast.success(`${name} selected — sign up to get started`)
+  // When audience changes, reload data and update URL
+  useEffect(() => {
+    setState(audience === 'consumer' ? loadConsumerPricing() : loadMembershipPricing())
+    setSearchParams({ audience }, { replace: true })
+  }, [audience, setSearchParams])
+
+  const choose = (lvl: PlanLevel, t: PlanTier) =>
+    toast.success(audience === 'business' ? `${lvl} ${t === 'Normal' ? 'Standard' : t} selected — sign up to get started` : `${lvl} ${t === 'Normal' ? 'Standard' : t} selected — connect with a business to activate it`)
+
+  const audienceTitle = audience === 'business' ? 'Business Membership' : 'Consumer Membership'
+
+  const audienceBlurb =
+    audience === 'business'
+      ? 'Prices and durations are configured by MCOM and update automatically.'
+      : 'Consumer membership is issued by businesses you connect with. Available prices are configured by MCOM and update automatically.'
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
@@ -33,53 +58,79 @@ export default function PublicPricingPage() {
             Pricing that grows with your business
           </h1>
           <p className="mt-4 text-sm md:text-base text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-            Four plans — Bronze, Silver, Gold and Platinum — each with Normal, Pro and Pro+ options.
-            Billed quarterly for a minimum 90 days of access. Switch tiers below and the price on every plan updates instantly.
+            Four levels — Bronze, Silver, Gold and Platinum — each with Standard, Pro and Pro+ access.
+            Pro+ is the annual membership option. {audienceBlurb}
+          </p>
+
+          {/* Audience switch */}
+          <div className="mt-6 inline-flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            {(['business', 'consumer'] as const).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAudience(a)}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  audience === a
+                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {a === 'business' ? 'Business' : 'Consumer'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+
+
+      {/* Selection flow */}
+      <div className="px-4 pb-12">
+        <div className="max-w-5xl mx-auto">
+          {/* Step 1 */}
+          <div className="mb-8">
+            <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Step 1 · Choose your membership level</p>
+            <LevelDropdown state={state} level={level} onChange={setLevel} />
+          </div>
+
+          {/* Step 2 */}
+          <div className="mb-6">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-gray-400 font-semibold">{audienceTitle}</span>
+                {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
+                {tier === 'Pro+' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
+                    Pro+ · Annual membership
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <AccessCards
+            state={state}
+            level={level}
+            tier={tier}
+            billing={billing}
+            onSelect={setTier}
+            onChoose={choose}
+          />
+
+          <p className="text-center text-[11px] text-gray-400 mt-6">
+            Standard gives access. Pro is the upgrade. Pro+ is the annual membership with the highest access and benefits.
           </p>
         </div>
       </div>
 
-      {/* Tier tabs + billing toggle */}
-      <div className="px-4 pb-10">
-        <div className="flex flex-col items-center gap-3">
-          <PricingTierTabs tier={tier} onChange={setTier} />
-          <BillingToggle billing={billing} onChange={setBilling} />
-        </div>
-
-        {/* Plan cards */}
-        <div className="max-w-7xl mx-auto mt-10">
-          <PricingCard state={state} tier={tier} billing={billing} onChoose={choose} />
-        </div>
-      </div>
-
-      {/* Compare strip */}
+      {/* Comparison table */}
       <div className="px-4 pb-16">
-        <div className="max-w-7xl mx-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Compare what's included</h2>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-6">Every plan scales its limits — Pro and Pro+ unlock higher limits and premium features.</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-[11px] min-w-[640px]">
-              <thead>
-                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Allocation</th>
-                  <th className="py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Bronze</th>
-                  <th className="py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Silver</th>
-                  <th className="py-2.5 pr-4 font-semibold text-gray-700 dark:text-gray-200">Gold</th>
-                  <th className="py-2.5 font-semibold text-gray-700 dark:text-gray-200">Platinum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.plans[0].rules.map((rule, ri) => (
-                  <tr key={ri} className="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
-                    <td className="py-2.5 pr-4 text-gray-500 dark:text-gray-400">{rule.label}</td>
-                    {state.plans.map(plan => (
-                      <td key={plan.id} className="py-2.5 pr-4 font-medium text-gray-800 dark:text-gray-200">{plan.rules[ri]?.values[tier] ?? '—'}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="max-w-5xl mx-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Compare {level} access</h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-6">
+            Standard · Pro · Pro+ — what each access level includes for {level}. Pro+ is an annual membership and provides the highest level of access and benefits.
+          </p>
+          <AccessComparison state={state} level={level} />
         </div>
       </div>
     </div>

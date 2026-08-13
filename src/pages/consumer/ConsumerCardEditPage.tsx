@@ -139,7 +139,7 @@ export default function ConsumerCardEditPage() {
     return (
       <div className="text-center py-20">
         <p className="text-gray-500">Card design not found</p>
-        <Link to="/consumer/card-designs" className="text-orange-500 hover:underline mt-2 inline-block">Back to My Cards</Link>
+        <Link to="/c/card-designs" className="text-orange-500 hover:underline mt-2 inline-block">Back to My Cards</Link>
       </div>
     )
   }
@@ -176,7 +176,7 @@ export default function ConsumerCardEditPage() {
   }
 
   const handleSave = () => {
-    navigate('/consumer/card-designs')
+    navigate('/c/card-designs')
   }
 
   return (
@@ -185,7 +185,7 @@ export default function ConsumerCardEditPage() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-        <Link to="/consumer/card-designs" className="hover:text-orange-600">My Cards</Link>
+        <Link to="/c/card-designs" className="hover:text-orange-600">My Cards</Link>
         <span>/</span>
         <span className="text-gray-900 dark:text-white">{design.name}</span>
       </div>
@@ -193,7 +193,7 @@ export default function ConsumerCardEditPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Card Details</h1>
         <div className="flex gap-2">
-          <Link to="/consumer/card-designs" className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <Link to="/c/card-designs" className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Cancel
           </Link>
           <button onClick={handleSave} className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">

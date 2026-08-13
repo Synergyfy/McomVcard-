@@ -28,7 +28,7 @@ export default function BusinessCustomersPage() {
                 {mockCustomers.map((c) => (
                     <button
                         key={c.id}
-                        onClick={() => navigate(`/business/customers/${c.id}`)}
+                        onClick={() => navigate(`/b/customers/${c.id}`)}
                         className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
                     >
                         <div className={`w-11 h-11 rounded-full ${c.color} flex items-center justify-center text-white font-bold text-sm shrink-0`}>

@@ -310,7 +310,7 @@ export function PlansPricingSection({ state, update }: {
                   <tr className="border-b border-gray-50 dark:border-gray-700/50">
                     <td className="px-4 py-3">
                       <p className={rowLabel}>Price</p>
-                      <p className="text-[9px] text-gray-400">{billing === 'monthly' ? 'per month' : billing === 'quarterly' ? 'per quarter · 90 days' : 'per year'} · {tier} tier</p>
+                      <p className="text-[9px] text-gray-400">{billing === 'quarterly' ? 'per 90 days' : billing === 'semiannual' ? 'per 180 days' : billing === 'annual' ? 'per year' : 'per month'} · {tier} tier</p>
                     </td>
                     {state.plans.map(plan => (
                       <td key={plan.id} className="px-3 py-3">

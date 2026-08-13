@@ -1,6 +1,5 @@
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
 import { mockMembership, mockMembershipBenefits, mockSeasons } from '../../services/businessDashboardStore'
 
 export default function MembershipPage() {
@@ -9,8 +8,8 @@ export default function MembershipPage() {
 
     const progress = Math.round((m.totalDays - m.daysRemaining) / m.totalDays * 100)
 
-    const handleRenew = () => { toast.success('Renewal requested — you will stay on Gold Pro'); navigate('/business/membership/confirmation') }
-    const handleUpgrade = () => navigate('/business/membership/plans')
+    const handleRenew = () => navigate('/b/membership/payment')
+    const handleUpgrade = () => navigate('/b/membership/plans')
 
     return (
         <div className="space-y-6 animate-fadeIn max-w-lg">

@@ -37,9 +37,9 @@ export default function SharedCardPage() {
                 .then(() => consumerService.getProfileByEmail(user?.email || ''))
                 .then((existing) => {
                     if (existing) {
-                        navigate('/consumer', { replace: true })
+                        navigate('/c/dashboard', { replace: true })
                     } else {
-                        navigate(`/consumer/setup?card=${encodeURIComponent(cardId)}&business=${encodeURIComponent(businessName || '')}`, { replace: true })
+                        navigate(`/c/setup?card=${encodeURIComponent(cardId)}&business=${encodeURIComponent(businessName || '')}`, { replace: true })
                     }
                 })
                 .catch(() => {})

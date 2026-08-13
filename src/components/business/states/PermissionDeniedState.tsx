@@ -21,7 +21,7 @@ export default function PermissionDeniedState({
             <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{featureName} unavailable</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 max-w-sm mx-auto">{message}</p>
             <Link
-                to="/business/help"
+                to="/b/help"
                 className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
                 Contact Support

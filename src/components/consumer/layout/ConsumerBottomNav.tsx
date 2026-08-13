@@ -10,12 +10,12 @@ interface NavSlot {
 }
 
 const mainSlots: NavSlot[] = [
-    { to: '/consumer', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', end: true },
-    { to: '/consumer/cards', label: 'Cards', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+    { to: '/c/dashboard', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', end: true },
+    { to: '/c/cards', label: 'Cards', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
 ]
 
 const vcardSlot: NavSlot = {
-    to: '/consumer/vcard',
+    to: '/c/vcard',
     label: 'VCard',
     icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 002-2v-1a2 2 0 012-2h1.945M8 16.5V18a1.5 1.5 0 01-3 0v-1.5M16 9.5h2.5a1.5 1.5 0 010 3H16v3a1.5 1.5 0 01-3 0v-7a1.5 1.5 0 013 0z',
 }
@@ -25,7 +25,7 @@ export default function ConsumerBottomNav() {
 
     const walletSlot = (
         <NavLink
-            to="/consumer/wallet"
+            to="/c/wallet"
             className={({ isActive }) =>
                 `flex flex-col items-center justify-center gap-1 -mt-5 w-16 h-16 rounded-full shadow-lg transition-all ${isActive
                     ? 'bg-gradient-to-br from-accent-500 to-accent-600 text-white scale-105 shadow-accent-500/30'

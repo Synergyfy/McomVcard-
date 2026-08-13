@@ -67,7 +67,7 @@ export default function ConsumerFamilyMemberPage() {
             <div className="py-16 text-center">
                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Member not found</p>
                 <button
-                    onClick={() => navigate('/consumer/family')}
+                    onClick={() => navigate('/c/family')}
                     className="mt-4 px-6 h-11 rounded-xl bg-accent-500 text-white text-sm font-bold"
                 >
                     Back to Family
@@ -77,7 +77,7 @@ export default function ConsumerFamilyMemberPage() {
     }
 
     const handleUpdated = (m: FamilyCardMember) => setMember(m)
-    const handleRemoved = () => navigate('/consumer/family')
+    const handleRemoved = () => navigate('/c/family')
 
     const scrollToWishlist = () => {
         document.getElementById('wishlist')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -110,7 +110,7 @@ export default function ConsumerFamilyMemberPage() {
             {/* Header */}
             <div className="flex items-center justify-between -mx-4 px-4 pt-1">
                 <button
-                    onClick={() => navigate('/consumer/family')}
+                    onClick={() => navigate('/c/family')}
                     className="w-11 h-11 rounded-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-center text-gray-600 dark:text-gray-300"
                     aria-label="Back"
                 >

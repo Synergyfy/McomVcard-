@@ -101,7 +101,7 @@ export default function MembershipConfirmationPage() {
             </div>
             <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
               <dt className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Billing</dt>
-              <dd className="mt-1 text-sm font-bold text-gray-800">{sel.billing === 'quarterly' ? 'Quarterly' : sel.billing === 'annual' ? 'Annual' : 'Monthly'}</dd>
+              <dd className="mt-1 text-sm font-bold text-gray-800">{sel.billing === 'quarterly' ? '90 days' : sel.billing === 'semiannual' ? '180 days' : 'Annual'}</dd>
             </div>
             <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
               <dt className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Price</dt>

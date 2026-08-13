@@ -176,7 +176,7 @@ export default function ConsumerMyVCardPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-              <Link to="/consumer" className="hover:text-orange-600">Home</Link>
+              <Link to="/c/dashboard" className="hover:text-orange-600">Home</Link>
               <span>/</span>
               <span className="text-gray-900 dark:text-white">My VCard</span>
             </div>

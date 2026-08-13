@@ -295,7 +295,7 @@ export default function ConsumerMembershipPage() {
                     />
                 </div>
                 <Link
-                    to="/consumer/family"
+                    to="/c/family"
                     className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                     Manage Friends &amp; Family

@@ -105,7 +105,7 @@ export default function CampaignsPage() {
                         <div className="flex gap-2 mt-3">
                             {c.status === 'paused' && <button className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 text-white text-xs font-bold">Resume</button>}
                             {c.status === 'active' && <button className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-amber-500 text-white text-xs font-bold">Pause</button>}
-                            <button onClick={() => navigate('/business/analytics')} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold">View Analytics</button>
+                            <button onClick={() => navigate('/b/analytics')} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold">View Analytics</button>
                         </div>
                     </div>
                 ))}
@@ -146,7 +146,7 @@ export default function CampaignsPage() {
             </div>
 
             <button
-                onClick={() => navigate('/business/integrations')}
+                onClick={() => navigate('/b/integrations')}
                 className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex items-center gap-4"
             >
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shrink-0">
@@ -165,7 +165,7 @@ export default function CampaignsPage() {
 
             <p className="text-center text-xs text-gray-400">
                 Campaign templates are managed by Admin. Create, then activate the one you want.
-                <Link to="/business/rewards" className="text-orange-500 ml-1 font-semibold">Rewards</Link>
+                <Link to="/b/rewards" className="text-orange-500 ml-1 font-semibold">Rewards</Link>
             </p>
         </div>
     )

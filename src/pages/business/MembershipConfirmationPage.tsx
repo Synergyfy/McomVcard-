@@ -7,7 +7,7 @@ import { mockBusinessProfile } from '../../services/businessStore'
 import { BIZ_VCARD_TEMPLATES } from '../../services/vcardTemplateCatalogue'
 
 /* ------------------------------------------------------------------ */
-/*  Business — Membership Confirmation (/business/membership/confirmation)
+/*  Business — Membership Confirmation (/b/membership/confirmation)
 /*  Shown after a successful membership payment. Confirms the plan,    */
 /*  season, dates, status and the exact entitlements the membership    */
 /*  unlocks — templates, cards, Friends & Family allowance and         */
@@ -111,13 +111,13 @@ export default function MembershipConfirmationPage() {
 
             {/* Continue */}
             <button
-                onClick={() => navigate('/business')}
+                onClick={() => navigate('/b/dashboard')}
                 className="w-full py-3.5 min-h-[48px] rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white text-sm font-bold shadow-md hover:opacity-95 transition-opacity"
             >
                 Continue to Dashboard
             </button>
             <button
-                onClick={() => navigate('/business/membership/plans')}
+                onClick={() => navigate('/b/membership/plans')}
                 className="w-full py-3 min-h-[44px] rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold"
             >
                 View Plans &amp; Pricing

@@ -72,7 +72,7 @@ export default function ConsumerSavedCardsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-[260px] mx-auto">
             Cards you save from businesses you visit will appear here.
           </p>
-          <a href="/consumer/cards" className="inline-flex items-center justify-center mt-6 h-12 px-6 rounded-2xl bg-accent-500 text-white font-bold active:scale-[0.98] transition-transform">
+          <a href="/c/cards" className="inline-flex items-center justify-center mt-6 h-12 px-6 rounded-2xl bg-accent-500 text-white font-bold active:scale-[0.98] transition-transform">
             Browse Your Cards
           </a>
         </div>

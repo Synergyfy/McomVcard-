@@ -10,8 +10,8 @@ export default function ConsumerLayout() {
 
     // First-time setup guard: an in-progress (but unfinished) consumer setup
     // must be completed before the dashboard is shown.
-    if (setup.status === 'in-progress' && setup.completedAt === null && location.pathname !== '/consumer/setup') {
-        return <Navigate to="/consumer/setup" replace />
+    if (setup.status === 'in-progress' && setup.completedAt === null && location.pathname !== '/c/setup') {
+        return <Navigate to="/c/setup" replace />
     }
 
     return (
