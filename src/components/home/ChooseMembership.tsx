@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loadMembershipPricing, type BillingCycle, type PlanTier } from '../../services/membershipPricingStore'
-import { BillingToggle, PricingCard, PricingTierTabs } from '../public/PricingCards'
+import { loadMembershipPricing, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BillingToggle } from '../public/PricingCards'
 
 /* ------------------------------------------------------------------ */
 /*  Landing "Choose your Membership" section.                          */
-/*  Business tab — the 4 business plan cards (Bronze / Silver / Gold / */
-/*  Platinum × Normal / Pro / Pro+) from membershipPricingStore.       */
+/*  Business tab — two-step flow (level dropdown → Standard / Pro /    */
+/*  Pro+ access cards) rendered from membershipPricingStore.           */
 /*  Consumer tab — membership is issued through participating          */
 /*  businesses (never purchased), mirroring the ConsumerPath story.    */
 /* ------------------------------------------------------------------ */
@@ -23,6 +23,7 @@ export default function ChooseMembership() {
   const navigate = useNavigate()
   const [state] = useState(() => loadMembershipPricing())
   const [audience, setAudience] = useState<Audience>('Business')
+  const [level, setLevel] = useState<PlanLevel>('Gold')
   const [tier, setTier] = useState<PlanTier>('Normal')
   const [billing, setBilling] = useState<BillingCycle>('quarterly')
 
@@ -69,11 +70,37 @@ export default function ChooseMembership() {
 
         {audience === 'Business' ? (
           <>
-            <div className="flex flex-col items-center gap-3 mb-10">
-              <PricingTierTabs tier={tier} onChange={setTier} />
-              <BillingToggle billing={billing} onChange={setBilling} />
+            <div className="max-w-5xl mx-auto">
+              {/* Step 1 — level dropdown */}
+              <div className="mb-8">
+                <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Step 1 · Choose your membership level</p>
+                <LevelDropdown state={state} level={level} onChange={setLevel} />
+              </div>
+
+              {/* Step 2 — access */}
+              <div className="mb-6">
+                <div className="flex flex-col items-center gap-3 mb-6">
+                  <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
+                  {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
+                  {tier === 'Pro+' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
+                      Pro+ · Annual membership
+                    </span>
+                  )}
+                </div>
+                <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={() => navigate('/register')} />
+              </div>
+
+              {/* Comparison */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Compare {level} access</h3>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">
+                  Pro+ is an annual membership and provides the highest level of access and benefits.
+                </p>
+                <AccessComparison state={state} level={level} />
+              </div>
             </div>
-            <PricingCard state={state} tier={tier} billing={billing} onChoose={() => navigate('/register')} />
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
               <Link
                 to="/register"
@@ -90,7 +117,7 @@ export default function ChooseMembership() {
               </Link>
             </div>
             <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-6">
-              Billed quarterly for a minimum 90 days of access. Every plan scales — Normal, Pro and Pro+ unlock higher limits and premium features.
+              Standard gives access. Pro is the upgrade. Pro+ is the annual membership. Prices and durations are configured by MCOM and update automatically.
             </p>
           </>
         ) : (

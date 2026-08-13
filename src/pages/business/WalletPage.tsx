@@ -93,7 +93,7 @@ export default function WalletPage() {
             <section>
                 <div className="flex items-center justify-between mb-1">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white">Available Smart Money Solutions</h2>
-                    <Link to="/business/integrations" className="text-xs font-semibold text-orange-600 dark:text-orange-400">All integrations</Link>
+                    <Link to="/b/integrations" className="text-xs font-semibold text-orange-600 dark:text-orange-400">All integrations</Link>
                 </div>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
                     A connected MCOM ecosystem that returns money and value to your business — each service is owned and run by its MCOM platform, not by MCOMVCard.
@@ -161,7 +161,7 @@ export default function WalletPage() {
             <section>
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white">Cashback programs</h2>
-                    <Link to="/business/rewards/cashback" className="text-xs font-semibold text-orange-600 dark:text-orange-400">Manage</Link>
+                    <Link to="/b/rewards/cashback" className="text-xs font-semibold text-orange-600 dark:text-orange-400">Manage</Link>
                 </div>
                 <div className="space-y-3">
                     {mockCashback.map((c) => (
@@ -184,7 +184,7 @@ export default function WalletPage() {
             <section>
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white">Gift cards on sale</h2>
-                    <Link to="/business/rewards/gift-cards" className="text-xs font-semibold text-orange-600 dark:text-orange-400">Manage</Link>
+                    <Link to="/b/rewards/gift-cards" className="text-xs font-semibold text-orange-600 dark:text-orange-400">Manage</Link>
                 </div>
                 <div className="space-y-3">
                     {mockGiftCards.map((g) => (

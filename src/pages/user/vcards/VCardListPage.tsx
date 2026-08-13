@@ -78,7 +78,7 @@ export default function VCardListPage() {
             Limit reached
           </span>
         ) : (
-          <Link to="/business/vcards" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+          <Link to="/b/vcards" className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
             Get Template
           </Link>
         )}
@@ -110,7 +110,7 @@ export default function VCardListPage() {
           <div className="space-y-3">
             {myVcards.map((v) => (
               <div key={v.id} className="flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
-                <Link to={`/business/vcards`} className="flex items-center gap-4 flex-1 min-w-0">
+                <Link to={`/b/vcards`} className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-lg font-bold shadow-sm shrink-0">
                     {v.name.charAt(0)}
                   </div>
@@ -137,7 +137,7 @@ export default function VCardListPage() {
             </div>
             <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No vCards yet</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Choose a template and create your first vCard</p>
-            <Link to="/business/vcards" className="inline-block px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+            <Link to="/b/vcards" className="inline-block px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
               Get Template
             </Link>
           </div>
@@ -175,7 +175,7 @@ export default function VCardListPage() {
                       <button onClick={() => setPreviewTemplate(t)} className="flex-1 text-center py-2 bg-white rounded-lg text-xs font-semibold text-gray-900 hover:bg-gray-100 transition-colors">
                         Preview
                       </button>
-                      <Link to="/business/vcards" className="flex-1 text-center py-2 bg-orange-500 rounded-lg text-xs font-semibold text-white hover:bg-orange-600 transition-colors">
+                      <Link to="/b/vcards" className="flex-1 text-center py-2 bg-orange-500 rounded-lg text-xs font-semibold text-white hover:bg-orange-600 transition-colors">
                         Use Template
                       </Link>
                     </div>
@@ -229,7 +229,7 @@ export default function VCardListPage() {
             </div>
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
               <button onClick={() => setPreviewTemplate(null)} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Close</button>
-              <Link to="/business/vcards" onClick={() => setPreviewTemplate(null)} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Use This Template</Link>
+              <Link to="/b/vcards" onClick={() => setPreviewTemplate(null)} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Use This Template</Link>
             </div>
           </div>
         </div>
