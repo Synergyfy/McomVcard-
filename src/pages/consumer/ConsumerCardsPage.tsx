@@ -125,14 +125,14 @@ export default function ConsumerCardsPage() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
                 <Link
-                    to={`/consumer/cards/${c.id}/edit`}
+                    to={`/c/cards/${c.id}/edit`}
                     className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                     View
                 </Link>
                 {c.editable ? (
                     <Link
-                        to={`/consumer/cards/${c.id}/edit`}
+                        to={`/c/cards/${c.id}/edit`}
                         className="px-4 py-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
                     >
                         Edit
@@ -194,7 +194,7 @@ export default function ConsumerCardsPage() {
                 </div>
                 <ConsumerVCard profile={profile} />
                 <Link
-                    to="/consumer/vcard"
+                    to="/c/vcard"
                     className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-accent-500 text-white text-sm font-bold shadow-lg shadow-accent-500/25 hover:bg-accent-600 active:scale-[0.98] transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +267,7 @@ export default function ConsumerCardsPage() {
                             </div>
                             <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">Source: {profile.eCardSource || 'Not specified'}</p>
                             <Link
-                                to="/consumer/wallet"
+                                to="/c/wallet"
                                 className="mt-4 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-600 transition-colors"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,7 +311,7 @@ export default function ConsumerCardsPage() {
                                     {card.status}
                                 </span>
                                 <button
-                                    onClick={() => navigate(`/consumer/family/${card.id}`)}
+                                    onClick={() => navigate(`/c/family/${card.id}`)}
                                     className="ml-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-accent-500 transition-colors"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -326,7 +326,7 @@ export default function ConsumerCardsPage() {
                 </div>
 
                 <Link
-                    to="/consumer/family"
+                    to="/c/family"
                     className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>

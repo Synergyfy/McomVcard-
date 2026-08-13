@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
-import { loadMembershipPricing, formatPounds, type BillingCycle, type PlanTier } from '../../../services/membershipPricingStore'
-import { BillingToggle, PricingCard, PricingTierTabs } from '../../../components/public/PricingCards'
+import { loadMembershipPricing, formatPounds, type BillingCycle, type PlanLevel, type PlanTier } from '../../../services/membershipPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BillingToggle } from '../../../components/public/PricingCards'
 import { MembershipLimitCard } from '../../../components/membership/MembershipLimitCard'
 import { rulesForContext, getPlanLevelFromName } from '../../../services/membershipEnforcement'
 import { mockBusinessProfile } from '../../../services/businessStore'
@@ -16,13 +16,15 @@ export default function SubscriptionPage() {
   const [billing, setBilling] = useState<BillingCycle>('quarterly')
   const pricingState = loadMembershipPricing()
   const planLevel = getPlanLevelFromName(mockBusinessProfile.membership)
+  const [level, setLevel] = useState<PlanLevel>(planLevel)
   const businessRules = rulesForContext(pricingState, planLevel, 'business')
   const currentPlan = pricingState.plans.find((p) => p.id === planLevel)
 
   const currentPrice = currentPlan?.tiers[tier]?.[billing]
   const renewal = mockBusinessProfile.renewalDate
 
-  const choose = (name: string) => toast.success(`${name} selected — our team will contact you to confirm`)
+  const choose = (lvl: PlanLevel, t: PlanTier) =>
+    toast.success(`${lvl} ${t === 'Normal' ? 'Standard' : t} selected — our team will contact you to confirm`)
 
   return (
     <div>
@@ -44,8 +46,7 @@ export default function SubscriptionPage() {
           <div>
             <p className="text-sm text-white/70 mb-1">Current Plan</p>
             <h2 className="text-2xl font-bold">
-              {mockBusinessProfile.membership} {mockBusinessProfile.tier}
-              {mockBusinessProfile.tier !== 'Normal' ? ' — ' + mockBusinessProfile.tier : ''}
+              {mockBusinessProfile.membership} {mockBusinessProfile.tier === 'Normal' ? 'Standard' : mockBusinessProfile.tier}
             </h2>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white">Active</span>
@@ -53,11 +54,11 @@ export default function SubscriptionPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <div className="bg-white/10 rounded-xl p-3">
             <p className="text-xs text-white/60">Tier</p>
-            <p className="text-lg font-bold">{mockBusinessProfile.tier}</p>
+            <p className="text-lg font-bold">{mockBusinessProfile.tier === 'Normal' ? 'Standard' : mockBusinessProfile.tier}</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-xs text-white/60">Quarterly Price</p>
-            <p className="text-lg font-bold">{currentPrice ? formatPounds(currentPrice) : '—'}/qtr</p>
+            <p className="text-xs text-white/60">90-day Price</p>
+            <p className="text-lg font-bold">{currentPrice ? formatPounds(currentPrice) : '—'}/90 days</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
             <p className="text-xs text-white/60">Renewal</p>
@@ -68,7 +69,7 @@ export default function SubscriptionPage() {
             <p className="text-sm font-bold">{mockBusinessProfile.name}</p>
           </div>
         </div>
-        <p className="text-xs text-white/50">Billed {billing} for minimum {billing === 'quarterly' ? '90 days' : billing === 'annual' ? '12 months' : '1 month'} of access.</p>
+        <p className="text-xs text-white/50">Billed {billing === 'quarterly' ? 'every 90 days' : billing === 'semiannual' ? 'every 180 days' : billing === 'annual' ? 'annually' : 'monthly'} for minimum {billing === 'quarterly' ? '90 days' : billing === 'semiannual' ? '180 days' : billing === 'annual' ? '12 months' : '1 month'} of access.</p>
       </div>
 
       {/* Plan limits — driven by Pricing & Plans rules */}
@@ -94,17 +95,38 @@ export default function SubscriptionPage() {
         </div>
       </div>
 
-      {/* Available Plans — exactly what Admin set up in Pricing & Plans */}
+      {/* Available Plans — two-step flow, exactly what Admin set up */}
       <div className="mb-2">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Available Plans</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Bronze, Silver, Gold and Platinum — each with Normal, Pro and Pro+ tiers. Managed by MCOM.
+          Bronze, Silver, Gold and Platinum — each with Standard, Pro and Pro+ access. Managed by MCOM.
         </p>
-        <div className="flex flex-col items-start gap-3 mb-6">
-          <PricingTierTabs tier={tier} onChange={setTier} />
-          <BillingToggle billing={billing} onChange={setBilling} />
+
+        <div className="mb-8">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Step 1 · Choose your membership level</p>
+          <LevelDropdown state={pricingState} level={level} onChange={setLevel} />
         </div>
-        <PricingCard state={pricingState} tier={tier} billing={billing} onChoose={choose} />
+
+        <div className="mb-6">
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
+            {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
+            {tier === 'Pro+' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
+                Pro+ · Annual membership
+              </span>
+            )}
+          </div>
+          <AccessCards state={pricingState} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={choose} />
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Compare {level} access</h3>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-4">
+            Pro+ is an annual membership and provides the highest level of access and benefits.
+          </p>
+          <AccessComparison state={pricingState} level={level} />
+        </div>
       </div>
     </div>
   )

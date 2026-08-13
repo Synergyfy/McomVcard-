@@ -7,7 +7,12 @@
     "contact": "Contact",
     "login": "Login",
     "register": "Register",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "features_business": "Business",
+    "features_consumer": "Consumer",
+    "features_seasonal": "Seasonal",
+    "features_gifts": "Gifts",
+    "features_rewards": "Rewards"
   },
   "hero": {
     "title": "Create Your Digital Business Card in Minutes",

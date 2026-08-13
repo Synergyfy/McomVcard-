@@ -37,7 +37,7 @@ export default function BusinessCustomerDetailPage() {
         return (
             <div className="text-center py-20">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">Customer not found</p>
-                <Link to="/business/customers" className="text-sm text-orange-600 mt-2 inline-block">Back to customers</Link>
+                <Link to="/b/customers" className="text-sm text-orange-600 mt-2 inline-block">Back to customers</Link>
             </div>
         )
     }
@@ -100,7 +100,7 @@ export default function BusinessCustomerDetailPage() {
 
             {tab === 'Rewards' && (
                 <div className="space-y-3">
-                    <RewardHeader total={customer.rewards.length} onIssue={() => navigate('/business/rewards/issue')} />
+                    <RewardHeader total={customer.rewards.length} onIssue={() => navigate('/b/rewards/issue')} />
                     {customer.rewards.map((r, i) => (
                         <div key={i} className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
                             <div>

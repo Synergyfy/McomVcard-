@@ -100,7 +100,7 @@ export default function ConsumerVCardTemplatesPage() {
                   </div>
 
                   <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <Link to={`/consumer/vcard-templates/${template.id}/edit`} className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
+                    <Link to={`/c/vcard-templates/${template.id}/edit`} className="px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
                       Edit vCard
                     </Link>
                   </div>

@@ -34,7 +34,7 @@ export default function PaymentPage() {
     return null
   }
 
-  const periodLabel = sel.billing === 'monthly' ? '/month' : sel.billing === 'quarterly' ? '/3 months' : '/year'
+  const periodLabel = sel.billing === 'quarterly' ? '/90 days' : sel.billing === 'semiannual' ? '/180 days' : sel.billing === 'annual' ? '/year' : '/month'
 
   const handlePay = async () => {
     if (!provider) {
@@ -70,7 +70,7 @@ export default function PaymentPage() {
               <p className="text-[10px] uppercase tracking-wider text-white/60 font-bold">Membership</p>
               <p className="text-lg font-extrabold mt-1">{sel.planName}</p>
               <p className="text-xs text-white/70 mt-0.5">
-                {sel.level} · {TIER_LABEL[sel.tier]} tier · {sel.billing === 'quarterly' ? 'Quarterly' : sel.billing === 'annual' ? 'Annual' : 'Monthly'}
+                {sel.level} · {TIER_LABEL[sel.tier]} tier · {sel.billing === 'quarterly' ? '90 days' : sel.billing === 'semiannual' ? '180 days' : 'Annual'}
               </p>
               <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-4">
                 <span className="text-xs text-white/70">Due now</span>

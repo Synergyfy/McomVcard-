@@ -9,7 +9,7 @@ export default function WalletSummary({ profile }: WalletSummaryProps) {
     const { cashback, points, vouchers } = profile.wallet
 
     return (
-        <Link to="/consumer/wallet" className="block">
+        <Link to="/c/wallet" className="block">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Wallet</h2>
