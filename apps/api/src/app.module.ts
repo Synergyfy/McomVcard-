@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { validationSchema } from './config/validation'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { AuthModule } from './modules/auth/auth.module'
+import { UsersModule } from './modules/users/users.module'
+import { HealthModule } from './modules/health/health.module'
+import { APP_GUARD } from '@nestjs/core'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validationSchema }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -16,9 +21,17 @@ import { AuthModule } from './modules/auth/auth.module'
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: process.env.TYPEORM_SYNC === 'true',
     }),
+    ThrottlerModule.forRoot({ ttl: 60, limit: 20 }),
     AuthModule,
+    UsersModule,
+    HealthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
