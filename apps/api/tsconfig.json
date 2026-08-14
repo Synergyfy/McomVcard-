@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "Node16",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "ignoreDeprecations": "6.0",
     "target": "ES2020",
     "sourceMap": true,
     "outDir": "dist",
@@ -15,7 +14,7 @@
     "skipLibCheck": true,
     "strict": false,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "resolveJsonModule": true
   },
   "exclude": ["node_modules", "dist"]
