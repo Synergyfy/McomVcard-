@@ -15,8 +15,10 @@ export class UsersService {
     return this.usersRepo.findOne({ where: { email } })
   }
 
-  create(user: Partial<User>) {
+  async create(user: Partial<User>): Promise<User> {
     const u = this.usersRepo.create(user as any)
-    return this.usersRepo.save(u)
+    const saved = await this.usersRepo.save(u)
+    if (Array.isArray(saved)) return saved[0] as User
+    return saved as User
   }
 }
