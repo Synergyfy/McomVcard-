@@ -1,5 +1,6 @@
-import { Controller, Post, Body, Req, Get, Headers } from '@nestjs/common'
+import { Controller, Post, Body, Req, Get, Headers, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service'
+import { JwtAuthGuard } from './jwt-auth.guard'
 
 @Controller()
 export class AuthController {
@@ -20,8 +21,9 @@ export class AuthController {
     return { ok: true }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('user')
-  async user(@Headers('authorization') authHeader?: string) {
-    return this.auth.getUserFromToken(authHeader)
+  async user(@Req() req: any) {
+    return req.user
   }
 }
