@@ -6,6 +6,8 @@ dotenv.config()
 
 const cwd = process.cwd()
 
+const isProd = process.env.NODE_ENV === 'production'
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -15,5 +17,6 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'mcomvcard',
   entities: [join(cwd, 'src', '/**/*.entity{.ts,.js}')],
   migrations: [join(cwd, 'src', '/migrations/*{.ts,.js}')],
-  synchronize: process.env.TYPEORM_SYNC === 'true',
+  // Never enable synchronize in production; allow opt-in in non-prod via TYPEORM_SYNC=true
+  synchronize: isProd ? false : process.env.TYPEORM_SYNC === 'true',
 })

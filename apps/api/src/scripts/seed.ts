@@ -2,7 +2,7 @@ import 'reflect-metadata'
 import { AppDataSource } from '../data-source'
 import * as bcrypt from 'bcryptjs'
 
-import { User } from '../entities/user.entity'
+import { User } from '../modules/users/entities/user.entity'
 
 async function seed() {
   await AppDataSource.initialize()

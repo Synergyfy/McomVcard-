@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
-import { User } from '../../entities/user.entity'
+import { User } from '../users/entities/user.entity'
 import * as bcrypt from 'bcryptjs'
 import * as jwt from 'jsonwebtoken'
 

@@ -19,7 +19,8 @@ import { APP_GUARD } from '@nestjs/core'
       password: process.env.DB_PASS || 'postgres',
       database: process.env.DB_NAME || 'mcomvcard',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.TYPEORM_SYNC === 'true',
+      // Disable synchronize in production regardless of TYPEORM_SYNC
+      synchronize: process.env.NODE_ENV === 'production' ? false : process.env.TYPEORM_SYNC === 'true',
     }),
     ThrottlerModule.forRoot({ ttl: 60, limit: 20 }),
     AuthModule,
