@@ -1,54 +1,102 @@
-# McomVcard API
+# McomVcard Application
 
-NestJS backend with PostgreSQL.
+A monorepo containing both backend API (NestJS) and frontend (React/App Router) components for the Mcomvcard platform.
 
-## Quick Start
+## Table of Contents
 
-1. **Install deps**
-   ```bash
-   pnpm install
-   ```
-
-2. **Configure env**
-   ```bash
-   cp .env.example .env
-   # Edit DB_* values if needed
-   ```
-
-3. **Start PostgreSQL** (local or Docker)
-
-4. **Run migrations**
-   ```bash
-   pnpm build
-   pnpm migration:run
-   ```
-
-5. **Seed admin user**
-   ```bash
-   pnpm seed
-   ```
-
-6. **Run dev server**
-   ```bash
-   pnpm start:dev
-   ```
-   API: http://localhost:3001/api
-   Docs: http://localhost:3001/api/docs
-
-## Scripts
-
-| Command          | Description                |
-|------------------|----------------------------|
-| `pnpm start:dev`  | Dev server with TS reload |
-| `pnpm build`      | Compile TS                 |
-| `pnpm migration:run` | Apply migrations        |
-| `pnpm seed`       | Create admin user           |
-| `pnpm test`       | Run tests                  |
-
-## Environment Variables
-
-See `.env.example` for required vars (DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, JWT_SECRET, NODE_ENV, etc.).
+1. [Monorepo Structure](#monorepo-structure)
+2. [Prerequisites](#prerequisites)
+3. [Setup & Configuration](#setup)
+4. [Running Applications](#running-applications)
+5. [Database Setup](#database)
+6. [Common Commands](#common-commands)
+7. [Folder Structure](#folder-structure)
 
 ---
 
-Made with NestJS ❤️
+## Monorepo Structure
+This project uses the Turborepo monorepo structure with independent packages:
+
+- **apps/api** (NestJS backend API)
+- **apps/web** (React frontend)
+- **apps/features/** (Potential future features)
+
+Shared code lives in `packages/` directory. Builds are monorepo-optimized for faster incremental updates.
+
+## Prerequisites
+- Node.js (v18+ or pnpm)
+- PostgreSQL (v13+) or Docker
+- Git
+
+## Setup & Configuration
+1. Clone repo
+   ```bash
+   git clone https://github.com/your-org/mcomvcard.git
+   cd mcomvcard
+   ```
+2. Install dependencies
+   ```bash
+   pnpm install
+   ```
+3. Configure environment
+   ```bash
+   cp .env.example .env
+   # Customize DB credentials if needed
+   ```
+
+## Running Applications
+### API
+Start development server:
+   ```bash
+   pnpm start:api
+   ```
+Available at: http://localhost:3001/api
+
+### Web App
+Start development server:
+   ```bash
+   pnpm start:web
+   ```
+Available at: http://localhost:3000
+
+## Database Setup
+Configure PostgreSQL locally or via Docker:
+1. Start PostgreSQL (local):
+   ```bash
+   psql -U postgres -p 5432 -d mcomvcard
+   ```
+2. Or use Docker:
+   ```bash
+   docker run -d -p 5432:5432 -e POSTGRES_DB=mcomvcard -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:13
+   ```
+
+## Common Commands
+| Command                | Purpose                          |
+|------------------------|----------------------------------|
+| `pnpm start:api`       | Start API dev server             |
+| `pnpm start:web`       | Start web dev server             |
+| `pnpm build`           | Full monorepo build              |
+| `pnpm build:api`       | Build API only                   |
+| `pnpm build:web`       | Build web only                   |
+| `pnpm migrate`         | Apply migrations                 |
+| `pnpm seed`            | Create admin user                |
+
+## Folder Structure
+```
+.\                                                                                             # Project root
+├── apps/\                                                                                     # Application packages
+│   ├── api/\                                                                                   # NestJS backend
+│   │   └── src/\                                                                              # API source code
+│   └── web/\                                                                                  # React frontend
+│       └── src/\                                                                              # Web source code
+├── packages/\                                                                                 # Shared libraries
+├── data/\                                                                                     # Local PostgreSQL instance
+├── .env.example\                                                                              # Environment variables template
+└── README.md\                                                                                 # This file
+```
+
+## Notes
+1. **Database Shared**: Both API and web components share the same PostgreSQL database
+2. **Turborepo**: Enables fast incremental builds across packages
+3. **TypeScript**: Used throughout for type safety
+4. **Tests**: Run with `pnpm test:api` or `pnpm test:web`

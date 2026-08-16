@@ -1,18 +1,19 @@
 {
-    "name": "MCOMVCARD FullStack",
-    "private": true,
-    "packageManager": "pnpm@11.21.0",
-    "scripts": {
-      "dev": "turbo dev",
-      "build": "turbo build",
-      "lint": "turbo lint",
-      "typecheck": "turbo typecheck"
-    },
-      "devDependencies": {
-        "turbo": "latest",
-        "@tsconfig/node18": "^1.0.0"
-        },
-        "overrides": {
-          "@tsconfig/node10": "@tsconfig/node18@^1.0.0"
-        }
+  "name": "mcomvcard-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
+    "build": "pnpm --filter api build && pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "build:web": "pnpm --filter web build",
+    "migrate": "pnpm --filter api migration:run",
+    "seed": "pnpm --filter api seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "pnpm": "^10.0.0"
   }
+}
