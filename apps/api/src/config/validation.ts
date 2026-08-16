@@ -8,6 +8,6 @@ export const validationSchema = Joi.object({
   DB_USER: Joi.string().default('postgres'),
   DB_PASS: Joi.string().allow('').default('postgres'),
   DB_NAME: Joi.string().default('mcomvcard'),
-  JWT_SECRET: Joi.string().default('dev-secret'),
+  JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().default('1h'),
 })
