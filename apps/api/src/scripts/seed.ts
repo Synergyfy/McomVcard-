@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import { AppDataSource } from '../data-source'
 import * as bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 import { User } from '../modules/users/entities/user.entity'
 
@@ -40,13 +41,21 @@ async function seed() {
     const adminRoleId = roleRes && roleRes[0] ? roleRes[0].id : null
 
     // Insert admin user if missing (idempotent)
-    const existing = await queryRunner.query(`SELECT id FROM users WHERE email = $1`, ['admin@example.com'])
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com'
+    let adminPassword = process.env.SEED_ADMIN_PASSWORD || ''
+    let generatedPassword = false
+    if (!adminPassword) {
+      adminPassword = crypto.randomBytes(10).toString('base64').replace(/\+/g, 'A').replace(/\//g, 'B')
+      generatedPassword = true
+    }
+
+    const existing = await queryRunner.query(`SELECT id FROM users WHERE email = $1`, [adminEmail])
     let adminId: number | null = null
     if (!existing || existing.length === 0) {
-      const hashed = await bcrypt.hash('changeme', 10)
+      const hashed = await bcrypt.hash(adminPassword, 10)
       const insertRes = await queryRunner.query(
         `INSERT INTO users(email, password, name, "isAdmin", "createdAt", "updatedAt") VALUES($1, $2, $3, $4, now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
-        ['admin@example.com', hashed, 'Admin', true],
+        [adminEmail, hashed, 'Admin', true],
       )
       if (insertRes && insertRes[0]) adminId = insertRes[0].id
     } else {
@@ -65,7 +74,12 @@ async function seed() {
 
     if (adminId && (!existing || existing.length === 0)) {
       // eslint-disable-next-line no-console
-      console.log('Created admin user: admin@example.com / changeme')
+      if (generatedPassword) {
+        console.log(`Created admin user: ${adminEmail} / ${adminPassword} (password generated)`)
+        console.log('NOTE: This password is printed only once. Store it securely.')
+      } else {
+        console.log(`Created admin user: ${adminEmail}`)
+      }
     } else {
       // eslint-disable-next-line no-console
       console.log('Admin user already exists')
