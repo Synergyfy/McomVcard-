@@ -2,7 +2,7 @@ export default () => ({
   port: Number(process.env.PORT) || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   jwt: {
-    secret: process.env.JWT_SECRET || 'dev-secret',
+    secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '1h',
   },
   db: {
