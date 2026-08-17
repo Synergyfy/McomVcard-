@@ -2,27 +2,30 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 
 @Entity({ name: 'users' })
 export class User {
-  @PrimaryGeneratedColumn()
-  id!: number
+  @PrimaryGeneratedColumn('uuid')
+  id!: string
 
   @Column({ unique: true })
   email!: string
 
-  @Column({ nullable: true })
+  @Column({ name: 'password_hash' })
+  passwordHash!: string
+
+  @Column({ name: 'first_name', nullable: true })
   firstName!: string | null
 
-  @Column({ nullable: true })
+  @Column({ name: 'last_name', nullable: true })
   lastName!: string | null
 
   @Column({ nullable: true })
-  password!: string
+  phone!: string | null
 
-  @Column({ default: false })
-  isAdmin!: boolean
+  @Column({ default: 'active' })
+  status!: string
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date
 }

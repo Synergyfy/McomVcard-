@@ -7,7 +7,7 @@ import { User } from './entities/user.entity'
 export class UsersService {
   constructor(@InjectRepository(User) private usersRepo: Repository<User>) {}
 
-  findById(id: number) {
+  findById(id: string) {
     return this.usersRepo.findOne({ where: { id } })
   }
 

@@ -25,7 +25,7 @@ async function seed() {
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "user_roles" (
-        "user_id" integer NOT NULL,
+        "user_id" uuid NOT NULL,
         "role_id" integer NOT NULL,
         PRIMARY KEY ("user_id", "role_id")
       )
@@ -50,12 +50,12 @@ async function seed() {
     }
 
     const existing = await queryRunner.query(`SELECT id FROM users WHERE email = $1`, [adminEmail])
-    let adminId: number | null = null
+    let adminId: string | null = null
     if (!existing || existing.length === 0) {
       const hashed = await bcrypt.hash(adminPassword, 10)
       const insertRes = await queryRunner.query(
-        `INSERT INTO users(email, password, "firstName", "lastName", "isAdmin", "createdAt", "updatedAt") VALUES($1, $2, $3, $4, $5, now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
-        [adminEmail, hashed, 'Admin', null, true],
+        `INSERT INTO users(email, password_hash, first_name, last_name, status, created_at, updated_at) VALUES($1, $2, $3, $4, $5, now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
+        [adminEmail, hashed, 'Admin', null, 'active'],
       )
       if (insertRes && insertRes[0]) adminId = insertRes[0].id
     } else {

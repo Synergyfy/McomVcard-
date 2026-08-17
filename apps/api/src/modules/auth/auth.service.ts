@@ -22,7 +22,7 @@ export class AuthService {
     const hashed = await bcrypt.hash(password, 10)
 
     try {
-      const saved = await this.usersService.create({ email, password: hashed, firstName, lastName })
+      const saved = await this.usersService.create({ email, passwordHash: hashed, firstName, lastName })
 
       const token = this.jwtService.sign({ user_id: saved.id })
       return ApiResponse.success({ token, user: UserResponseDto.fromEntity(saved) }, 'Registration successful', 201)
@@ -47,7 +47,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const ok = await bcrypt.compare(password, user.password || '')
+    const ok = await bcrypt.compare(password, user.passwordHash || '')
     if (!ok) throw new UnauthorizedException('Invalid credentials')
 
     const token = this.jwtService.sign({ user_id: user.id })

@@ -2,20 +2,23 @@ import { ApiProperty } from '@nestjs/swagger'
 import { User } from '../entities/user.entity'
 
 export class UserResponseDto {
-  @ApiProperty({ example: 1 })
-  id!: number
+  @ApiProperty({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e', description: 'UUID of the user' })
+  id!: string
 
   @ApiProperty({ example: 'admin@example.com' })
   email!: string
 
   @ApiProperty({ example: 'John', nullable: true })
-  firstName!: string | null
+  first_name!: string | null
 
   @ApiProperty({ example: 'Doe', nullable: true })
-  lastName!: string | null
+  last_name!: string | null
 
-  @ApiProperty({ example: true })
-  is_admin!: boolean
+  @ApiProperty({ example: '+15551234567', nullable: true })
+  phone!: string | null
+
+  @ApiProperty({ example: 'active' })
+  status!: string
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   created_at!: Date
@@ -28,9 +31,10 @@ export class UserResponseDto {
 
     dto.id = user.id
     dto.email = user.email
-    dto.firstName = user.firstName ?? null
-    dto.lastName = user.lastName ?? null
-    dto.is_admin = user.isAdmin
+    dto.first_name = user.firstName ?? null
+    dto.last_name = user.lastName ?? null
+    dto.phone = user.phone ?? null
+    dto.status = user.status
     dto.created_at = user.createdAt
     dto.updated_at = user.updatedAt
 
