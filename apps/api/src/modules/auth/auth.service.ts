@@ -25,7 +25,7 @@ export class AuthService {
       const saved = await this.usersService.create({ email, password: hashed, firstName, lastName })
 
       const token = this.jwtService.sign({ user_id: saved.id })
-      return ApiResponse.success({ token, user: UserResponseDto.fromEntity(saved) }, 'Registration successful')
+      return ApiResponse.success({ token, user: UserResponseDto.fromEntity(saved) }, 'Registration successful', 201)
     } catch (err) {
       // Concurrent registration with the same email hits the DB unique constraint
       if (this.isUniqueViolation(err)) throw new BadRequestException('Email already in use')
@@ -51,24 +51,7 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Invalid credentials')
 
     const token = this.jwtService.sign({ user_id: user.id })
-    return ApiResponse.success({ token, user: UserResponseDto.fromEntity(user) }, 'Login successful')
-  }
-
-
-  async getUserFromToken(token?: string) {
-    if (!token) throw new UnauthorizedException()
-
-    try {
-      const decoded = this.jwtService.verify(token.replace(/^Bearer /, '')) as any
-      const id = decoded.user_id
-
-      const user = await this.usersService.findById(id)
-      if (!user) throw new UnauthorizedException()
-
-      return UserResponseDto.fromEntity(user)
-    } catch (err) {
-      throw new UnauthorizedException()
-    }
+    return ApiResponse.success({ token, user: UserResponseDto.fromEntity(user) }, 'Login successful', 200)
   }
 
 

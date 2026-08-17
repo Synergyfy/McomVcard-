@@ -6,6 +6,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter'
 import { TransformInterceptor } from './common/interceptors/transform.interceptor'
 import { setupSwagger } from './swagger'
 import { requestIdMiddleware } from './common/middleware/request-id.middleware'
+import { httpLoggerMiddleware } from './common/middleware/http-logger.middleware'
 import helmet from 'helmet'
 import { ConfigService } from '@nestjs/config'
 
@@ -26,6 +27,8 @@ async function bootstrap() {
 
   // request id middleware
   app.use(requestIdMiddleware)
+  // request logging (request id must be set first)
+  app.use(httpLoggerMiddleware)
   // security headers
   app.use(helmet())
 
