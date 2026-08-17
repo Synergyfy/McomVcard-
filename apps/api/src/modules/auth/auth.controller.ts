@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common'
+import { Controller, Post, Body, Get, UseGuards, HttpCode } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -27,6 +27,7 @@ export class AuthController {
 
 
   @Post('login')
+  @HttpCode(200)
   @ApiOperation({ summary: 'Log in with email and password', description: 'Returns a JWT token and the authenticated user.' })
   @ApiBody({
     type: LoginDto,
@@ -106,6 +107,7 @@ export class AuthController {
 
 
   @Post('logout')
+  @HttpCode(200)
   @ApiOperation({ summary: 'Log out', description: 'Acknowledges logout. The client discards its token (stateless JWT).' })
   @ApiOkResponse({
     description: 'Logout acknowledged',
