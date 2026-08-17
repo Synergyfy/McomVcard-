@@ -4,19 +4,19 @@ import { join } from 'path'
 
 dotenv.config()
 
-const cwd = __dirname
+const currentDir = __dirname
 
 const isProd = process.env.NODE_ENV === 'production'
 
-export const AppDataSource = new DataSource({
+export const appDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASS || 'postgres',
   database: process.env.DB_NAME || 'mcomvcard',
-  entities: [join(cwd, '/**/*.entity{.ts,.js}')],
-  migrations: [join(cwd, '/migrations/*{.ts,.js}')],
+  entities: [join(currentDir, '/**/*.entity{.ts,.js}')],
+  migrations: [join(currentDir, '/migrations/*{.ts,.js}')],
   // Never enable synchronize in production; allow opt-in in non-prod via TYPEORM_SYNC=true
   synchronize: isProd ? false : process.env.TYPEORM_SYNC === 'true',
 })

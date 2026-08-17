@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { UsersService } from '../users/users.service'
+import { UserResponseDto } from '../users/dto/user-response.dto'
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,10 +16,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = await this.users.findById(payload.userId)
+    const user = await this.users.findById(payload.user_id)
     if (!user) throw new UnauthorizedException()
-    // remove sensitive fields
-    const { password, ...rest } = user as any
-    return rest
+
+    return UserResponseDto.fromEntity(user)
   }
 }

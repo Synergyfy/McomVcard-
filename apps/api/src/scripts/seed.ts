@@ -1,14 +1,14 @@
 import 'reflect-metadata'
-import { AppDataSource } from '../data-source'
+import { appDataSource } from '../data-source'
 import * as bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
 import { User } from '../modules/users/entities/user.entity'
 
 async function seed() {
-  await AppDataSource.initialize()
+  await appDataSource.initialize()
 
-  const queryRunner = AppDataSource.createQueryRunner()
+  const queryRunner = appDataSource.createQueryRunner()
   await queryRunner.connect()
   await queryRunner.startTransaction()
 
@@ -91,7 +91,7 @@ async function seed() {
     process.exit(1)
   } finally {
     await queryRunner.release()
-    await AppDataSource.destroy()
+    await appDataSource.destroy()
   }
 }
 
