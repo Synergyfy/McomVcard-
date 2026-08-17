@@ -1,0 +1,85 @@
+# MCOM API — Development Progress
+
+Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
+
+> Last updated: 2026-08-17
+> Working branch: `logic`
+
+---
+
+## Phase Status Overview
+
+| Phase | Status |
+|-------|--------|
+| 1 — Foundation | ✅ Complete |
+| 2 — Authentication & Identity | 🟡 In progress (auth core done) |
+| 3 — Businesses | ⬜ Not started |
+| 4 — Core Cards | ⬜ Not started |
+| 5 — Business Features | ⬜ Not started |
+| 6 — Membership Ecosystem | ⬜ Not started |
+| 7 — Financial Ecosystem | ⬜ Not started |
+| 8 — Relationships | ⬜ Not started |
+| 9 — Growth | ⬜ Not started |
+| 10 — Admin | ⬜ Not started |
+| 11 — Production Hardening | ⬜ Not started |
+
+---
+
+## Phase 1 — Foundation ✅
+
+- NestJS 10 app with global `/api` prefix, port 3001
+- TypeORM + PostgreSQL (`data-source.ts`, migrations, `synchronize` disabled in prod)
+- Joi env validation (`JWT_SECRET` required); `.env` config
+- Global `ValidationPipe` (whitelist + forbidNonWhitelisted + transform)
+- `AllExceptionsFilter` + `TransformInterceptor` → `{ success, message, data }` envelope
+- `ThrottlerGuard` (20 req/60s), `helmet()`, request-id middleware, env-driven CORS
+- Swagger at `/api/docs` (non-prod)
+- Health endpoints (`/api/` liveness, `/api/health` DB ping via Terminus)
+- Migration `1690000000000-InitUsersRoles0001` → `users`, `roles`, `user_roles`
+- Idempotent seed script (admin role + admin user)
+- CI workflow (`api-ci.yml`): tsc + migrations
+
+## Phase 2 — Authentication & Identity 🟡
+
+### Done
+- `User` entity (`users` table)
+- `POST /auth/login`, `POST /auth/register`, `POST /auth/logout`, `GET /auth/user`
+- bcryptjs password hashing, JWT sign/verify
+- `JwtStrategy` (passport-jwt) + `JwtAuthGuard`
+- Login/Register DTOs (class-validator)
+
+### Remaining
+1. `Role` + `UserRole` entities with relations → migration
+2. Roles service/module (list, assign, remove)
+3. `@Roles()` decorator + `RolesGuard` + permission checks
+4. Refresh token flow (`POST /auth/refresh`)
+5. Password reset (`POST /auth/forgot-password`, `POST /auth/reset-password`)
+6. Email verification (`POST /auth/verify-email`)
+7. `/users/me` profile endpoints (GET/PATCH + settings)
+
+---
+
+## Pending Decisions / Questions
+
+- Refresh tokens: stateless JWT vs stored refresh token table — **decide before implementing**
+- Email verification/password reset: needs an email provider — **decision needed** (abstraction per plan §29)
+- `CORS_ORIGINS` is read in `main.ts` but missing from Joi schema — **fix**
+- `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
+
+---
+
+## Known Issues
+
+- Duplicate class name `JwtAuthGuard` in `jwt-auth.guard.ts` and `jwt.guard.ts` — rename one
+- `logger.middleware.ts` was removed with pino (unused)
+- `.gitignore` has local-only changes not yet committed (unrelated to API work)
+
+---
+
+## Session Start Checklist
+
+1. Read this file.
+2. Read `AGENTS.md` (root) — local workflow notes.
+3. Check `git status` / `git log` for uncommitted work.
+4. Confirm DB is running (`docker compose up -d` if needed) before migration/seed tasks.
+5. Verify with `pnpm --filter api exec tsc --noEmit` after changes.
