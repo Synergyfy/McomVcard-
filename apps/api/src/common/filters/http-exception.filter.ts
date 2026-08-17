@@ -8,21 +8,30 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>()
     const request = ctx.getRequest<Request>()
 
+    const status = exception instanceof HttpException ? exception.getStatus() : 500
+    let message = 'Internal server error'
+    let error: unknown
+
     if (exception instanceof HttpException) {
-      const status = exception.getStatus()
       const res = exception.getResponse()
-      return response.status(status).json({
-        timestamp: new Date().toISOString(),
-        path: request.url,
-        error: res,
-      })
+      if (typeof res === 'string') {
+        message = res
+      } else if (res && typeof res === 'object') {
+        const body = res as { message?: string | string[] }
+        message = Array.isArray(body.message) ? body.message.join(', ') : (body.message ?? exception.message)
+        error = body.message
+      } else {
+        message = exception.message
+      }
     }
 
-    // Unknown exception
-    response.status(500).json({
-      timestamp: new Date().toISOString(),
+    response.status(status).json({
+      success: false,
+      statusCode: status,
+      message,
+      error,
       path: request.url,
-      error: 'Internal server error',
+      timestamp: new Date().toISOString(),
     })
   }
 }

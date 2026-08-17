@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { User } from '../users/entities/user.entity'
 import { UsersService } from '../users/users.service'
+import { ApiResponse } from '../../common/responses/api-response'
 import * as bcrypt from 'bcryptjs'
 import { JwtService } from '@nestjs/jwt'
 
@@ -9,21 +10,23 @@ export class AuthService {
   constructor(private usersService: UsersService, private jwtService: JwtService) {}
 
   async register(email: string, password: string, name?: string) {
+    email = email.trim().toLowerCase()
     const existing = await this.usersService.findByEmail(email)
     if (existing) throw new BadRequestException('Email already in use')
     const hashed = await bcrypt.hash(password, 10)
     const saved = await this.usersService.create({ email, password: hashed, name })
     const token = this.jwtService.sign({ userId: saved.id })
-    return { token, user: this.sanitize(saved) }
+    return ApiResponse.success({ token, user: this.sanitize(saved) }, 'Registration successful')
   }
 
   async login(email: string, password: string) {
+    email = email.trim().toLowerCase()
     const user = await this.usersService.findByEmail(email)
     if (!user) throw new UnauthorizedException('Invalid credentials')
     const ok = await bcrypt.compare(password, user.password || '')
     if (!ok) throw new UnauthorizedException('Invalid credentials')
     const token = this.jwtService.sign({ userId: user.id })
-    return { token, user: this.sanitize(user) }
+    return ApiResponse.success({ token, user: this.sanitize(user) }, 'Login successful')
   }
 
   async getUserFromToken(token?: string) {
