@@ -16,8 +16,8 @@ export class UsersService {
   }
 
   async create(user: Partial<User>): Promise<User> {
-    const u = this.usersRepo.create(user as any)
-    const saved = await this.usersRepo.save(u)
+    const newUser = this.usersRepo.create(user as any)
+    const saved = await this.usersRepo.save(newUser)
     if (Array.isArray(saved)) return saved[0] as User
     return saved as User
   }

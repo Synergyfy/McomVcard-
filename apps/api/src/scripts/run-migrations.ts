@@ -1,14 +1,14 @@
 import 'reflect-metadata'
-import { AppDataSource } from '../data-source'
+import { appDataSource } from '../data-source'
 
 async function run() {
   try {
     console.log('Initializing data source...')
-    await AppDataSource.initialize()
+    await appDataSource.initialize()
     console.log('Running migrations...')
-    const result = await AppDataSource.runMigrations()
+    const result = await appDataSource.runMigrations()
     console.log('Migrations applied:', result.map(r => r.name))
-    await AppDataSource.destroy()
+    await appDataSource.destroy()
     process.exit(0)
   } catch (err) {
     console.error('Error during migration run:', err)

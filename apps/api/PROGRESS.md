@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-17 (session: pino removal, PROGRESS tracker, health endpoints, .gitignore/AGENTS.md)
+> Last updated: 2026-08-17 (session: pino removal, PROGRESS tracker, health endpoints, .gitignore/AGENTS.md, naming-convention audit + fixes)
 > Working branch: `logic`
 > Latest commits: `7901753` (gitignore + health endpoints), `2e0d7af` (progress tracker), `1715f46` (pino removal)
 
@@ -48,6 +48,8 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - bcryptjs password hashing, JWT sign/verify
 - `JwtStrategy` (passport-jwt) + `JwtAuthGuard`
 - Login/Register DTOs (class-validator)
+- `UserResponseDto` (snake_case JSON contract: `is_admin`, `created_at`, `updated_at`)
+- Naming-convention audit fixes: JWT claim `user_id`, removed duplicate `jwt.guard.ts`, `appDataSource`, descriptive vars
 
 ### Remaining
 1. `Role` + `UserRole` entities with relations → migration
@@ -71,8 +73,9 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ## Known Issues
 
-- Duplicate class name `JwtAuthGuard` in `jwt-auth.guard.ts` and `jwt.guard.ts` — rename one
-- `tsconfig.tsbuildinfo` is now untracked (gitignored build artifact)
+- Response envelope mismatch: API returns `{ success, message, data: { token, user } }` but web `authService` expects `{ user, token }` at top level — needs frontend alignment or endpoint wrapper change
+- `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
+- `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
 
 ---
 
