@@ -3,12 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { QueryFailedError, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import * as bcrypt from 'bcryptjs'
-import * as crypto from 'crypto'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
-import { ApiResponse } from '../../common/responses/api-response'
-import { UserResponseDto } from '../users/dto/user-response.dto'
+import { ApiResponse } from '../../lib/utils/api-response'
+import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
+import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { EmailVerificationService } from '../email-verification/email-verification.service'
 
 const DUMMY_PASSWORD_HASH = '$2a$10$RF/CnYUA.cgdY7yxwC5m3ejBtM4Oqnj1Ka.LUGy7j29woMBj4B2HW'
 
@@ -24,6 +25,7 @@ export class AuthService {
     private jwtService: JwtService,
     @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
     private config: ConfigService,
+    private emailVerificationService: EmailVerificationService,
   ) {}
 
 
@@ -39,6 +41,9 @@ export class AuthService {
       const saved = await this.usersService.create({ email, passwordHash: hashed, firstName, lastName })
 
       const auth = await this.issueTokens(saved.id, meta)
+
+      // Best-effort: a failed verification email must not block registration
+      await this.emailVerificationService.sendVerificationLink(saved)
 
       return ApiResponse.success(
         { token: auth.accessToken, refresh_token: auth.refreshToken, user: UserResponseDto.fromEntity(saved) },
@@ -134,7 +139,7 @@ export class AuthService {
 
 
   private async createRefreshToken(userId: string, meta?: TokenMeta) {
-    const token = crypto.randomBytes(48).toString('base64url')
+    const token = generateOpaqueToken()
 
     const record = this.refreshTokensRepo.create({
       userId,
@@ -153,7 +158,7 @@ export class AuthService {
   // Revokes the current token and issues its replacement in one DB transaction.
   private async rotateRefreshToken(current: RefreshToken, meta?: TokenMeta) {
     return this.refreshTokensRepo.manager.transaction(async (manager) => {
-      const token = crypto.randomBytes(48).toString('base64url')
+      const token = generateOpaqueToken()
 
       const record = manager.create(RefreshToken, {
         userId: current.userId,
@@ -197,7 +202,7 @@ export class AuthService {
 
 
   private hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex')
+    return sha256Hex(token)
   }
 
 

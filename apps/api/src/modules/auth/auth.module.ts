@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { UsersModule } from '../users/users.module'
+import { MailModule } from '../mail/mail.module'
+import { EmailVerificationModule } from '../email-verification/email-verification.module'
 import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
 import { JwtModule } from '@nestjs/jwt'
@@ -13,6 +15,8 @@ import { RefreshToken } from './entities/refresh-token.entity'
 @Module({
   imports: [
     UsersModule,
+    MailModule,
+    EmailVerificationModule,
     TypeOrmModule.forFeature([RefreshToken]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

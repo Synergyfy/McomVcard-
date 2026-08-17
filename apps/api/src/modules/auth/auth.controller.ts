@@ -19,8 +19,8 @@ import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
 import { LogoutDto } from './dto/logout.dto'
-import { ApiResponse } from '../../common/responses/api-response'
-import { UserResponseDto } from '../users/dto/user-response.dto'
+import { ApiResponse } from '../../lib/utils/api-response'
+import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 
 @ApiTags('auth')
 @ApiExtraModels(ApiResponse, UserResponseDto)

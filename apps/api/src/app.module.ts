@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
-import { validationSchema } from './config/validation'
+import { validationSchema } from './lib/config/validation'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { AuthModule } from './modules/auth/auth.module'
