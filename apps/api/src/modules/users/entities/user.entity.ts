@@ -23,6 +23,12 @@ export class User {
   @Column({ default: 'active' })
   status!: string
 
+  @Column({ name: 'is_verified', default: false })
+  isVerified!: boolean
+
+  @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
+  emailVerifiedAt!: Date | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

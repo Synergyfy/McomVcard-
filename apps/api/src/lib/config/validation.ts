@@ -11,4 +11,11 @@ export const validationSchema = Joi.object({
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().default('1h'),
   REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'),
+  API_PUBLIC_URL: Joi.string().default('http://localhost:3001/api'),
+  MAIL_HOST: Joi.string().optional(),
+  MAIL_PORT: Joi.number().optional(),
+  MAIL_USER: Joi.string().optional(),
+  MAIL_PASS: Joi.string().optional(),
+  MAIL_FROM: Joi.string().optional(),
+  MAIL_SECURE: Joi.string().valid('true', 'false').optional(),
 })
