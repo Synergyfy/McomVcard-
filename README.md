@@ -45,17 +45,22 @@ Shared code lives in `packages/` directory. Builds are monorepo-optimized for fa
    ```
 
 ## Running Applications
+Start both the API and web app together:
+   ```bash
+   pnpm dev
+   ```
+
 ### API
 Start development server:
    ```bash
-   pnpm start:api
+   pnpm dev:api
    ```
 Available at: http://localhost:3001/api
 
 ### Web App
 Start development server:
    ```bash
-   pnpm start:web
+   pnpm dev:web
    ```
 Available at: http://localhost:3000
 
@@ -73,8 +78,9 @@ Configure PostgreSQL locally or via Docker:
 ## Common Commands
 | Command                | Purpose                          |
 |------------------------|----------------------------------|
-| `pnpm start:api`       | Start API dev server             |
-| `pnpm start:web`       | Start web dev server             |
+| `pnpm dev`             | Start API + web dev servers      |
+| `pnpm dev:api`         | Start API dev server             |
+| `pnpm dev:web`         | Start web dev server             |
 | `pnpm build`           | Full monorepo build              |
 | `pnpm build:api`       | Build API only                   |
 | `pnpm build:web`       | Build web only                   |
