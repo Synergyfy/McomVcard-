@@ -2,8 +2,9 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-17
+> Last updated: 2026-08-17 (session: pino removal, PROGRESS tracker, health endpoints, .gitignore/AGENTS.md)
 > Working branch: `logic`
+> Latest commits: `7901753` (gitignore + health endpoints), `2e0d7af` (progress tracker), `1715f46` (pino removal)
 
 ---
 
@@ -71,8 +72,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 ## Known Issues
 
 - Duplicate class name `JwtAuthGuard` in `jwt-auth.guard.ts` and `jwt.guard.ts` — rename one
-- `logger.middleware.ts` was removed with pino (unused)
-- `.gitignore` has local-only changes not yet committed (unrelated to API work)
+- `tsconfig.tsbuildinfo` is now untracked (gitignored build artifact)
 
 ---
 
