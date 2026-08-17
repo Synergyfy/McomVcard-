@@ -3,11 +3,9 @@ import { AppModule } from './app.module'
 import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
 import { AllExceptionsFilter } from './common/filters/http-exception.filter'
+import { TransformInterceptor } from './common/interceptors/transform.interceptor'
 import { setupSwagger } from './swagger'
 import { requestIdMiddleware } from './common/middleware/request-id.middleware'
-import { loggerMiddleware } from './common/middleware/logger.middleware'
-import pinoHttp from 'pino-http'
-import { logger } from './common/logger/pino.logger'
 import helmet from 'helmet'
 import { ConfigService } from '@nestjs/config'
 
@@ -26,9 +24,8 @@ async function bootstrap() {
     app.enableCors()
   }
 
-  // request id + pino HTTP middleware
+  // request id middleware
   app.use(requestIdMiddleware)
-  app.use(pinoHttp({ logger }))
   // security headers
   app.use(helmet())
 
@@ -42,6 +39,7 @@ async function bootstrap() {
   )
 
   app.useGlobalFilters(new AllExceptionsFilter())
+  app.useGlobalInterceptors(new TransformInterceptor())
 
   if (process.env.NODE_ENV !== 'production') {
     setupSwagger(app)
