@@ -50,6 +50,10 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - Login/Register DTOs (class-validator)
 - `UserResponseDto` (snake_case JSON contract: `is_admin`, `created_at`, `updated_at`)
 - Naming-convention audit fixes: JWT claim `user_id`, removed duplicate `jwt.guard.ts`, `appDataSource`, descriptive vars
+- `@CurrentUser()` decorator (typed, no `any`), `private readonly authService`
+- Full Swagger docs on all auth endpoints: `@ApiBody` examples (admin/user test payloads), envelope + DTO response schemas, bearer auth — verified at `/api/docs-json` and E2E tested (register → login → `/user`)
+- Security fixes: register race-condition → catches DB unique violation (23505) and returns 400; login timing attack → dummy bcrypt compare when user not found (prevents user enumeration)
+- `name` → `firstName`/`lastName` across API (entity, RegisterDto, UserResponseDto, auth.service/controller, seed) + migration `1712000000000-RenameUserNameToFirstLastName` with data migration of existing rows
 
 ### Remaining
 1. `Role` + `UserRole` entities with relations → migration
@@ -74,6 +78,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 ## Known Issues
 
 - Response envelope mismatch: API returns `{ success, message, data: { token, user } }` but web `authService` expects `{ user, token }` at top level — needs frontend alignment or endpoint wrapper change
+- Frontend alignment pending: API now uses `firstName`/`lastName` but web `User` type + register page still send/expect `name`; web `services/auth.ts` still calls `/login`, `/register`, `/user` (API routes unchanged for now)
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
 

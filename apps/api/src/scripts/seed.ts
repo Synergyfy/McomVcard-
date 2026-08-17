@@ -54,8 +54,8 @@ async function seed() {
     if (!existing || existing.length === 0) {
       const hashed = await bcrypt.hash(adminPassword, 10)
       const insertRes = await queryRunner.query(
-        `INSERT INTO users(email, password, name, "isAdmin", "createdAt", "updatedAt") VALUES($1, $2, $3, $4, now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
-        [adminEmail, hashed, 'Admin', true],
+        `INSERT INTO users(email, password, "firstName", "lastName", "isAdmin", "createdAt", "updatedAt") VALUES($1, $2, $3, $4, $5, now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
+        [adminEmail, hashed, 'Admin', null, true],
       )
       if (insertRes && insertRes[0]) adminId = insertRes[0].id
     } else {
