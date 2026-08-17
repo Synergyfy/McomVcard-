@@ -10,4 +10,5 @@ export const validationSchema = Joi.object({
   DB_NAME: Joi.string().default('mcomvcard'),
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().default('1h'),
+  REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'),
 })

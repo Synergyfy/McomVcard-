@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode } from '@nestjs/common'
+import { Controller, Post, Body, Get, UseGuards, HttpCode, Req } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -11,11 +11,14 @@ import {
   ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger'
+import { Request } from 'express'
 import { AuthService } from './auth.service'
 import { JwtAuthGuard } from './jwt-auth.guard'
 import { CurrentUser } from './current-user.decorator'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
+import { RefreshTokenDto } from './dto/refresh-token.dto'
+import { LogoutDto } from './dto/logout.dto'
 import { ApiResponse } from '../../common/responses/api-response'
 import { UserResponseDto } from '../users/dto/user-response.dto'
 
@@ -56,6 +59,11 @@ export class AuthController {
                   type: 'string',
                   example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMzYwMH0.signature',
                 },
+                refresh_token: {
+                  type: 'string',
+                  example: 'opaque-random-refresh-token',
+                  description: 'Single-use refresh token; exchange it at POST /api/refresh',
+                },
                 user: { $ref: getSchemaPath(UserResponseDto) },
               },
             },
@@ -65,8 +73,11 @@ export class AuthController {
     },
   })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-  async login(@Body() body: LoginDto) {
-    return this.authService.login(body.email, body.password)
+  async login(@Req() req: Request, @Body() body: LoginDto) {
+    return this.authService.login(body.email, body.password, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
+    })
   }
 
 
@@ -92,6 +103,7 @@ export class AuthController {
               type: 'object',
               properties: {
                 token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMzYwMH0.signature' },
+                refresh_token: { type: 'string', example: 'opaque-random-refresh-token' },
                 user: { $ref: getSchemaPath(UserResponseDto) },
               },
             },
@@ -101,14 +113,65 @@ export class AuthController {
     },
   })
   @ApiBadRequestResponse({ description: 'Email already in use or invalid input' })
-  async register(@Body() body: RegisterDto) {
-    return this.authService.register(body.email, body.password, body.firstName, body.lastName)
+  async register(@Req() req: Request, @Body() body: RegisterDto) {
+    return this.authService.register(body.email, body.password, body.firstName, body.lastName, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
+    })
+  }
+
+
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Exchange a refresh token for a new access token',
+    description: 'Validates the refresh token, revokes it (rotation), and returns a fresh access token plus a new refresh token.',
+  })
+  @ApiBody({
+    type: RefreshTokenDto,
+    examples: {
+      default: {
+        summary: 'Refresh session',
+        value: { refresh_token: 'opaque-random-refresh-token' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'New access + refresh token pair with the user',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTcwMDAwMzYwMH0.signature' },
+                refresh_token: { type: 'string', example: 'new-opaque-refresh-token' },
+                user: { $ref: getSchemaPath(UserResponseDto) },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid, expired, or reused refresh token' })
+  async refresh(@Req() req: Request, @Body() body: RefreshTokenDto) {
+    return this.authService.refresh(body.refresh_token, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
+    })
   }
 
 
   @Post('logout')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Log out', description: 'Acknowledges logout. The client discards its token (stateless JWT).' })
+  @ApiOperation({
+    summary: 'Log out',
+    description: 'Revokes the supplied refresh token (if any). The access token is short-lived and simply expires.',
+  })
+  @ApiBody({ type: LogoutDto, required: false })
   @ApiOkResponse({
     description: 'Logout acknowledged',
     schema: {
@@ -122,8 +185,8 @@ export class AuthController {
       ],
     },
   })
-  async logout() {
-    return ApiResponse.message('Logged out')
+  async logout(@Body() body: LogoutDto) {
+    return this.authService.logout(body.refresh_token)
   }
 
 

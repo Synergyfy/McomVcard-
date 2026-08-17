@@ -1,19 +1,33 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common'
-import { QueryFailedError } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
+import { QueryFailedError, Repository } from 'typeorm'
+import { ConfigService } from '@nestjs/config'
+import * as bcrypt from 'bcryptjs'
+import * as crypto from 'crypto'
+import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
 import { ApiResponse } from '../../common/responses/api-response'
 import { UserResponseDto } from '../users/dto/user-response.dto'
-import * as bcrypt from 'bcryptjs'
-import { JwtService } from '@nestjs/jwt'
+import { RefreshToken } from './entities/refresh-token.entity'
 
 const DUMMY_PASSWORD_HASH = '$2a$10$RF/CnYUA.cgdY7yxwC5m3ejBtM4Oqnj1Ka.LUGy7j29woMBj4B2HW'
 
+interface TokenMeta {
+  userAgent?: string | null
+  ip?: string | null
+}
+
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService, private jwtService: JwtService) {}
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
+    private config: ConfigService,
+  ) {}
 
 
-  async register(email: string, password: string, firstName?: string, lastName?: string) {
+  async register(email: string, password: string, firstName?: string, lastName?: string, meta?: TokenMeta) {
     email = email.trim().toLowerCase()
 
     const existing = await this.usersService.findByEmail(email)
@@ -24,8 +38,13 @@ export class AuthService {
     try {
       const saved = await this.usersService.create({ email, passwordHash: hashed, firstName, lastName })
 
-      const token = this.jwtService.sign({ user_id: saved.id })
-      return ApiResponse.success({ token, user: UserResponseDto.fromEntity(saved) }, 'Registration successful', 201)
+      const auth = await this.issueTokens(saved.id, meta)
+
+      return ApiResponse.success(
+        { token: auth.accessToken, refresh_token: auth.refreshToken, user: UserResponseDto.fromEntity(saved) },
+        'Registration successful',
+        201,
+      )
     } catch (err) {
       // Concurrent registration with the same email hits the DB unique constraint
       if (this.isUniqueViolation(err)) throw new BadRequestException('Email already in use')
@@ -35,7 +54,7 @@ export class AuthService {
   }
 
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, meta?: TokenMeta) {
     email = email.trim().toLowerCase()
 
     const user = await this.usersService.findByEmail(email)
@@ -50,8 +69,135 @@ export class AuthService {
     const ok = await bcrypt.compare(password, user.passwordHash || '')
     if (!ok) throw new UnauthorizedException('Invalid credentials')
 
-    const token = this.jwtService.sign({ user_id: user.id })
-    return ApiResponse.success({ token, user: UserResponseDto.fromEntity(user) }, 'Login successful', 200)
+    const auth = await this.issueTokens(user.id, meta)
+
+    return ApiResponse.success(
+      { token: auth.accessToken, refresh_token: auth.refreshToken, user: UserResponseDto.fromEntity(user) },
+      'Login successful',
+      200,
+    )
+  }
+
+
+  async refresh(refreshToken: string, meta?: TokenMeta) {
+    const stored = await this.refreshTokensRepo.findOne({ where: { tokenHash: this.hashToken(refreshToken) } })
+
+    if (!stored) throw new UnauthorizedException('Invalid refresh token')
+
+    // A revoked or already-rotated token being used again is a likely theft signal:
+    // kill every session the user has.
+    if (stored.revokedAt || stored.replacedBy) {
+      await this.revokeAllForUser(stored.userId)
+      throw new UnauthorizedException('Invalid refresh token')
+    }
+
+    if (stored.expiresAt.getTime() < Date.now()) {
+      stored.revokedAt = new Date()
+      await this.refreshTokensRepo.save(stored)
+      throw new UnauthorizedException('Refresh token has expired')
+    }
+
+    const user = await this.usersService.findById(stored.userId)
+    if (!user) throw new UnauthorizedException('Invalid refresh token')
+
+    const accessToken = this.jwtService.sign({ user_id: user.id })
+    const newRefreshToken = await this.rotateRefreshToken(stored, meta)
+
+    return ApiResponse.success(
+      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(user) },
+      'Token refreshed',
+      200,
+    )
+  }
+
+
+  async logout(refreshToken?: string) {
+    if (refreshToken) {
+      const stored = await this.refreshTokensRepo.findOne({ where: { tokenHash: this.hashToken(refreshToken) } })
+
+      if (stored && !stored.revokedAt) {
+        stored.revokedAt = new Date()
+        await this.refreshTokensRepo.save(stored)
+      }
+    }
+
+    return ApiResponse.message('Logged out', 200)
+  }
+
+
+  private async issueTokens(userId: string, meta?: TokenMeta) {
+    const accessToken = this.jwtService.sign({ user_id: userId })
+    const { token } = await this.createRefreshToken(userId, meta)
+
+    return { accessToken, refreshToken: token }
+  }
+
+
+  private async createRefreshToken(userId: string, meta?: TokenMeta) {
+    const token = crypto.randomBytes(48).toString('base64url')
+
+    const record = this.refreshTokensRepo.create({
+      userId,
+      tokenHash: this.hashToken(token),
+      expiresAt: new Date(Date.now() + this.refreshTokenTtlMs()),
+      userAgent: meta?.userAgent ?? null,
+      ip: meta?.ip ?? null,
+    })
+
+    const saved = await this.refreshTokensRepo.save(record)
+
+    return { id: saved.id, token }
+  }
+
+
+  // Revokes the current token and issues its replacement in one DB transaction.
+  private async rotateRefreshToken(current: RefreshToken, meta?: TokenMeta) {
+    return this.refreshTokensRepo.manager.transaction(async (manager) => {
+      const token = crypto.randomBytes(48).toString('base64url')
+
+      const record = manager.create(RefreshToken, {
+        userId: current.userId,
+        tokenHash: this.hashToken(token),
+        expiresAt: new Date(Date.now() + this.refreshTokenTtlMs()),
+        userAgent: meta?.userAgent ?? null,
+        ip: meta?.ip ?? null,
+      })
+
+      const saved = await manager.save(record)
+
+      current.revokedAt = new Date()
+      current.replacedBy = saved.id
+      await manager.save(current)
+
+      return token
+    })
+  }
+
+
+  private async revokeAllForUser(userId: string) {
+    await this.refreshTokensRepo.update({ userId }, { revokedAt: new Date() })
+  }
+
+
+  private refreshTokenTtlMs(): number {
+    const raw = this.config.get('REFRESH_TOKEN_EXPIRES_IN') || '7d'
+    const match = /^(\d+)(s|m|h|d)$/.exec(raw.trim())
+
+    if (!match) return 7 * 24 * 60 * 60 * 1000
+
+    const multiplier: Record<string, number> = {
+      s: 1000,
+      m: 60_000,
+      h: 3_600_000,
+      d: 86_400_000,
+    }
+
+    return parseInt(match[1], 10) * multiplier[match[2]]
+  }
+
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex')
   }
 
 
