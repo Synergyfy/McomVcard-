@@ -9,7 +9,10 @@ export class User {
   email!: string
 
   @Column({ nullable: true })
-  name!: string
+  firstName!: string | null
+
+  @Column({ nullable: true })
+  lastName!: string | null
 
   @Column({ nullable: true })
   password!: string

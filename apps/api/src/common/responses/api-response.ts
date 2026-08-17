@@ -1,6 +1,13 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+
 export class ApiResponse<T = unknown> {
+  @ApiProperty({ example: true, description: 'Whether the request succeeded' })
   readonly success: boolean
+
+  @ApiProperty({ example: 'Success', description: 'Human-readable message' })
   readonly message: string
+
+  @ApiPropertyOptional({ description: 'Response payload' })
   readonly data?: T
 
   private constructor(success: boolean, message: string, data?: T) {
