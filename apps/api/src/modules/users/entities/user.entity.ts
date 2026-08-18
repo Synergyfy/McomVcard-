@@ -30,6 +30,12 @@ export class User {
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null
 
+  @Column({ default: 'en' })
+  language!: string
+
+  @Column({ name: 'theme_mode', default: 'light' })
+  themeMode!: string
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

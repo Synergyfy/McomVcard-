@@ -26,6 +26,12 @@ export class UserResponseDto {
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z', nullable: true })
   email_verified_at!: Date | null
 
+  @ApiProperty({ example: 'en' })
+  language!: string
+
+  @ApiProperty({ example: 'light' })
+  theme_mode!: string
+
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   created_at!: Date
 
@@ -43,6 +49,8 @@ export class UserResponseDto {
     dto.status = user.status
     dto.is_verified = user.isVerified
     dto.email_verified_at = user.emailVerifiedAt ?? null
+    dto.language = user.language
+    dto.theme_mode = user.themeMode
     dto.created_at = user.createdAt
     dto.updated_at = user.updatedAt
 
