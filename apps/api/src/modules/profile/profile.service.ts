@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
 import { UsersService } from '../users/users.service'
 import { User } from '../users/entities/user.entity'
+import { AuthService } from '../auth/auth.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
@@ -8,7 +9,10 @@ import { UpdateSettingsDto } from './dto/update-settings.dto'
 
 @Injectable()
 export class ProfileService {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private authService: AuthService,
+  ) {}
 
   async getProfile(userId: string) {
     const user = await this.usersService.findById(userId)
@@ -66,5 +70,18 @@ export class ProfileService {
       'Settings updated',
       200,
     )
+  }
+
+  // Soft-deactivates the account: the row is kept, every session is revoked, and
+  // the user can no longer authenticate or access the application.
+  async deactivate(userId: string) {
+    const user = await this.usersService.findById(userId)
+    if (!user) throw new BadRequestException('User not found')
+
+    await this.usersService.update(user.id, { status: 'deactivated' })
+
+    await this.authService.revokeAllSessions(user.id)
+
+    return ApiResponse.message('Account deactivated', 200)
   }
 }
