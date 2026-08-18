@@ -2,9 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-18 (session: password reset + profile/settings + Phase 3 Businesses)
+> Last updated: 2026-08-18 (session: Business/Account final decisions — slug, categories endpoint, soft account deactivation + prod-readiness e2e)
 > Working branch: `logic`
-> Latest commits: `0ce968d` (password reset + change password + `/users/me` profile/settings), `e969643` (RBAC), `47b35db` (email verification, dedicated modules, `lib/`)
+> Latest commits: `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings), `e969643` (RBAC), `47b35db` (email verification, dedicated modules, `lib/`)
+> Uncommitted: `businesses.service.ts` category-existence guard + this session's Business/Account decisions (slug, `business-categories`, soft deactivation) + `CORS_ORIGINS` Joi/env fix
 
 ---
 
@@ -69,6 +70,15 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 - **Phase 3 — Businesses (migration `1712000000006-CreateBusinessTables`)**: entities `businesses` (owner FK, category FK, name/description/email/phone/website/status), `business_categories` (seeded: Restaurant, Retail, Health & Fitness, Beauty & Salon, Services, Entertainment, Education, Other), `business_locations` (address/city/state/country/lat/lng), `business_hours` (day_of_week 0–6, opens/closes time, is_closed — unique per day per business), `brands` (Business **1:N** Brands — decision, see below). `BusinessesModule` + `BusinessesService` with ownership checks (all modification endpoints verify `ownerId` from the JWT; sub-resources resolve their parent business). Snake_case response DTOs (`BusinessResponseDto` nests category/locations/hours/brands; `BusinessLocationResponseDto`, `BusinessHourResponseDto`, `BrandResponseDto`).
 - Endpoints (all Swagger-documented, `/api` prefix): `POST /businesses`, `GET /businesses/:id` (any authenticated user — businesses are public profiles), `GET /users/me/businesses`, `PATCH /businesses/:id`, `DELETE /businesses/:id` (cascades to locations/hours/brands); `POST/GET /businesses/:id/locations`, `PATCH/DELETE /locations/:id`; `POST/GET /businesses/:id/hours`, `PATCH/DELETE /business-hours/:id`; `POST/GET /businesses/:id/brands`, `PATCH/DELETE /brands/:id`. All verified live: create→get→update→delete, locations/hours/brands CRUD, duplicate-day 400, invalid day/time 400, ownership 403 (other user GET/PATCH/DELETE/list), 404, 401, bad-UUID 400, cascade delete.
+- **Business/Account final decisions implemented (migration `1712000000007-AddBusinessSlug`)**:
+  - Business `status` stays internal-only: entity default `active`, **not** settable via the API (whitelist rejects `status` on create/update — verified live). Admin manages status in a later phase; distinct from web `verificationStatus`.
+  - Categories are system-defined/seeded (read-only). New `GET /api/business-categories` for the dropdown. No POST/PATCH/DELETE endpoints. `BusinessCategoryResponseDto.fromEntity` added.
+  - New unique `slug` on `businesses` (migration backfills existing rows, uniqueness loop appends `-2`, `-3`, …). Auto-generated server-side from `name` (slugify util `lib/utils/slug.util.ts`), guaranteed unique, returned in `BusinessResponseDto`. New `GET /api/businesses/by-slug/:slug` (any authenticated user). `GET /api/businesses/:id` kept.
+  - Visibility/ownership unchanged: `GET /businesses/:id` and `GET /businesses/by-slug/:slug` open to any authenticated user; all modification endpoints require owner (403 otherwise).
+  - **Account deactivation (soft)**: `DELETE /api/users/me` sets `users.status = 'deactivated'` (row kept, no cascade deletes — verified businesses still exist after deactivation). `revokeAllSessions` kills every refresh token. Deactivated users blocked at: `login` (401), `refresh` (401 + sessions revoked), and `JwtStrategy.validate` (401 — existing tokens dead). Verified live: register→create businesses→deactivate→login 401, old token 401, refresh 401, user row remains `deactivated`, businesses remain.
+  - No new `ON DELETE CASCADE` added for user-owned data (existing `fk_businesses_owner` cascade predates this and only fires on a physical user delete, which the flow no longer performs).
+- **Prod-readiness e2e (prod build + `NODE_ENV=production`, 72 checks)**: full pass on auth (register/dup 400/bad+unknown login 401/anti-enumeration/no-token 401/bad-token 401/refresh rotation + reuse-theft 401), email verify (send-token 200, bad code 400), profile/settings (PATCH 200, invalid language 400), password change (wrong current 400, mismatch 400, success 200, old pw 401, new pw 200), businesses (create 201, auto-slug + uniqueness loop, status not settable 400 on create+PATCH, by-slug 200/404, categories 200 + 8 seeded, category resolve + fake category 400 + bad UUID 400, slug stable across rename, locations/hours/brands CRUD, dup-day 400, invalid-day 400, list mine), ownership (other-user PATCH/DELETE/location 403, public GET 200 for any authed user, unauthenticated 401), RBAC (admin users 200/403), deactivation (DELETE /users/me 200, login/token/refresh 401, DB row kept `deactivated`, business preserved, generic forgot-password 200). Swagger/docs correctly disabled in production (404); `synchronize` off in prod; prod build + migration:run + seed clean.
+- **CORS fix**: `CORS_ORIGINS` (comma-separated, prod only) is now in the Joi schema and `.env.example` — previously read in `main.ts` but missing from validation, which could silently produce an empty origin list in prod.
 
 ### Remaining
 1. Phase 4 — Core Cards (cards, card_profiles, card_customizations, social_links, templates, template_fields, card_access) — next up
@@ -85,14 +95,15 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
+- Phase 4 Cards: the local DB already has card tables (see Known Issues) but no migration file/entity code in the repo — decide whether to reconstruct from the live schema.
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
-- `CORS_ORIGINS` is read in `main.ts` but missing from Joi schema — **fix**
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
 
 ---
 
 ## Known Issues
 
+- **Pre-existing DB/migration mismatch (Phase 4 relevant)**: the local DB has `CreateCardTables1712000000007` applied (id=9) — `cards`, `card_profiles`, `card_customizations`, `social_links`, `templates`, `template_fields`, `card_access` all exist — but no matching migration file exists in the repo (`git ls-files` shows none) and there is no `CardsModule` code yet. A fresh environment would NOT get these tables. Before building Phase 4, decide whether to reconstruct the missing migration file from the live DB schema or re-base it. Timestamp collision: both `AddBusinessSlug` and the cards migration are `1712000000007` in the `migrations` table.
 - Frontend alignment pending: web `authService` still expects the old envelope + `name` field and calls `/theme`/`/language`/`/profile` — tracked as Remaining item 3 above
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built

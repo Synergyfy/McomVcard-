@@ -19,4 +19,6 @@ export const validationSchema = Joi.object({
   MAIL_PASS: Joi.string().optional(),
   MAIL_FROM: Joi.string().optional(),
   MAIL_SECURE: Joi.string().valid('true', 'false').optional(),
+  // Comma-separated list of allowed CORS origins in production (e.g. "https://app.example.com,https://www.example.com").
+  CORS_ORIGINS: Joi.string().optional(),
 })

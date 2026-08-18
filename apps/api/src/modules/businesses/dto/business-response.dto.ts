@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Business } from '../entities/business.entity'
+import { BusinessCategory } from '../entities/business-category.entity'
 import { BusinessLocation } from '../entities/business-location.entity'
 import { BusinessHour } from '../entities/business-hour.entity'
 import { Brand } from '../entities/brand.entity'
@@ -13,6 +14,16 @@ export class BusinessCategoryResponseDto {
 
   @ApiPropertyOptional({ example: 'Restaurants, cafes, and food services' })
   description!: string | null
+
+  static fromEntity(category: BusinessCategory): BusinessCategoryResponseDto {
+    const dto = new BusinessCategoryResponseDto()
+
+    dto.id = category.id
+    dto.name = category.name
+    dto.description = category.description ?? null
+
+    return dto
+  }
 }
 
 export class BusinessLocationResponseDto {
@@ -134,6 +145,9 @@ export class BusinessResponseDto {
   @ApiProperty({ example: 'Acme Cafe' })
   name!: string
 
+  @ApiProperty({ example: 'acme-cafe' })
+  slug!: string
+
   @ApiPropertyOptional({ example: 'A cozy coffee shop downtown' })
   description!: string | null
 
@@ -170,14 +184,9 @@ export class BusinessResponseDto {
     dto.id = business.id
     dto.owner_id = business.ownerId
     dto.category_id = business.categoryId ?? null
-    dto.category = business.category
-      ? {
-          id: business.category.id,
-          name: business.category.name,
-          description: business.category.description ?? null,
-        }
-      : null
+    dto.category = business.category ? BusinessCategoryResponseDto.fromEntity(business.category) : null
     dto.name = business.name
+    dto.slug = business.slug
     dto.description = business.description ?? null
     dto.email = business.email ?? null
     dto.phone = business.phone ?? null

@@ -91,6 +91,10 @@ export class AuthService {
     const ok = await bcrypt.compare(password, user.passwordHash || '')
     if (!ok) throw new UnauthorizedException('Invalid credentials')
 
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Account is deactivated')
+    }
+
     const auth = await this.issueTokens(user.id, meta)
 
     return ApiResponse.success(
@@ -121,6 +125,12 @@ export class AuthService {
 
     const user = await this.usersService.findById(stored.userId)
     if (!user) throw new UnauthorizedException('Invalid refresh token')
+
+    if (user.status !== 'active') {
+      // Deactivated accounts must not keep sessions alive.
+      await this.revokeAllForUser(user.id)
+      throw new UnauthorizedException('Account is deactivated')
+    }
 
     const roles = await this.rolesService.getRoleNamesForUser(user.id)
     const accessToken = this.jwtService.sign({ user_id: user.id, roles })
@@ -285,6 +295,11 @@ export class AuthService {
 
   private async revokeAllForUser(userId: string) {
     await this.refreshTokensRepo.update({ userId }, { revokedAt: new Date() })
+  }
+
+  // Public wrapper used by account deactivation to kill every active session.
+  async revokeAllSessions(userId: string) {
+    await this.revokeAllForUser(userId)
   }
 
 

@@ -18,7 +18,7 @@ import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { BusinessesService } from './businesses.service'
-import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto } from './dto/business-response.dto'
+import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto } from './dto/business-response.dto'
 import { CreateBusinessDto } from './dto/create-business.dto'
 import { UpdateBusinessDto } from './dto/update-business.dto'
 import { CreateLocationDto } from './dto/create-location.dto'
@@ -30,7 +30,7 @@ import { UpdateBrandDto } from './dto/update-brand.dto'
 
 
 @ApiTags('businesses')
-@ApiExtraModels(ApiResponse, BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto)
+@ApiExtraModels(ApiResponse, BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto)
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class BusinessesController {
@@ -74,6 +74,47 @@ export class BusinessesController {
   @ApiNotFoundResponse({ description: 'Business not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return ApiResponse.success(BusinessResponseDto.fromEntity(await this.businessesService.findOne(id)), 'Business retrieved', 200)
+  }
+
+
+  @Get('businesses/by-slug/:slug')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a business by slug', description: 'Returns a business for a public storefront URL slug, with its category, locations, hours, and brands.' })
+  @ApiOkResponse({
+    description: 'Business found',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(BusinessResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Business not found' })
+  async findBySlug(@Param('slug') slug: string) {
+    return ApiResponse.success(BusinessResponseDto.fromEntity(await this.businessesService.findBySlug(slug)), 'Business retrieved', 200)
+  }
+
+
+  @Get('business-categories')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List business categories', description: 'Returns the system-defined business categories, for populating the category dropdown. Read-only.' })
+  @ApiOkResponse({
+    description: 'Business categories',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(BusinessCategoryResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listCategories() {
+    return this.businessesService.listCategories()
   }
 
 

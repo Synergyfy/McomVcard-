@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, ForbiddenException, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { Business } from './entities/business.entity'
+import { BusinessCategory } from './entities/business-category.entity'
 import { BusinessLocation } from './entities/business-location.entity'
 import { BusinessHour } from './entities/business-hour.entity'
 import { Brand } from './entities/brand.entity'
@@ -14,12 +15,14 @@ import { UpdateBusinessHourDto } from './dto/update-business-hour.dto'
 import { CreateBrandDto } from './dto/create-brand.dto'
 import { UpdateBrandDto } from './dto/update-brand.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
-import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto } from './dto/business-response.dto'
+import { slugify } from '../../lib/utils/slug.util'
+import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto } from './dto/business-response.dto'
 
 @Injectable()
 export class BusinessesService {
   constructor(
     @InjectRepository(Business) private businessesRepo: Repository<Business>,
+    @InjectRepository(BusinessCategory) private categoriesRepo: Repository<BusinessCategory>,
     @InjectRepository(BusinessLocation) private locationsRepo: Repository<BusinessLocation>,
     @InjectRepository(BusinessHour) private hoursRepo: Repository<BusinessHour>,
     @InjectRepository(Brand) private brandsRepo: Repository<Brand>,
@@ -28,10 +31,17 @@ export class BusinessesService {
   // --- Businesses ---
 
   async create(ownerId: string, dto: CreateBusinessDto) {
+    if (dto.category_id) {
+      await this.assertCategoryExists(dto.category_id)
+    }
+
+    const slug = await this.generateUniqueSlug(dto.name)
+
     const saved = await this.businessesRepo.save(
       this.businessesRepo.create({
         ownerId,
         name: dto.name,
+        slug,
         description: dto.description ?? null,
         categoryId: dto.category_id ?? null,
         email: dto.email ?? null,
@@ -65,6 +75,23 @@ export class BusinessesService {
     return business
   }
 
+  async findBySlug(slug: string) {
+    const business = await this.businessesRepo.findOne({
+      where: { slug },
+      relations: { category: true, locations: true, hours: true, brands: true },
+    })
+
+    if (!business) throw new NotFoundException('Business not found')
+
+    return business
+  }
+
+  async listCategories() {
+    const categories = await this.categoriesRepo.find({ order: { name: 'ASC' } })
+
+    return ApiResponse.success(categories.map(BusinessCategoryResponseDto.fromEntity), 'Business categories retrieved', 200)
+  }
+
   async listForOwner(ownerId: string) {
     const businesses = await this.businessesRepo.find({
       where: { ownerId },
@@ -76,6 +103,10 @@ export class BusinessesService {
 
   async update(id: string, ownerId: string, dto: UpdateBusinessDto) {
     await this.findOwned(id, ownerId)
+
+    if (dto.category_id) {
+      await this.assertCategoryExists(dto.category_id)
+    }
 
     const patch: Partial<Business> = {}
 
@@ -327,6 +358,29 @@ export class BusinessesService {
   }
 
   // --- Helpers ---
+
+  // Produces a slug from the business name, appending a numeric suffix if taken.
+  private async generateUniqueSlug(name: string): Promise<string> {
+    const base = slugify(name)
+    let slug = base
+    let suffix = 2
+
+    while (await this.businessesRepo.findOneBy({ slug })) {
+      slug = `${base}-${suffix}`
+      suffix += 1
+    }
+
+    return slug
+  }
+
+  // Rejects a category UUID that does not exist before a FK insert/update fails.
+  private async assertCategoryExists(categoryId: string) {
+    const category = await this.categoriesRepo.findOneBy({ id: categoryId })
+
+    if (!category) {
+      throw new BadRequestException('Business category not found')
+    }
+  }
 
   // Enforces one opening-hours row per day of the week.
   private async assertUniqueDay(businessId: string, dayOfWeek: number, excludeId?: string) {

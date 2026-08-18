@@ -27,6 +27,9 @@ export class Business {
   @Column()
   name!: string
 
+  @Column({ unique: true })
+  slug!: string
+
   @Column({ type: 'text', nullable: true })
   description!: string | null
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common'
+import { Controller, Get, Patch, Delete, Body, UseGuards } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -143,5 +143,30 @@ export class ProfileController {
   @ApiBadRequestResponse({ description: 'Invalid language or theme_mode value' })
   async updateSettings(@CurrentUser() user: UserResponseDto, @Body() body: UpdateSettingsDto) {
     return this.profileService.updateSettings(user.id, body)
+  }
+
+
+  @Delete()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Deactivate the authenticated user account',
+    description: 'Soft-deactivates the account: the record is kept, all sessions are revoked, and the user can no longer log in or access the application.',
+  })
+  @ApiOkResponse({
+    description: 'Account deactivated',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            message: { type: 'string', example: 'Account deactivated' },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async deactivate(@CurrentUser() user: UserResponseDto) {
+    return this.profileService.deactivate(user.id)
   }
 }
