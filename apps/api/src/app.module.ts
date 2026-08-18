@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
 import { HealthModule } from './modules/health/health.module'
 import { AdminModule } from './modules/admin/admin.module'
+import { ProfileModule } from './modules/profile/profile.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -28,6 +29,7 @@ import { APP_GUARD } from '@nestjs/core'
     UsersModule,
     HealthModule,
     AdminModule,
+    ProfileModule,
   ],
   controllers: [],
   providers: [

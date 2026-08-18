@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common'
+import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryFailedError, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
 import { RolesService } from '../roles/roles.service'
+import { MailService } from '../mail/mail.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
@@ -14,13 +15,22 @@ import { EmailVerificationService } from '../email-verification/email-verificati
 
 const DUMMY_PASSWORD_HASH = '$2a$10$RF/CnYUA.cgdY7yxwC5m3ejBtM4Oqnj1Ka.LUGy7j29woMBj4B2HW'
 
+const PASSWORD_RESET_TTL = '30m'
+
 interface TokenMeta {
   userAgent?: string | null
   ip?: string | null
 }
 
+interface PasswordResetJwt {
+  sub: string
+  type: 'password_reset'
+}
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger('Auth')
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -28,6 +38,7 @@ export class AuthService {
     private config: ConfigService,
     private emailVerificationService: EmailVerificationService,
     private rolesService: RolesService,
+    private mailService: MailService,
   ) {}
 
 
@@ -134,6 +145,91 @@ export class AuthService {
     }
 
     return ApiResponse.message('Logged out', 200)
+  }
+
+
+  // Requests a password reset link. Always returns the same message so the
+  // response cannot be used to enumerate which emails have accounts.
+  async forgotPassword(email: string) {
+    email = email.trim().toLowerCase()
+
+    const user = await this.usersService.findByEmail(email)
+
+    if (user) {
+      const token = this.jwtService.sign({ sub: user.id, type: 'password_reset' } satisfies PasswordResetJwt, {
+        expiresIn: PASSWORD_RESET_TTL,
+      })
+
+      const webUrl = this.config.get('WEB_PUBLIC_URL') || 'http://localhost:3000'
+      const link = `${webUrl}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`
+
+      try {
+        await this.mailService.sendPasswordResetLink(user.email, user.firstName, link)
+      } catch (err) {
+        this.logger.error(`Failed to send password reset link to ${user.email}`, err instanceof Error ? err.stack : undefined)
+      }
+    }
+
+    return ApiResponse.message('If an account exists for that email, a password reset link has been sent', 200)
+  }
+
+
+  // Resets the password using the token from the emailed link.
+  async resetPassword(email: string, token: string, password: string, passwordConfirmation: string) {
+    email = email.trim().toLowerCase()
+
+    if (password !== passwordConfirmation) {
+      throw new BadRequestException('Passwords do not match')
+    }
+
+    let payload: PasswordResetJwt
+
+    try {
+      payload = this.jwtService.verify(token) as PasswordResetJwt
+    } catch {
+      throw new BadRequestException('Invalid or expired password reset link')
+    }
+
+    if (payload.type !== 'password_reset') {
+      throw new BadRequestException('Invalid or expired password reset link')
+    }
+
+    const user = await this.usersService.findById(payload.sub)
+    if (!user || user.email !== email) {
+      throw new BadRequestException('Invalid or expired password reset link')
+    }
+
+    const hashed = await bcrypt.hash(password, 10)
+
+    await this.usersService.update(user.id, { passwordHash: hashed })
+
+    // A password reset invalidates every active session.
+    await this.revokeAllForUser(user.id)
+
+    return ApiResponse.message('Password has been reset. You can now log in.', 200)
+  }
+
+
+  // Changes the password for an authenticated user.
+  async changePassword(userId: string, currentPassword: string, newPassword: string, passwordConfirmation: string) {
+    if (newPassword !== passwordConfirmation) {
+      throw new BadRequestException('Passwords do not match')
+    }
+
+    const user = await this.usersService.findById(userId)
+    if (!user) throw new UnauthorizedException('Authentication required')
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash || '')
+    if (!ok) throw new BadRequestException('Current password is incorrect')
+
+    const hashed = await bcrypt.hash(newPassword, 10)
+
+    await this.usersService.update(user.id, { passwordHash: hashed })
+
+    // A password change invalidates every other active session.
+    await this.revokeAllForUser(user.id)
+
+    return ApiResponse.message('Password changed successfully', 200)
   }
 
 

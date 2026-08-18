@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, Req } from '@nestjs/common'
+import { Controller, Post, Body, Get, UseGuards, HttpCode, Req, Put } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -19,6 +19,9 @@ import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { RefreshTokenDto } from './dto/refresh-token.dto'
 import { LogoutDto } from './dto/logout.dto'
+import { ForgotPasswordDto } from './dto/forgot-password.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 
@@ -187,6 +190,110 @@ export class AuthController {
   })
   async logout(@Body() body: LogoutDto) {
     return this.authService.logout(body.refresh_token)
+  }
+
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Request a password reset link',
+    description: 'Emails a password reset link to the account (dev: logged instead of sent). Always returns the same message to prevent account enumeration.',
+  })
+  @ApiBody({
+    type: ForgotPasswordDto,
+    examples: {
+      default: {
+        summary: 'Forgot password request',
+        value: { email: 'admin@example.com' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Reset link dispatched (if the account exists)',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            message: { type: 'string', example: 'If an account exists for that email, a password reset link has been sent' },
+          },
+        },
+      ],
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid email' })
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.forgotPassword(body.email)
+  }
+
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Reset the password using the emailed token',
+    description: 'Verifies the reset token, updates the password, and revokes all active sessions.',
+  })
+  @ApiBody({
+    type: ResetPasswordDto,
+    examples: {
+      default: {
+        summary: 'Reset password',
+        value: { email: 'admin@example.com', token: 'reset-token-from-link', password: 'newSecret123', password_confirmation: 'newSecret123' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Password reset successful',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            message: { type: 'string', example: 'Password has been reset. You can now log in.' },
+          },
+        },
+      ],
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid/expired token or passwords do not match' })
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPassword(body.email, body.token, body.password, body.password_confirmation)
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Put('password')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Change the authenticated user password',
+    description: 'Requires the current password. On success, all existing sessions are revoked.',
+  })
+  @ApiBody({
+    type: ChangePasswordDto,
+    examples: {
+      default: {
+        summary: 'Change password',
+        value: { current_password: 'secret123', password: 'newSecret123', password_confirmation: 'newSecret123' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Password changed successfully',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            message: { type: 'string', example: 'Password changed successfully' },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiBadRequestResponse({ description: 'Current password is incorrect or passwords do not match' })
+  async changePassword(@CurrentUser() user: UserResponseDto, @Body() body: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, body.current_password, body.password, body.password_confirmation)
   }
 
 

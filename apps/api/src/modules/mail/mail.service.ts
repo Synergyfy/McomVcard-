@@ -72,4 +72,15 @@ export class MailService {
       html: `<p>Hi ${name},</p><p>Your email verification code is:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p><p>This code expires in 15 minutes.</p>`,
     })
   }
+
+  async sendPasswordResetLink(to: string, firstName: string | null, link: string): Promise<void> {
+    const name = firstName || 'there'
+
+    await this.sendMail({
+      to,
+      subject: 'Reset your MCOM password',
+      text: `Hi ${name},\n\nWe received a request to reset your password. Click the link below to choose a new one:\n${link}\n\nThis link expires in 30 minutes. If you did not request this, you can ignore this email.\n\nThanks,\nThe MCOM Team`,
+      html: `<p>Hi ${name},</p><p>We received a request to reset your password. Click the link below to choose a new one:</p><p><a href="${link}">Reset my password</a></p><p>This link expires in 30 minutes. If you did not request this, you can ignore this email.</p>`,
+    })
+  }
 }
