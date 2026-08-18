@@ -4,8 +4,8 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 > Last updated: 2026-08-18 (session: Business/Account final decisions — slug, categories endpoint, soft account deactivation + prod-readiness e2e)
 > Working branch: `logic`
-> Latest commits: `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings), `e969643` (RBAC), `47b35db` (email verification, dedicated modules, `lib/`)
-> Uncommitted: `businesses.service.ts` category-existence guard + this session's Business/Account decisions (slug, `business-categories`, soft deactivation) + `CORS_ORIGINS` Joi/env fix
+> Latest commits: `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings), `e969643` (RBAC)
+> Uncommitted: none
 
 ---
 
