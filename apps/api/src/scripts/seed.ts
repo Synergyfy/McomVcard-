@@ -4,6 +4,15 @@ import * as bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
 import { User } from '../modules/users/entities/user.entity'
+import { Role } from '../modules/roles/entities/role.entity'
+import { UserRole } from '../modules/roles/entities/user-role.entity'
+
+const DEFAULT_ROLES = [
+  { name: 'USER', description: 'Standard authenticated user' },
+  { name: 'ADMIN', description: 'Administrator with full access' },
+  { name: 'BUSINESS_OWNER', description: 'Owns and manages a business on the platform' },
+  { name: 'STAFF', description: 'Staff member with limited business access' },
+]
 
 async function seed() {
   await appDataSource.initialize()
@@ -13,32 +22,12 @@ async function seed() {
   await queryRunner.startTransaction()
 
   try {
-    // Ensure roles and user_roles tables exist (migration should create them, but be defensive)
-    await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "roles" (
-        "id" SERIAL PRIMARY KEY,
-        "name" character varying NOT NULL UNIQUE,
-        "description" character varying,
-        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT now()
-      )
-    `)
+    // Upsert default roles
+    for (const role of DEFAULT_ROLES) {
+      await queryRunner.manager.upsert(Role, role, ['name'])
+    }
 
-    await queryRunner.query(`
-      CREATE TABLE IF NOT EXISTS "user_roles" (
-        "user_id" uuid NOT NULL,
-        "role_id" integer NOT NULL,
-        PRIMARY KEY ("user_id", "role_id")
-      )
-    `)
-
-    // Upsert admin role
-    await queryRunner.query(
-      `INSERT INTO roles(name, description) VALUES($1, $2) ON CONFLICT (name) DO NOTHING`,
-      ['admin', 'Administrator role'],
-    )
-
-    const roleRes = await queryRunner.query(`SELECT id FROM roles WHERE name = $1`, ['admin'])
-    const adminRoleId = roleRes && roleRes[0] ? roleRes[0].id : null
+    const adminRole = await queryRunner.manager.findOneBy(Role, { name: 'ADMIN' })
 
     // Insert admin user if missing (idempotent)
     const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com'
@@ -49,40 +38,43 @@ async function seed() {
       generatedPassword = true
     }
 
-    const existing = await queryRunner.query(`SELECT id FROM users WHERE email = $1`, [adminEmail])
-    let adminId: string | null = null
-    if (!existing || existing.length === 0) {
+    let admin = await queryRunner.manager.findOneBy(User, { email: adminEmail })
+
+    if (!admin) {
       const hashed = await bcrypt.hash(adminPassword, 10)
-      const insertRes = await queryRunner.query(
-        `INSERT INTO users(email, password_hash, first_name, last_name, status, is_verified, email_verified_at, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, now(), now(), now()) ON CONFLICT (email) DO NOTHING RETURNING id`,
-        [adminEmail, hashed, 'Admin', null, 'active', true],
+
+      admin = await queryRunner.manager.save(
+        queryRunner.manager.create(User, {
+          email: adminEmail,
+          passwordHash: hashed,
+          firstName: 'Admin',
+          lastName: null,
+          status: 'active',
+          isVerified: true,
+          emailVerifiedAt: new Date(),
+        }),
       )
-      if (insertRes && insertRes[0]) adminId = insertRes[0].id
-    } else {
-      adminId = existing[0].id
     }
 
-    // Associate role
-    if (adminId && adminRoleId) {
-      await queryRunner.query(
-        `INSERT INTO user_roles(user_id, role_id) VALUES($1, $2) ON CONFLICT DO NOTHING`,
-        [adminId, adminRoleId],
+    // Associate admin role
+    if (adminRole) {
+      await queryRunner.manager.upsert(
+        UserRole,
+        { userId: admin.id, roleId: adminRole.id },
+        ['userId', 'roleId'],
       )
     }
 
     await queryRunner.commitTransaction()
 
-    if (adminId && (!existing || existing.length === 0)) {
+    if (admin && generatedPassword) {
       // eslint-disable-next-line no-console
-      if (generatedPassword) {
-        console.log(`Created admin user: ${adminEmail} / ${adminPassword} (password generated)`)
-        console.log('NOTE: This password is printed only once. Store it securely.')
-      } else {
-        console.log(`Created admin user: ${adminEmail}`)
-      }
-    } else {
+      console.log(`Created admin user: ${adminEmail} / ${adminPassword} (password generated)`)
       // eslint-disable-next-line no-console
-      console.log('Admin user already exists')
+      console.log('NOTE: This password is printed only once. Store it securely.')
+    } else if (admin) {
+      // eslint-disable-next-line no-console
+      console.log(`Admin user ready: ${adminEmail}`)
     }
   } catch (err) {
     await queryRunner.rollbackTransaction()

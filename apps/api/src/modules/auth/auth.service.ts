@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config'
 import * as bcrypt from 'bcryptjs'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
+import { RolesService } from '../roles/roles.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
@@ -26,6 +27,7 @@ export class AuthService {
     @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
     private config: ConfigService,
     private emailVerificationService: EmailVerificationService,
+    private rolesService: RolesService,
   ) {}
 
 
@@ -39,6 +41,10 @@ export class AuthService {
 
     try {
       const saved = await this.usersService.create({ email, passwordHash: hashed, firstName, lastName })
+
+      // The server assigns roles; clients cannot submit a role during registration.
+      await this.rolesService.ensureDefaultRole()
+      await this.rolesService.assignDefaultRole(saved.id)
 
       const auth = await this.issueTokens(saved.id, meta)
 
@@ -105,7 +111,8 @@ export class AuthService {
     const user = await this.usersService.findById(stored.userId)
     if (!user) throw new UnauthorizedException('Invalid refresh token')
 
-    const accessToken = this.jwtService.sign({ user_id: user.id })
+    const roles = await this.rolesService.getRoleNamesForUser(user.id)
+    const accessToken = this.jwtService.sign({ user_id: user.id, roles })
     const newRefreshToken = await this.rotateRefreshToken(stored, meta)
 
     return ApiResponse.success(
@@ -131,7 +138,8 @@ export class AuthService {
 
 
   private async issueTokens(userId: string, meta?: TokenMeta) {
-    const accessToken = this.jwtService.sign({ user_id: userId })
+    const roles = await this.rolesService.getRoleNamesForUser(userId)
+    const accessToken = this.jwtService.sign({ user_id: userId, roles })
     const { token } = await this.createRefreshToken(userId, meta)
 
     return { accessToken, refreshToken: token }

@@ -211,4 +211,35 @@ export class AuthController {
   async user(@CurrentUser() user: UserResponseDto) {
     return user
   }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get('user/roles')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the authenticated user roles', description: 'Requires a Bearer token. Returns the roles assigned to the currently authenticated user.' })
+  @ApiOkResponse({
+    description: 'Authenticated user roles',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                roles: {
+                  type: 'array',
+                  items: { type: 'string', example: 'USER' },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async userRoles(@CurrentUser() user: UserResponseDto & { roles: string[] }) {
+    return ApiResponse.success({ roles: user.roles ?? [] }, 'User roles', 200)
+  }
 }

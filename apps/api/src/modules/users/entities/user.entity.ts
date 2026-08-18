@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm'
+import { UserRole } from '../../roles/entities/user-role.entity'
 
 @Entity({ name: 'users' })
 export class User {
@@ -34,4 +35,7 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date
+
+  @OneToMany(() => UserRole, (userRole) => userRole.user)
+  userRoles!: UserRole[]
 }
