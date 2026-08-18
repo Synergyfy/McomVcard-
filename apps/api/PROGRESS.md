@@ -95,7 +95,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
-- Phase 4 Cards: the local DB already has card tables (see Known Issues) but no migration file/entity code in the repo — decide whether to reconstruct from the live schema.
+- Phase 4 Cards: **migration reconstructed** from live schema (see Known Issues) — next step is building the `CardsModule` entities/DTOs/service/controller against it, plus a templates seed.
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
 
@@ -103,7 +103,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ## Known Issues
 
-- **Pre-existing DB/migration mismatch (Phase 4 relevant)**: the local DB has `CreateCardTables1712000000007` applied (id=9) — `cards`, `card_profiles`, `card_customizations`, `social_links`, `templates`, `template_fields`, `card_access` all exist — but no matching migration file exists in the repo (`git ls-files` shows none) and there is no `CardsModule` code yet. A fresh environment would NOT get these tables. Before building Phase 4, decide whether to reconstruct the missing migration file from the live DB schema or re-base it. Timestamp collision: both `AddBusinessSlug` and the cards migration are `1712000000007` in the `migrations` table.
+- **RESOLVED — Pre-existing DB/migration mismatch (Phase 4)**: the local DB had `CreateCardTables1712000000007` applied (id=9) with no migration file in the repo. Reconstructed `apps/api/src/migrations/1712000000007-CreateCardTables.ts` from the live schema (`cards`, `card_profiles`, `card_customizations`, `social_links`, `templates`, `template_fields`, `card_access`). Verified: runs clean from scratch on a fresh DB and produces a schema byte-identical to the live DB (`pg_dump` diff). Note: live DB already contains 3 seeded templates (Minimal/Modern/Bold) + 23 template_fields — plan a templates seed for fresh envs in Phase 4.
 - Frontend alignment pending: web `authService` still expects the old envelope + `name` field and calls `/theme`/`/language`/`/profile` — tracked as Remaining item 3 above
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
