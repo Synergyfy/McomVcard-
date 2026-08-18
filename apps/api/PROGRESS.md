@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-18 (session: Business/Account final decisions — slug, categories endpoint, soft account deactivation + prod-readiness e2e)
+> Last updated: 2026-08-18 (session: Phase 4 Core Cards module built + 125-check prod-readiness e2e passed)
 > Working branch: `logic`
-> Latest commits: `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings), `e969643` (RBAC)
-> Uncommitted: none
+> Latest commits: `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings)
+> Uncommitted: Phase 4 CardsModule (entities, DTOs, service, controller, templates seed) — see Phase 4 below
 
 ---
 
@@ -16,7 +16,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 1 — Foundation | ✅ Complete |
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
-| 4 — Core Cards | ⬜ Not started |
+| 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | ⬜ Not started |
 | 6 — Membership Ecosystem | ⬜ Not started |
 | 7 — Financial Ecosystem | ⬜ Not started |
@@ -81,21 +81,38 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **CORS fix**: `CORS_ORIGINS` (comma-separated, prod only) is now in the Joi schema and `.env.example` — previously read in `main.ts` but missing from validation, which could silently produce an empty origin list in prod.
 
 ### Remaining
-1. Phase 4 — Core Cards (cards, card_profiles, card_customizations, social_links, templates, template_fields, card_access) — next up
-2. Phase 5 — Business Features (services, products, appointments)
-3. Phase 6 — Membership Ecosystem (tiers, memberships, benefits, seasons)
-4. Phase 7 — Financial Ecosystem (rewards, cashback, wallet, vouchers)
-5. Phase 8 — Relationships (user_relationships, child_cards, wishlists)
-6. Phase 9 — Growth (affiliates, shares, QR codes, campaigns, offers, coupons)
-7. Phase 10 — Admin endpoints (`@Roles('ADMIN')`)
-8. Frontend reconciliation: point web `authService` at the new profile/settings/password routes and fix `User` type mismatches
+1. Phase 5 — Business Features (services, products, appointments)
+2. Phase 6 — Membership Ecosystem (tiers, memberships, benefits, seasons)
+3. Phase 7 — Financial Ecosystem (rewards, cashback, wallet, vouchers)
+4. Phase 8 — Relationships (user_relationships, child_cards, wishlists)
+5. Phase 9 — Growth (affiliates, shares, QR codes, campaigns, offers, coupons)
+6. Phase 10 — Admin endpoints (`@Roles('ADMIN')`)
+7. Frontend reconciliation: point web `authService` at the new profile/settings/password routes and fix `User` type mismatches
 
 ---
+
+## Phase 4 — Core Cards ✅
+
+- Built against the reconstructed `1712000000007-CreateCardTables` migration (no schema changes). New `CardsModule` (`modules/cards/`) with 7 entities matching the live tables exactly: `Card` (cards), `CardProfile` (card_profiles), `CardCustomization` (card_customizations), `SocialLink` (social_links), `CardAccess` (card_access), `Template` (templates), `TemplateField` (template_fields). New-schema snake_case columns mapped to camelCase entity properties via `@Column({ name })`.
+- **Endpoints** (all Swagger-documented with `@ApiBody` examples + envelope schemas, `/api` prefix, `JwtAuthGuard`):
+  - Cards: `POST /cards`, `GET /cards/:id` (any authenticated user — cards are public profiles), `GET /cards/by-slug/:slug`, `GET /users/me/cards`, `PATCH /cards/:id`, `DELETE /cards/:id` (cascades to profile/customization/social links/access).
+  - Profile (1:1): `POST /cards/:id/profile`, `GET /cards/:id/profile` (public), `PATCH/DELETE /card-profiles/:profileId`.
+  - Customization (1:1): `POST /cards/:id/customization`, `GET /cards/:id/customization` (public), `PATCH/DELETE /card-customizations/:customizationId`.
+  - Social links (1:N): `POST/GET /cards/:id/social-links`, `PATCH/DELETE /social-links/:linkId`.
+  - Access (1:1): `POST/GET /cards/:id/access`, `PATCH/DELETE /card-access/:accessId` — plaintext `password` hashed (bcrypt) before storage, never returned (`password_hash` excluded from response DTO); `access_expiry` validated (`never`/`until`, `expires_at` required for `until`).
+  - Templates (system-defined, read-only): `GET /templates` (published, with fields), `GET /templates/:id`.
+- **Decisions applied (mirroring Phase 3 businesses)**: modification endpoints require the card owner (403 otherwise, verified for PATCH/DELETE/profile-update by a second user); reads open to any authenticated user; `type` restricted to `PERSONAL`/`BUSINESS` (whitelist-rejected otherwise); `slug` user-supplied or auto-generated (random hex) with uniqueness loop (`-2`, `-3`, …); `template_id`/`business_id` validated on create/update — template must exist, business must be owned by the card owner (`BusinessesService.findOwned`).
+- **Templates seed**: `seed.ts` now upserts 3 templates (Minimal/Modern/Bold) + 23 template_fields (idempotent by slug / template+field_key), matching the live DB data exactly. Verified idempotent against the live DB.
+- **Verified live (dev-mode e2e, 37 checks)**: create/get/by-slug/list, slug uniqueness loop + bad-slug 400 + auto slug, profile/customization/social/access CRUD, duplicate 1:1 rejects (400), bcrypt hashing (password never leaked), template assignment + unknown-template 400, DTO snake_case keys on every nested object (no raw-entity leak), ownership 403 (other-user update/delete/profile), business-linked card ownership (owned business ok, unowned business 403), templates list/detail. Swagger reflects all 13 new paths + 13 schemas at `/api/docs` (non-prod). `tsc --noEmit` clean, prod build clean. Test data cleaned after verification (DB back to admin-only, 0 businesses/cards).
+- **Prod-readiness e2e (prod build + `NODE_ENV=production`, 125 checks, live DB)**: full pass on templates (3 seeded/published-only, detail 200, unknown 404, nested DTO), card CRUD (create 201, slug uniqueness loop `-2`/`-3`, auto slug, bad slug 400, uppercase 400, invalid type 400, `status` not settable 400, non-uuid business 400, unknown template 400, unknown field rejected 400 via `forbidNonWhitelisted`), reads (by-id/by-slug 200, by-slug 404, unknown 404, bad uuid 400, list mine 4 + snake_case keys), profile (create 201, dup 400, missing name 400, get 200/404, patch 200 + applied, bad uuid 400), customization (create 201, dup 400, patch 200, invalid color 400, bad url 400, get 200/404), social links (create ×2 201, platform/url/missing 400, list ordered, patch 200 + applied, unknown 404), access security (create 201, `password_hash` never leaked in DTO/raw response, dup 400, short password 400, `until` without `expires_at` 400, with date 201 + persisted, patch 200, bcrypt hash confirmed in DB), template assignment (assign 200 + nested fields, unknown 400, type update + invalid 400), business linkage (owned 201 + persisted, unowned 403, unknown 404), ownership (all 6 public reads 200 for other user; all 8 modifications 403 for other user), auth security (no token 401 ×3, garbage token 401, deactivated user login 401 + read 401), cascade delete (200, child rows purged — verified in DB), nested response integrity (no raw entity leak, no password leak). Swagger/docs 404 in prod; `synchronize` off. Test data cleaned after (DB back to admin-only, 0 businesses/cards).
+
+### Remaining
 
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
-- Phase 4 Cards: **migration reconstructed** from live schema (see Known Issues) — next step is building the `CardsModule` entities/DTOs/service/controller against it, plus a templates seed.
+- Phase 4 Cards: **complete** — module built against the reconstructed migration; templates seed added. Next up is Phase 5 (Business Features).
+- Card slug: user-supplied `slug` (validated lowercase-hyphen) or auto-generated random hex, uniqueness loop applied — no name-derived slug (cards have no name column; display name lives on the profile).
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
 
@@ -103,7 +120,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ## Known Issues
 
-- **RESOLVED — Pre-existing DB/migration mismatch (Phase 4)**: the local DB had `CreateCardTables1712000000007` applied (id=9) with no migration file in the repo. Reconstructed `apps/api/src/migrations/1712000000007-CreateCardTables.ts` from the live schema (`cards`, `card_profiles`, `card_customizations`, `social_links`, `templates`, `template_fields`, `card_access`). Verified: runs clean from scratch on a fresh DB and produces a schema byte-identical to the live DB (`pg_dump` diff). Note: live DB already contains 3 seeded templates (Minimal/Modern/Bold) + 23 template_fields — plan a templates seed for fresh envs in Phase 4.
+- **RESOLVED — Pre-existing DB/migration mismatch (Phase 4)**: the local DB had `CreateCardTables1712000000007` applied (id=9) with no migration file in the repo. Reconstructed `apps/api/src/migrations/1712000000007-CreateCardTables.ts` from the live schema (`cards`, `card_profiles`, `card_customizations`, `social_links`, `templates`, `template_fields`, `card_access`). Verified: runs clean from scratch on a fresh DB and produces a schema byte-identical to the live DB (`pg_dump` diff). Resolved: `CardsModule` built against it and templates seed added (fresh envs now get Minimal/Modern/Bold + 23 fields via `pnpm run seed`).
 - Frontend alignment pending: web `authService` still expects the old envelope + `name` field and calls `/theme`/`/language`/`/profile` — tracked as Remaining item 3 above
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
