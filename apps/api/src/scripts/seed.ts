@@ -6,12 +6,24 @@ import crypto from 'crypto'
 import { User } from '../modules/users/entities/user.entity'
 import { Role } from '../modules/roles/entities/role.entity'
 import { UserRole } from '../modules/roles/entities/user-role.entity'
+import { BusinessCategory } from '../modules/businesses/entities/business-category.entity'
 
 const DEFAULT_ROLES = [
   { name: 'USER', description: 'Standard authenticated user' },
   { name: 'ADMIN', description: 'Administrator with full access' },
   { name: 'BUSINESS_OWNER', description: 'Owns and manages a business on the platform' },
   { name: 'STAFF', description: 'Staff member with limited business access' },
+]
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Restaurant', description: 'Restaurants, cafes, and food services' },
+  { name: 'Retail', description: 'Retail stores and shops' },
+  { name: 'Health & Fitness', description: 'Gyms, clinics, and wellness services' },
+  { name: 'Beauty & Salon', description: 'Hair, nails, and beauty services' },
+  { name: 'Services', description: 'Professional and home services' },
+  { name: 'Entertainment', description: 'Events, venues, and leisure' },
+  { name: 'Education', description: 'Schools, tutors, and training' },
+  { name: 'Other', description: 'Anything else' },
 ]
 
 async function seed() {
@@ -25,6 +37,11 @@ async function seed() {
     // Upsert default roles
     for (const role of DEFAULT_ROLES) {
       await queryRunner.manager.upsert(Role, role, ['name'])
+    }
+
+    // Upsert default business categories
+    for (const category of DEFAULT_CATEGORIES) {
+      await queryRunner.manager.upsert(BusinessCategory, category, ['name'])
     }
 
     const adminRole = await queryRunner.manager.findOneBy(Role, { name: 'ADMIN' })
