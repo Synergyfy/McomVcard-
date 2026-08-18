@@ -11,6 +11,10 @@ export class UsersService {
     return this.usersRepo.findOne({ where: { id } })
   }
 
+  findAll() {
+    return this.usersRepo.find()
+  }
+
   async update(id: string, patch: Partial<User>): Promise<User | null> {
     await this.usersRepo.update({ id }, patch)
 
