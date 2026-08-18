@@ -4,8 +4,8 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 > Last updated: 2026-08-18 (session: Phase 4 Core Cards module built + 125-check prod-readiness e2e passed)
 > Working branch: `logic`
-> Latest commits: `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses), `0ce968d` (password reset + change password + `/users/me` profile/settings)
-> Uncommitted: Phase 4 CardsModule (entities, DTOs, service, controller, templates seed) — see Phase 4 below
+> Latest commits: `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Uncommitted: none
 
 ---
 
