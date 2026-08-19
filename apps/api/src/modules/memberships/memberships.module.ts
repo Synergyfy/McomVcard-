@@ -6,11 +6,12 @@ import { MembershipsService } from './memberships.service'
 import { MembershipTier } from './entities/membership-tier.entity'
 import { Benefit } from './entities/benefit.entity'
 import { MembershipBenefit } from './entities/membership-benefit.entity'
+import { Membership } from './entities/membership.entity'
 
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([MembershipTier, Benefit, MembershipBenefit]),
+    TypeOrmModule.forFeature([MembershipTier, Benefit, MembershipBenefit, Membership]),
   ],
   controllers: [MembershipsController],
   providers: [MembershipsService],
