@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 5 Milestone C — Appointments booking engine built + 74-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 8 Milestone A — Seasons module built + 34-check e2e passed)
 > Working branch: `logic`
 > Latest commits: `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 8 Milestone A (Seasons) — migration `1712000000012` + module + service + controller + e2e script; AGENTS.md note (always consult MASTER_INSTRUCTIONS.md for feature design)
 
 ---
 
@@ -18,7 +18,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
-| 6 — Membership Ecosystem | ⬜ Not started |
+| 6 — Membership Ecosystem | 🔄 In progress (Milestone A ✅ Seasons) |
 | 7 — Financial Ecosystem | ⬜ Not started |
 | 8 — Relationships | ⬜ Not started |
 | 9 — Growth | ⬜ Not started |
@@ -107,7 +107,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ### Remaining
 
-## Phase 5 — Business Features 🔄 (Milestones A–B ✅)
+## Phase 5 — Business Features 🔄 (Milestones A–C ✅)
 
 **Milestone A — Services (migration `1712000000008-CreateServicesTables`)**: new `ServicesModule` (`modules/services/`). `Service` entity (`services` table, Business **1:N** Services): `business_id` FK (ON DELETE CASCADE), `name`, `description` (text), `price` (numeric(10,2) with a TypeORM transformer → number in API, null-safe), `currency` (ISO 4217, default `GBP` — matches the web frontend default), `duration` (minutes), `image` (URL), `status` (internal-only, default `active`, not settable via API). `Business` entity gains a `services` OneToMany relation.
 
@@ -148,6 +148,19 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **Bugs caught + fixed during e2e**: (1) optional `service_id`/`customer_phone`/`notes` in `CreateAppointmentDto` lacked `@IsOptional()` → global whitelist+forbidNonWhitelisted rejected them (400) — added `@IsOptional()`; (2) `assertWithinAvailability` was async but called without `await` in `book()`/`reschedule()` → unhandled rejection crashed the prod server — added `await`; (3) Postgres `TIME` columns returned `HH:MM:SS` in responses — response DTOs now normalize to `HH:MM`; (4) default booking-rules response leaked camelCase entity keys — service returns a snake_case default object.
 
 ### Remaining (Milestone D — Next Business Feature)
+
+---
+
+## Phase 6 — Membership Ecosystem 🔄 (Milestone A ✅ Seasons)
+
+**Milestone A — Seasons (migration `1712000000012-CreateSeasonTables`)**: platform-wide `seasons` entity per spec §31 (`name`, `starts_at`, `ends_at`, `status` default `active`; index on `status`). Ownership model per the docs: the complete DB relationship map (§47) attaches Memberships to **Users** (no Business edge) and lists Memberships/Benefits under admin-managed areas — so seasons/tiers/benefits are **platform-wide**, not per-business. Any authenticated user can manage seasons for now; admin-only enforcement is deferred to Phase 10 (Admin, `@Roles('ADMIN')`).
+
+- **Endpoints** (`/api/seasons`, Swagger-documented, `JwtAuthGuard`): `POST /seasons`, `GET /seasons` (ordered by `starts_at`), `GET /seasons/:id`, `PATCH /seasons/:id`, `DELETE /seasons/:id`.
+- **DTOs**: `CreateSeasonDto` (name 2–100, `starts_at`/`ends_at` ISO dates), `UpdateSeasonDto` (PartialType), `SeasonResponseDto` (snake_case: `starts_at`, `ends_at`, `created_at`, …). `status` is internal-only (whitelist-rejected 400).
+- **Verified live (prod build + `NODE_ENV=production`, 34-check e2e)**: CRUD + ordering, snake_case DTO, validation 400s (missing/short name, bad date, ends-before-starts on create and update, status not settable), 404 unknown, 400 bad UUID, any-authed-user reads AND management (200s), auth 401s (no token ×2, garbage token), delete + 404 after, DB clean after cleanup. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 3 schemas at `/api/docs-json` (non-prod).
+- **AGENTS.md** updated: new "Original Documentation First" rule — always consult `apps/api/MASTER_INSTRUCTIONS.md` for feature design; ask the user only when the docs are genuinely silent.
+
+### Remaining (Milestone B — Tiers & Benefits; Milestone C — Memberships)
 
 ## Pending Decisions / Questions
 
