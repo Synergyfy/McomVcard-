@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { UserRole } from '../../roles/entities/user-role.entity'
 import { Membership } from '../../memberships/entities/membership.entity'
 import { Wallet } from '../../finance/entities/wallet.entity'
+import { RewardBalance } from '../../finance/entities/reward-balance.entity'
 
 @Entity({ name: 'users' })
 export class User {
@@ -52,4 +53,7 @@ export class User {
 
   @OneToMany(() => Wallet, (wallet) => wallet.user)
   wallet!: Wallet[]
+
+  @OneToMany(() => RewardBalance, (rewardBalance) => rewardBalance.user)
+  rewardBalance!: RewardBalance[]
 }

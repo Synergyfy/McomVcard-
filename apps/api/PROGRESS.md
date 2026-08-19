@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 7 Milestone A — Wallet module built + 52-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 7 Milestone B — Rewards module built + 57-check e2e passed)
 > Working branch: `logic`
 > Latest commits: `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 7 Milestone B (Rewards) — migration `1712000000016` + module (finance consolidated) + service + controller + e2e script
 
 ---
 
@@ -19,7 +19,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
-| 7 — Financial Ecosystem | 🔄 In progress (Milestone A ✅ Wallet) |
+| 7 — Financial Ecosystem | 🔄 In progress (Milestones A–B ✅ Wallet/Rewards) |
 | 8 — Relationships | ⬜ Not started |
 | 9 — Growth | ⬜ Not started |
 | 10 — Admin | ⬜ Not started |
@@ -189,6 +189,15 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 52-check e2e)**: get-before-create 404, create 201 + snake_case + GBP + balance 0, idempotent re-create (HTTP 201, body statusCode 200, same wallet), credit/debit ledger writes + balance updates, overdraw 400 with no side effects, validation 400s (missing/bad type, zero/negative/string/3dp amount), per-user isolation (cross-user txn read → 404), auth 401s (no token ×2, garbage token), DB ledger consistency checks. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 3 paths + 3 schemas at `/api/docs-json` (non-prod).
 
 ### Remaining (Milestone B — Rewards; Milestone C — Cashback)
+
+**Milestone B — Rewards (migration `1712000000016-CreateRewardTables`)**: per spec §32 (`reward_balances`, `reward_transactions`) and relationship map §47 (`USERS ── REWARD_BALANCE ── REWARD_TRANSACTIONS`). One balance per user; transaction history is maintained (spec: "do not rely only on a mutable balance without transaction records"), written atomically.
+- `reward_balances`: `user_id` (FK → users, ON DELETE CASCADE, UNIQUE), `balance` (numeric(12,2), default 0), `status` (default `active`).
+- `reward_transactions`: `reward_balance_id` (FK → reward_balances, ON DELETE CASCADE), `type` (`EARN`/`REDEEM`/`EXPIRE`/`ADJUST`), `amount` (signed — negative for REDEEM/EXPIRE/ADJUST-down), `balance_after`, `description`. Indexes on balance_id + created_at.
+- **Endpoints** (`/api`, Swagger-documented, `JwtAuthGuard`): `GET/POST /rewards/balance` (idempotent create), `GET/POST /rewards/transactions`, `GET /rewards/transactions/:id` — **per-user scoped**.
+- **Rules**: EARN/ADJUST move up, REDEEM/EXPIRE/ADJUST-down move down; EARN/REDEEM/EXPIRE require positive amount, ADJUST requires non-zero; balance can never go below zero (400, no side effects); ledger + balance written atomically in a DB transaction (spec §32).
+- **Verified live (prod build + `NODE_ENV=production`, 57-check e2e)**: balance create + idempotent re-create, all four transaction types with correct signed amounts + balance_after, ledger newest-first, over-redeem/over-expire 400 with balance unchanged and no ledger rows, validation 400s (zero/negative/bad type/missing/3dp), per-user isolation (cross-user txn read → 404), auth 401s, DB ledger-sum == balance and last balance_after == balance. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 3 paths + 3 schemas at `/api/docs-json` (non-prod). Finance module consolidated into a single `FinanceModule` (Wallet + Rewards).
+
+### Remaining (Milestone C — Cashback)
 
 ## Pending Decisions / Questions
 
