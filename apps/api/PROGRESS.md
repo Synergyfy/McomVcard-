@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 5 Milestone B — Products module built + 58-check e2e passed; services/products currency default → GBP)
+> Last updated: 2026-08-19 (session: Phase 5 Milestone C — Appointments booking engine built + 74-check e2e passed)
 > Working branch: `logic`
 > Latest commits: `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Milestone C (Appointments) — migration `1712000000011` + module + service + controller + e2e script
 
 ---
 
@@ -17,7 +17,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
-| 5 — Business Features | 🔄 In progress (Milestones A–B ✅ Services/Products) |
+| 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ⬜ Not started |
 | 7 — Financial Ecosystem | ⬜ Not started |
 | 8 — Relationships | ⬜ Not started |
@@ -134,12 +134,25 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **DTOs**: `CreateProductDto` (same rules as services: name 2–150, description ≤2000, price ≥0 ≤2 decimals, currency 3 chars, cover image URL), `UpdateProductDto` (PartialType), `CreateProductImageDto` (URL + optional position 0–9999), `ProductResponseDto` (snake_case contract, nests ordered `images` via `ProductImageResponseDto`, static `fromEntity`). `status` is whitelist-rejected (400).
 - **Verified live (prod build + `NODE_ENV=production`, 58-check e2e)**: create 201 + snake_case DTO + decimal price, price/currency optional, validation 400s (missing/short name, negative/3-decimal price, bad currency, bad image URL, `status` not settable, bad UUID), unknown business 404 on create AND list, get 200/404/400, update 200 + applied, gallery (add with position 0, add without position auto-assigns last+1, list ordered, nested images in product detail, bad/missing image_url 400, unknown product 404, delete image 200/404), ownership (other user: list/get/list-images public 200, update/delete/create/add-image/delete-image 403), auth (no token / garbage token 401), cascade delete (product delete + business delete both purge product_images — DB-verified). `tsc --noEmit` clean, prod build clean. Swagger reflects all 8 new paths + 5 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses/products). Default currency later changed to `GBP` (migration `1712000000010-SetDefaultCurrencyGbp`) to match the web frontend default.
 
-### Remaining (Milestone C — Appointments)
+**Milestone C — Appointments (migration `1712000000011-CreateAppointmentTables`)**: full booking engine (user-confirmed scope). Three new tables + `AppointmentsModule` (`modules/appointments/`):
+- `booking_rules` (Business **1:1**): `enabled` (default true), `default_duration` (60 min), `buffer` (15 min), `lead_time_hours` (24), `advance_window_days` (30), `require_payment`, `confirmation_message`, `cancellation_policy`. If no rules row exists, the API returns a snake_case default config (service returns a snake_case default object, not the camelCase entity).
+- `availability` (Business **1:N** weekly slots): `day_of_week` 0–6, `start_time`/`end_time` (`HH:MM`), `is_closed`.
+- `appointments` (Business **1:N**, optional `service_id` FK → services `ON DELETE SET NULL`): `customer_name`, `customer_email`, `customer_phone`, `date`, `start_time`, `end_time`, `status` (pending default / confirmed / cancelled / completed), `notes`. Index `(business_id, date)`. `Business` entity gains `bookingRules`/`availability`/`appointments` relations.
+
+- **Endpoints** (all Swagger-documented with `@ApiBody` examples + envelope schemas, `/api` prefix, `JwtAuthGuard`):
+  - Booking rules: `GET /businesses/:id/booking-rules` (any authenticated; returns defaults if none), `POST /businesses/:id/booking-rules` (owner-only, 400 if already exist), `PATCH /booking-rules/:id` (owner-only).
+  - Availability: `GET /businesses/:id/availability` (any authenticated), `POST /businesses/:id/availability` (owner-only), `PATCH /availability/:id`, `DELETE /availability/:id` (owner-only).
+  - Appointments: `POST /businesses/:id/appointments` — **public booking**, any authenticated user (validates business, optional service belongs to business, booking window = lead-time + advance-window, slot availability for that weekday, end_time = start + duration where duration = service.duration → rule.default_duration, end ≤ 23:59, no conflict with existing appointments respecting buffer, status defaults to `pending`); `GET /businesses/:id/appointments` (owner-only list); `GET /appointments/:id` (owner-only); `PATCH /appointments/:id/status` (owner-only; pending/confirmed/cancelled/completed); `PATCH /appointments/:id/reschedule` (owner-only, re-validates window/availability/conflicts, blocked for cancelled); `DELETE /appointments/:id` (owner-only).
+- **DTOs**: `CreateBookingRuleDto`/`UpdateBookingRuleDto` (all optional with defaults; `default_duration`/`buffer`/`lead_time_hours`/`advance_window_days` transformed to int, `default_duration` 5–1440, `advance_window_days` 1–365), `CreateAvailabilityDto`/`UpdateAvailabilityDto` (day 0–6, `HH:MM` times from a 30-min-step whitelist), `CreateAppointmentDto` (customer name 2–100, email regex, phone ≤30, date `YYYY-MM-DD` regex, time `HH:MM` regex, notes ≤1000, optional `service_id` UUID), `UpdateAppointmentStatusDto` (`@IsIn` the 4 statuses), `RescheduleAppointmentDto` (date + time), `AvailabilityResponseDto`/`BookingRuleResponseDto`/`AppointmentResponseDto` (snake_case, nest `service` as `{ id, name, price, currency }`, times normalized from Postgres `TIME` `HH:MM:SS` → `HH:MM`).
+- **Verified live (prod build + `NODE_ENV=production`, 74-check e2e)**: booking rules defaults + create + duplicate 400 + update + snake_case keys, availability CRUD + validation 400s (bad day, bad time, end-before-start), booking validation 400s (past date, outside advance window, no availability for weekday, bad email/date/time format, disabled booking, end past midnight), booking success (status `pending`, end = start+60 default, service duration overrides to +45 with nested `service`), conflict 400, reschedule 200 + applied + conflict 400, status flow, unknown business 404, service-from-another-business 400, ownership (other user reads 200, all modifications 403), auth 401 ×3, business delete cascades appointments/availability/booking_rules (DB-verified). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects all 8 new paths + 10 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses).
+- **Bugs caught + fixed during e2e**: (1) optional `service_id`/`customer_phone`/`notes` in `CreateAppointmentDto` lacked `@IsOptional()` → global whitelist+forbidNonWhitelisted rejected them (400) — added `@IsOptional()`; (2) `assertWithinAvailability` was async but called without `await` in `book()`/`reschedule()` → unhandled rejection crashed the prod server — added `await`; (3) Postgres `TIME` columns returned `HH:MM:SS` in responses — response DTOs now normalize to `HH:MM`; (4) default booking-rules response leaked camelCase entity keys — service returns a snake_case default object.
+
+### Remaining (Milestone D — Next Business Feature)
 
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
-- Phase 5 Business Features: **Milestones A–B — Services and Products done** (migrations `1712000000008`/`1712000000009`). Next: Milestone C — Appointments. Appointments scope (full booking engine vs scoped CRUD) and appointments schema still pending confirmation — plan spec "Potential:" fields are the guide.
+- Phase 5 Business Features: **Milestones A–C — Services, Products, and Appointments done** (migrations `1712000000008`/`1712000000009`/`1712000000011`). Appointments scope confirmed: **full booking engine** (availability, booking rules, lead-time/advance-window validation, conflicts + buffer, rescheduling, status flow). Next: decide Milestone D scope (spec lists Options / Events, etc.).
 - Card slug: user-supplied `slug` (validated lowercase-hyphen) or auto-generated random hex, uniqueness loop applied — no name-derived slug (cards have no name column; display name lives on the profile).
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**

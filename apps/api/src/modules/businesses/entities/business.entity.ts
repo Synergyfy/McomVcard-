@@ -6,6 +6,9 @@ import { BusinessHour } from './business-hour.entity'
 import { Brand } from './brand.entity'
 import { Service } from '../../services/entities/service.entity'
 import { Product } from '../../products/entities/product.entity'
+import { Appointment } from '../../appointments/entities/appointment.entity'
+import { Availability } from '../../appointments/entities/availability.entity'
+import { BookingRule } from '../../appointments/entities/booking-rule.entity'
 
 @Entity({ name: 'businesses' })
 export class Business {
@@ -67,4 +70,13 @@ export class Business {
 
   @OneToMany(() => Product, (product) => product.business)
   products!: Product[]
+
+  @OneToMany(() => Appointment, (appointment) => appointment.business)
+  appointments!: Appointment[]
+
+  @OneToMany(() => Availability, (availability) => availability.business)
+  availability!: Availability[]
+
+  @OneToMany(() => BookingRule, (rule) => rule.business)
+  bookingRules!: BookingRule[]
 }
