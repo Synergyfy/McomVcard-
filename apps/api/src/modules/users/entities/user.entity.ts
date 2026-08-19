@@ -3,6 +3,7 @@ import { UserRole } from '../../roles/entities/user-role.entity'
 import { Membership } from '../../memberships/entities/membership.entity'
 import { Wallet } from '../../finance/entities/wallet.entity'
 import { RewardBalance } from '../../finance/entities/reward-balance.entity'
+import { CashbackAccount } from '../../finance/entities/cashback-account.entity'
 
 @Entity({ name: 'users' })
 export class User {
@@ -56,4 +57,7 @@ export class User {
 
   @OneToMany(() => RewardBalance, (rewardBalance) => rewardBalance.user)
   rewardBalance!: RewardBalance[]
+
+  @OneToMany(() => CashbackAccount, (cashbackAccount) => cashbackAccount.user)
+  cashbackAccount!: CashbackAccount[]
 }
