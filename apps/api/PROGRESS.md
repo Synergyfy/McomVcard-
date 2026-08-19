@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 7 Milestone B — Rewards module built + 57-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 7 Milestone C — Cashback module built + 69-check e2e passed → Phase 7 complete)
 > Working branch: `logic`
 > Latest commits: `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 7 Milestone C (Cashback) — migration `1712000000017` + entities + DTOs + service + controller + e2e script
 
 ---
 
@@ -19,7 +19,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
-| 7 — Financial Ecosystem | 🔄 In progress (Milestones A–B ✅ Wallet/Rewards) |
+| 7 — Financial Ecosystem | ✅ Complete (Wallet, Rewards, Cashback) |
 | 8 — Relationships | ⬜ Not started |
 | 9 — Growth | ⬜ Not started |
 | 10 — Admin | ⬜ Not started |
@@ -198,6 +198,15 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 57-check e2e)**: balance create + idempotent re-create, all four transaction types with correct signed amounts + balance_after, ledger newest-first, over-redeem/over-expire 400 with balance unchanged and no ledger rows, validation 400s (zero/negative/bad type/missing/3dp), per-user isolation (cross-user txn read → 404), auth 401s, DB ledger-sum == balance and last balance_after == balance. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 3 paths + 3 schemas at `/api/docs-json` (non-prod). Finance module consolidated into a single `FinanceModule` (Wallet + Rewards).
 
 ### Remaining (Milestone C — Cashback)
+
+**Milestone C — Cashback (migration `1712000000017-CreateCashbackTables`)**: per spec §33 (`cashback_accounts`, `cashback_transactions`, `cashback_rules`) and relationship map §47 (`USERS ├── CASHBACK_ACCOUNT └── CASHBACK_TRANSACTIONS`). Account is per-user (ledger-backed); rules are platform-wide config.
+- `cashback_accounts`: `user_id` (FK → users, ON DELETE CASCADE, UNIQUE), `balance` (numeric(12,2), default 0), `status`.
+- `cashback_transactions`: `cashback_account_id` (FK, ON DELETE CASCADE), `type` (`EARN`/`REDEEM`/`ADJUST`), `amount` (signed), `balance_after`, `description`. Ledger + balance written atomically (spec §33: "maintain transaction history").
+- `cashback_rules`: platform-wide, exactly the spec §33 fields — `percentage` (0.01–100, ≤2dp), `minimum_amount`, `maximum_amount`, `starts_at`, `ends_at`, `status` (internal-only). No extra fields invented (spec: "only implement fields actually required").
+- **Endpoints** (`/api`, Swagger-documented, `JwtAuthGuard`): rules `POST/GET /cashback/rules`, `GET/PATCH/DELETE /cashback/rules/:id` (platform-wide); account `GET/POST /cashback/account` (idempotent create), `GET/POST /cashback/transactions`, `GET /cashback/transactions/:id` (per-user scoped).
+- **Verified live (prod build + `NODE_ENV=production`, 69-check e2e)**: rule CRUD + snake_case + nullable min/max + date validation (bad date, ends-before-starts on create AND update, status not settable) + percentage bounds, account create + idempotent re-create, all three transaction types + signed amounts + balance_after, over-redeem 400 no side effects, validation 400s, per-user isolation (cross-user txn → 404), platform-wide rule management (other user reads/manages), auth 401s, DB ledger-sum == balance and last balance_after == balance. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 5 paths + 6 schemas at `/api/docs-json` (non-prod).
+
+### Remaining (Phase 8 — Relationships)
 
 ## Pending Decisions / Questions
 
