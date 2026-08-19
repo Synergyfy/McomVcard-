@@ -13,6 +13,7 @@ import { CardsModule } from './modules/cards/cards.module'
 import { ServicesModule } from './modules/services/services.module'
 import { ProductsModule } from './modules/products/products.module'
 import { AppointmentsModule } from './modules/appointments/appointments.module'
+import { SeasonsModule } from './modules/seasons/seasons.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -40,6 +41,7 @@ import { APP_GUARD } from '@nestjs/core'
     ServicesModule,
     ProductsModule,
     AppointmentsModule,
+    SeasonsModule,
   ],
   controllers: [],
   providers: [
