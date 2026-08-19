@@ -24,7 +24,7 @@ export class ServicesService {
         name: dto.name,
         description: dto.description ?? null,
         price: dto.price ?? null,
-        currency: dto.currency ?? 'USD',
+        currency: dto.currency ?? 'GBP',
         duration: dto.duration ?? null,
         image: dto.image ?? null,
         status: 'active',

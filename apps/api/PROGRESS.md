@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 5 Milestone A — Services module built + 44-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 5 Milestone B — Products module built + 58-check e2e passed)
 > Working branch: `logic`
-> Latest commits: `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: Phase 5 Milestone A — Services (migration `1712000000008-CreateServicesTables`, ServicesModule, Swagger, e2e)
+> Latest commits: `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Uncommitted: Phase 5 Milestone B — Products (migration `1712000000009-CreateProductsTables`, ProductsModule, Swagger, e2e)
 
 ---
 
@@ -17,7 +17,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
-| 5 — Business Features | 🔄 In progress (Milestone A — Services ✅) |
+| 5 — Business Features | 🔄 In progress (Milestones A–B ✅ Services/Products) |
 | 6 — Membership Ecosystem | ⬜ Not started |
 | 7 — Financial Ecosystem | ⬜ Not started |
 | 8 — Relationships | ⬜ Not started |
@@ -107,10 +107,39 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ### Remaining
 
+## Phase 5 — Business Features 🔄 (Milestones A–B ✅)
+
+**Milestone A — Services (migration `1712000000008-CreateServicesTables`)**: new `ServicesModule` (`modules/services/`). `Service` entity (`services` table, Business **1:N** Services): `business_id` FK (ON DELETE CASCADE), `name`, `description` (text), `price` (numeric(10,2) with a TypeORM transformer → number in API, null-safe), `currency` (ISO 4217, default `GBP` — matches the web frontend default), `duration` (minutes), `image` (URL), `status` (internal-only, default `active`, not settable via API). `Business` entity gains a `services` OneToMany relation.
+
+- **Endpoints** (all Swagger-documented with `@ApiBody` examples + envelope schemas, `/api` prefix, `JwtAuthGuard`):
+  - `POST /businesses/:id/services` — create (business must be owned by the authenticated user; 403 otherwise, 404 if the business doesn't exist)
+  - `GET /businesses/:id/services` — list (any authenticated user; parent business must exist → 404)
+  - `GET /services/:id` — get one (any authenticated user)
+  - `PATCH /services/:id` — update (owner-only, resolves parent business from the service row)
+  - `DELETE /services/:id` — delete (owner-only; cascades with the parent business too)
+- **DTOs**: `CreateServiceDto` (name 2–150, optional description ≤2000, price ≥0 with ≤2 decimals, currency exactly 3 chars, duration 1–10080 minutes, valid URL image), `UpdateServiceDto` (PartialType), `ServiceResponseDto` (snake_case contract: `business_id`, `created_at`, `updated_at`, etc., static `fromEntity`). `status` is whitelist-rejected (400).
+- **Verified live (prod build + `NODE_ENV=production`, 44-check e2e)**: create 201 + snake_case DTO + decimal price round-trip, price/currency optional defaults (null / GBP), validation 400s (missing/short name, negative or 3-decimal price, bad currency length, zero duration, bad image URL, status not settable, bad UUID), unknown business 404 on create AND list, get 200/404/400, list ordering, update 200 + applied, ownership (other user: list/get public 200, update/delete/create 403), auth (no token / garbage token 401), delete 200 + 404 after, business delete cascades to services (DB-verified). `tsc --noEmit` clean, prod build clean. Swagger reflects all 5 new paths + 3 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses/services). Default currency later changed to `GBP` (migration `1712000000010-SetDefaultCurrencyGbp`) to match the web frontend default.
+
+**Milestone B — Products (migration `1712000000009-CreateProductsTables`)**: new `ProductsModule` (`modules/products/`). `Product` entity (`products` table, Business **1:N** Products) mirroring services: `business_id` FK (ON DELETE CASCADE), `name`, `description` (text), `price` (numeric(10,2) + number transformer), `currency` (ISO 4217, default `GBP`), `image` (cover URL), `status` (internal-only, default `active`). `ProductImage` entity (`product_images` table, Product **1:N** ProductImages): `product_id` FK (ON DELETE CASCADE), `image_url`, `position` (gallery order, auto-increment if omitted). `Business` entity gains a `products` OneToMany; `Product` gains `images` OneToMany.
+
+- **Endpoints** (all Swagger-documented with `@ApiBody` examples + envelope schemas, `/api` prefix, `JwtAuthGuard`):
+  - `POST /businesses/:id/products` — create (business owned by the authenticated user; 403/404 otherwise)
+  - `GET /businesses/:id/products` — list with nested gallery (any authenticated user; parent business must exist → 404)
+  - `GET /products/:id` — get one with nested gallery (any authenticated user)
+  - `PATCH /products/:id` — update (owner-only, resolves parent business from the product row)
+  - `DELETE /products/:id` — delete (owner-only; cascades gallery images)
+  - `POST /products/:id/images` — add gallery image (owner-only; `position` optional, auto-assigned as last+1)
+  - `GET /products/:id/images` — list gallery (any authenticated user)
+  - `DELETE /product-images/:imageId` — remove gallery image (owner-only)
+- **DTOs**: `CreateProductDto` (same rules as services: name 2–150, description ≤2000, price ≥0 ≤2 decimals, currency 3 chars, cover image URL), `UpdateProductDto` (PartialType), `CreateProductImageDto` (URL + optional position 0–9999), `ProductResponseDto` (snake_case contract, nests ordered `images` via `ProductImageResponseDto`, static `fromEntity`). `status` is whitelist-rejected (400).
+- **Verified live (prod build + `NODE_ENV=production`, 58-check e2e)**: create 201 + snake_case DTO + decimal price, price/currency optional, validation 400s (missing/short name, negative/3-decimal price, bad currency, bad image URL, `status` not settable, bad UUID), unknown business 404 on create AND list, get 200/404/400, update 200 + applied, gallery (add with position 0, add without position auto-assigns last+1, list ordered, nested images in product detail, bad/missing image_url 400, unknown product 404, delete image 200/404), ownership (other user: list/get/list-images public 200, update/delete/create/add-image/delete-image 403), auth (no token / garbage token 401), cascade delete (product delete + business delete both purge product_images — DB-verified). `tsc --noEmit` clean, prod build clean. Swagger reflects all 8 new paths + 5 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses/products). Default currency later changed to `GBP` (migration `1712000000010-SetDefaultCurrencyGbp`) to match the web frontend default.
+
+### Remaining (Milestone C — Appointments)
+
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
-- Phase 5 Business Features: **Milestone A — Services done** (migration `1712000000008`). Next: Milestone B — Products (+ product_images), Milestone C — Appointments. Appointments scope (full booking engine vs scoped CRUD) and products/appointments schema still pending confirmation — plan spec "Potential:" fields are the guide.
+- Phase 5 Business Features: **Milestones A–B — Services and Products done** (migrations `1712000000008`/`1712000000009`). Next: Milestone C — Appointments. Appointments scope (full booking engine vs scoped CRUD) and appointments schema still pending confirmation — plan spec "Potential:" fields are the guide.
 - Card slug: user-supplied `slug` (validated lowercase-hyphen) or auto-generated random hex, uniqueness loop applied — no name-derived slug (cards have no name column; display name lives on the profile).
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**

@@ -32,7 +32,7 @@ export class ServicesController {
   @Post('businesses/:id/services')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a service to a business', description: 'Creates a service for a business owned by the authenticated user.' })
-  @ApiBody({ type: CreateServiceDto, examples: { default: { summary: 'New service', value: { name: 'Haircut & Style', description: 'A signature cut with styling', price: 75, currency: 'USD', duration: 45 } } } })
+  @ApiBody({ type: CreateServiceDto, examples: { default: { summary: 'New service', value: { name: 'Haircut & Style', description: 'A signature cut with styling', price: 75, currency: 'GBP', duration: 45 } } } })
   @ApiCreatedResponse({
     description: 'Service created',
     schema: {

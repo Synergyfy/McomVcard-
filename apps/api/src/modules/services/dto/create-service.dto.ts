@@ -23,7 +23,7 @@ export class CreateServiceDto {
   @Max(99999999.99)
   price?: number
 
-  @ApiPropertyOptional({ example: 'USD', description: 'ISO 4217 currency code', default: 'USD' })
+  @ApiPropertyOptional({ example: 'GBP', description: 'ISO 4217 currency code', default: 'GBP' })
   @IsOptional()
   @IsString()
   @MinLength(3)

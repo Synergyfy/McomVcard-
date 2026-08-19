@@ -25,7 +25,7 @@ export class Service {
   } })
   price!: number | null
 
-  @Column({ length: 3, default: 'USD' })
+  @Column({ length: 3, default: 'GBP' })
   currency!: string
 
   @Column({ nullable: true })

@@ -5,6 +5,7 @@ import { BusinessLocation } from './business-location.entity'
 import { BusinessHour } from './business-hour.entity'
 import { Brand } from './brand.entity'
 import { Service } from '../../services/entities/service.entity'
+import { Product } from '../../products/entities/product.entity'
 
 @Entity({ name: 'businesses' })
 export class Business {
@@ -63,4 +64,7 @@ export class Business {
 
   @OneToMany(() => Service, (service) => service.business)
   services!: Service[]
+
+  @OneToMany(() => Product, (product) => product.business)
+  products!: Product[]
 }
