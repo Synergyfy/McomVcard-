@@ -10,7 +10,7 @@ export class CreateServicesTables1712000000008 implements MigrationInterface {
         "name" character varying NOT NULL,
         "description" text,
         "price" numeric(10, 2),
-        "currency" character varying(3) NOT NULL DEFAULT 'USD',
+        "currency" character varying(3) NOT NULL DEFAULT 'GBP',
         "duration" integer,
         "image" character varying,
         "status" character varying NOT NULL DEFAULT 'active',

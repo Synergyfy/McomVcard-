@@ -11,6 +11,7 @@ import { ProfileModule } from './modules/profile/profile.module'
 import { BusinessesModule } from './modules/businesses/businesses.module'
 import { CardsModule } from './modules/cards/cards.module'
 import { ServicesModule } from './modules/services/services.module'
+import { ProductsModule } from './modules/products/products.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -36,6 +37,7 @@ import { APP_GUARD } from '@nestjs/core'
     BusinessesModule,
     CardsModule,
     ServicesModule,
+    ProductsModule,
   ],
   controllers: [],
   providers: [

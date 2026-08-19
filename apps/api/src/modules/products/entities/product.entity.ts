@@ -1,15 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm'
 import { Business } from '../../businesses/entities/business.entity'
+import { ProductImage } from './product-image.entity'
 
-@Entity({ name: 'services' })
-export class Service {
+@Entity({ name: 'products' })
+export class Product {
   @PrimaryGeneratedColumn('uuid')
   id!: string
 
   @Column({ name: 'business_id', type: 'uuid' })
   businessId!: string
 
-  @ManyToOne(() => Business, (business) => business.services, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Business, (business) => business.products, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'business_id' })
   business!: Business
 
@@ -29,9 +30,6 @@ export class Service {
   currency!: string
 
   @Column({ nullable: true })
-  duration!: number | null
-
-  @Column({ nullable: true })
   image!: string | null
 
   @Column({ default: 'active' })
@@ -42,4 +40,7 @@ export class Service {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date
+
+  @OneToMany(() => ProductImage, (image) => image.product)
+  images!: ProductImage[]
 }
