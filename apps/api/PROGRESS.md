@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 5 Milestone B — Products module built + 58-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 5 Milestone B — Products module built + 58-check e2e passed; services/products currency default → GBP)
 > Working branch: `logic`
-> Latest commits: `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: Phase 5 Milestone B — Products (migration `1712000000009-CreateProductsTables`, ProductsModule, Swagger, e2e)
+> Latest commits: `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Uncommitted: none
 
 ---
 
