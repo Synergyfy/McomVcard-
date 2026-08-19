@@ -4,8 +4,8 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 > Last updated: 2026-08-19 (session: Phase 8 Milestone A — Seasons module built + 34-check e2e passed)
 > Working branch: `logic`
-> Latest commits: `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: Phase 8 Milestone A (Seasons) — migration `1712000000012` + module + service + controller + e2e script; AGENTS.md note (always consult MASTER_INSTRUCTIONS.md for feature design)
+> Latest commits: `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Uncommitted: none
 
 ---
 
