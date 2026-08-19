@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 8 Milestone B — Tiers & Benefits module built + 60-check e2e passed)
+> Last updated: 2026-08-19 (session: Phase 8 Milestone C — Memberships module built + 53-check e2e passed → Phase 6 complete)
 > Working branch: `logic`
 > Latest commits: `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 8 Milestone C (Memberships) — migration `1712000000014` + entity + DTOs + service methods + controller endpoints + e2e script
 
 ---
 
@@ -18,7 +18,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
-| 6 — Membership Ecosystem | 🔄 In progress (Milestone A ✅ Seasons) |
+| 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
 | 7 — Financial Ecosystem | ⬜ Not started |
 | 8 — Relationships | ⬜ Not started |
 | 9 — Growth | ⬜ Not started |
@@ -151,7 +151,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 
 ---
 
-## Phase 6 — Membership Ecosystem 🔄 (Milestones A–B ✅)
+## Phase 6 — Membership Ecosystem ✅ (Milestones A–C)
 
 **Milestone A — Seasons (migration `1712000000012-CreateSeasonTables`)**: platform-wide `seasons` entity per spec §31 (`name`, `starts_at`, `ends_at`, `status` default `active`; index on `status`). Ownership model per the docs: the complete DB relationship map (§47) attaches Memberships to **Users** (no Business edge) and lists Memberships/Benefits under admin-managed areas — so seasons/tiers/benefits are **platform-wide**, not per-business. Any authenticated user can manage seasons for now; admin-only enforcement is deferred to Phase 10 (Admin, `@Roles('ADMIN')`).
 
@@ -168,7 +168,14 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **DTOs**: `CreateMembershipTierDto` (name 2–100, discount_type `percentage`/`fixed`, discount_value 0–100 ≤2dp, sort_order ≥0), `UpdateMembershipTierDto` (PartialType), `CreateBenefitDto` (name 2–100, benefit_type), `UpdateBenefitDto` (PartialType), `LinkBenefitDto` (benefit_id UUID), `MembershipTierResponseDto` (snake_case, nests linked `benefits` as `{ id, name }`), `BenefitResponseDto`.
 - **Verified live (prod build + `NODE_ENV=production`, 60-check e2e)**: tier CRUD + snake_case DTO + numeric discount round-trip + sort_order ordering, validation 400s (missing/short name, bad discount_type, negative discount, status not settable), benefit CRUD + validation, linking (link 201, duplicate 400, list ordered, nested benefits in tier detail, unlink 200, unlink-not-linked 404, unknown benefit 404, bad UUID 400), platform-wide ownership (other user reads/manages all 200s/201s), auth 401s (no token ×2, garbage token), cascade delete (tier delete purges its links — DB-verified). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 6 paths + 7 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 tiers/benefits).
 
-### Remaining (Milestone C — Memberships)
+**Milestone C — Memberships (migration `1712000000014-CreateMembershipTables`)**: per-user link to a membership tier (`USERS ├── MEMBERSHIPS ─── MEMBERSHIP_TIERS`, spec §47). The docs name only the entities + chain — the field list is our design (user confirmed "status + start/expiry").
+- `memberships`: `user_id` (FK → users, ON DELETE CASCADE), `membership_tier_id` (FK → membership_tiers, ON DELETE RESTRICT), `status` (active/cancelled/expired, default `active`), `started_at` (default now), `expires_at` (nullable — open-ended memberships). Indexes on user_id + status.
+- **Endpoints** (`/api`, Swagger-documented, `JwtAuthGuard`): `POST/GET /memberships`, `GET/PATCH/DELETE /memberships/:id` — **per-user scoped** (a user only reads/manages their own memberships; foreign ids → 404).
+- **DTOs**: `CreateMembershipDto` (membership_tier_id UUID, optional started_at/expires_at ISO8601), `UpdateMembershipDto` (PartialType + status IsIn active/cancelled/expired, expires_at nullable to clear), `MembershipResponseDto` (snake_case, nests `tier` summary `{ id, name, discount_type, discount_value }`).
+- **Rules**: only `active` tiers assignable (400 otherwise); `expires_at` must be after `started_at` (create + update); deleting a tier with memberships blocked 400 (RESTRICT guard); `status` internal-only (whitelist-rejected).
+- **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod).
+
+### Remaining (Milestone D — Next Business Feature)
 
 ## Pending Decisions / Questions
 

@@ -13,18 +13,23 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CurrentUser } from '../auth/current-user.decorator'
+import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { MembershipsService } from './memberships.service'
 import { MembershipTierResponseDto } from './dto/membership-tier-response.dto'
 import { BenefitResponseDto } from './dto/benefit-response.dto'
+import { MembershipResponseDto } from './dto/membership-response.dto'
 import { CreateMembershipTierDto } from './dto/create-membership-tier.dto'
 import { UpdateMembershipTierDto } from './dto/update-membership-tier.dto'
 import { CreateBenefitDto } from './dto/create-benefit.dto'
 import { UpdateBenefitDto } from './dto/update-benefit.dto'
 import { LinkBenefitDto } from './dto/link-benefit.dto'
+import { CreateMembershipDto } from './dto/create-membership.dto'
+import { UpdateMembershipDto } from './dto/update-membership.dto'
 
 @ApiTags('memberships')
-@ApiExtraModels(ApiResponse, MembershipTierResponseDto, BenefitResponseDto)
+@ApiExtraModels(ApiResponse, MembershipTierResponseDto, BenefitResponseDto, MembershipResponseDto)
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class MembershipsController {
@@ -286,5 +291,104 @@ export class MembershipsController {
   @ApiNotFoundResponse({ description: 'Tier, benefit, or link not found' })
   async unlinkBenefit(@Param('id', new ParseUUIDPipe()) id: string, @Param('benefitId', new ParseUUIDPipe()) benefitId: string) {
     return this.membershipsService.unlinkBenefit(id, benefitId)
+  }
+
+  // --- Memberships (per-user) ---
+
+  @Post('memberships')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a membership', description: 'Assigns a membership tier to the authenticated user. Per-user scoped — a user manages their own memberships.' })
+  @ApiBody({ type: CreateMembershipDto, examples: { default: { summary: 'Subscribe to Gold', value: { membership_tier_id: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e', started_at: '2026-08-19T09:00:00.000Z', expires_at: '2027-08-19T09:00:00.000Z' } } } })
+  @ApiCreatedResponse({
+    description: 'Membership created',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(MembershipResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Membership tier not found' })
+  @ApiBadRequestResponse({ description: 'Invalid input or tier inactive' })
+  async createMembership(@CurrentUser() user: UserResponseDto, @Body() body: CreateMembershipDto) {
+    return this.membershipsService.createMembership(user.id, body)
+  }
+
+  @Get('memberships')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List my memberships', description: 'Returns the authenticated user\'s memberships (newest first). Per-user scoped.' })
+  @ApiOkResponse({
+    description: 'Memberships list',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(MembershipResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listMemberships(@CurrentUser() user: UserResponseDto) {
+    return this.membershipsService.listMemberships(user.id)
+  }
+
+  @Get('memberships/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my membership', description: 'Returns a single membership owned by the authenticated user. Per-user scoped.' })
+  @ApiOkResponse({
+    description: 'Membership found',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(MembershipResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Membership not found' })
+  async getMembership(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.membershipsService.getMembership(user.id, id)
+  }
+
+  @Patch('memberships/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update my membership', description: 'Updates a membership owned by the authenticated user (tier, status, start/expiry). Per-user scoped.' })
+  @ApiBody({ type: UpdateMembershipDto, examples: { default: { summary: 'Extend expiry', value: { expires_at: '2028-08-19T09:00:00.000Z' } } } })
+  @ApiOkResponse({
+    description: 'Membership updated',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(MembershipResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Membership not found' })
+  @ApiBadRequestResponse({ description: 'Invalid input or tier inactive' })
+  async updateMembership(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string, @Body() body: UpdateMembershipDto) {
+    return this.membershipsService.updateMembership(user.id, id, body)
+  }
+
+  @Delete('memberships/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete my membership', description: 'Deletes a membership owned by the authenticated user. Per-user scoped.' })
+  @ApiOkResponse({
+    description: 'Membership deleted',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { message: { type: 'string', example: 'Membership deleted' } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Membership not found' })
+  async removeMembership(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.membershipsService.removeMembership(user.id, id)
   }
 }

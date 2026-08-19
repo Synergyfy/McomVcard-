@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm'
 import { MembershipBenefit } from './membership-benefit.entity'
+import { Membership } from './membership.entity'
 
 @Entity({ name: 'membership_tiers' })
 export class MembershipTier {
@@ -29,6 +30,9 @@ export class MembershipTier {
 
   @OneToMany(() => MembershipBenefit, (membershipBenefit) => membershipBenefit.tier)
   benefits!: MembershipBenefit[]
+
+  @OneToMany(() => Membership, (membership) => membership.tier)
+  memberships!: Membership[]
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date

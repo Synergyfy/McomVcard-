@@ -4,13 +4,17 @@ import { Repository } from 'typeorm'
 import { MembershipTier } from './entities/membership-tier.entity'
 import { Benefit } from './entities/benefit.entity'
 import { MembershipBenefit } from './entities/membership-benefit.entity'
+import { Membership } from './entities/membership.entity'
 import { CreateMembershipTierDto } from './dto/create-membership-tier.dto'
 import { UpdateMembershipTierDto } from './dto/update-membership-tier.dto'
 import { CreateBenefitDto } from './dto/create-benefit.dto'
 import { UpdateBenefitDto } from './dto/update-benefit.dto'
+import { CreateMembershipDto } from './dto/create-membership.dto'
+import { UpdateMembershipDto } from './dto/update-membership.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { MembershipTierResponseDto } from './dto/membership-tier-response.dto'
 import { BenefitResponseDto } from './dto/benefit-response.dto'
+import { MembershipResponseDto } from './dto/membership-response.dto'
 
 @Injectable()
 export class MembershipsService {
@@ -18,6 +22,7 @@ export class MembershipsService {
     @InjectRepository(MembershipTier) private tiersRepo: Repository<MembershipTier>,
     @InjectRepository(Benefit) private benefitsRepo: Repository<Benefit>,
     @InjectRepository(MembershipBenefit) private membershipBenefitsRepo: Repository<MembershipBenefit>,
+    @InjectRepository(Membership) private membershipsRepo: Repository<Membership>,
   ) {}
 
   // --- Tiers ---
@@ -79,6 +84,10 @@ export class MembershipsService {
 
   async removeTier(id: string) {
     await this.findOneTier(id)
+
+    const inUse = await this.membershipsRepo.count({ where: { membershipTierId: id } })
+
+    if (inUse > 0) throw new BadRequestException('Cannot delete a tier that has memberships')
 
     await this.tiersRepo.delete({ id })
 
@@ -187,5 +196,92 @@ export class MembershipsService {
     await this.membershipBenefitsRepo.delete({ id: link.id })
 
     return ApiResponse.message('Benefit unlinked from tier', 200)
+  }
+
+  // --- Memberships (per-user) ---
+
+  private async findOneMembership(userId: string, id: string) {
+    const membership = await this.membershipsRepo.findOne({
+      where: { id, userId },
+      relations: { tier: true },
+    })
+
+    if (!membership) throw new NotFoundException('Membership not found')
+
+    return membership
+  }
+
+  async createMembership(userId: string, dto: CreateMembershipDto) {
+    const tier = await this.findOneTier(dto.membership_tier_id)
+
+    if (tier.status !== 'active') throw new BadRequestException('Cannot assign an inactive membership tier')
+
+    const startedAt = dto.started_at ? new Date(dto.started_at) : new Date()
+    const expiresAt = dto.expires_at ? new Date(dto.expires_at) : null
+
+    if (expiresAt && expiresAt <= startedAt) throw new BadRequestException('expires_at must be after started_at')
+
+    const saved = await this.membershipsRepo.save(
+      this.membershipsRepo.create({
+        userId,
+        membershipTierId: tier.id,
+        status: 'active',
+        startedAt,
+        expiresAt,
+      }),
+    )
+
+    return ApiResponse.success(MembershipResponseDto.fromEntity(await this.findOneMembership(userId, saved.id)), 'Membership created', 201)
+  }
+
+  async listMemberships(userId: string) {
+    const memberships = await this.membershipsRepo.find({
+      where: { userId },
+      relations: { tier: true },
+      order: { createdAt: 'DESC' },
+    })
+
+    return ApiResponse.success(memberships.map(MembershipResponseDto.fromEntity), 'Memberships retrieved', 200)
+  }
+
+  async getMembership(userId: string, id: string) {
+    return ApiResponse.success(MembershipResponseDto.fromEntity(await this.findOneMembership(userId, id)), 'Membership retrieved', 200)
+  }
+
+  async updateMembership(userId: string, id: string, dto: UpdateMembershipDto) {
+    const membership = await this.findOneMembership(userId, id)
+
+    const patch: Partial<Membership> = {}
+
+    if (dto.status !== undefined) patch.status = dto.status
+
+    if (dto.membership_tier_id !== undefined && dto.membership_tier_id !== membership.membershipTierId) {
+      const tier = await this.findOneTier(dto.membership_tier_id)
+
+      if (tier.status !== 'active') throw new BadRequestException('Cannot assign an inactive membership tier')
+
+      patch.membershipTierId = tier.id
+    }
+
+    if (dto.started_at !== undefined) patch.startedAt = new Date(dto.started_at)
+
+    if (dto.expires_at !== undefined) patch.expiresAt = dto.expires_at ? new Date(dto.expires_at) : null
+
+    const startedAt = patch.startedAt ?? membership.startedAt
+    const expiresAt = patch.expiresAt !== undefined ? patch.expiresAt : membership.expiresAt
+
+    if (expiresAt && expiresAt <= startedAt) throw new BadRequestException('expires_at must be after started_at')
+
+    await this.membershipsRepo.update({ id }, patch)
+
+    return ApiResponse.success(MembershipResponseDto.fromEntity(await this.findOneMembership(userId, id)), 'Membership updated', 200)
+  }
+
+  async removeMembership(userId: string, id: string) {
+    await this.findOneMembership(userId, id)
+
+    await this.membershipsRepo.delete({ id })
+
+    return ApiResponse.message('Membership deleted', 200)
   }
 }
