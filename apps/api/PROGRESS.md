@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-18 (session: Phase 4 Core Cards module built + 125-check prod-readiness e2e passed)
+> Last updated: 2026-08-19 (session: Phase 5 Milestone A — Services module built + 44-check e2e passed)
 > Working branch: `logic`
 > Latest commits: `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 5 Milestone A — Services (migration `1712000000008-CreateServicesTables`, ServicesModule, Swagger, e2e)
 
 ---
 
@@ -17,7 +17,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
-| 5 — Business Features | ⬜ Not started |
+| 5 — Business Features | 🔄 In progress (Milestone A — Services ✅) |
 | 6 — Membership Ecosystem | ⬜ Not started |
 | 7 — Financial Ecosystem | ⬜ Not started |
 | 8 — Relationships | ⬜ Not started |
@@ -81,13 +81,12 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **CORS fix**: `CORS_ORIGINS` (comma-separated, prod only) is now in the Joi schema and `.env.example` — previously read in `main.ts` but missing from validation, which could silently produce an empty origin list in prod.
 
 ### Remaining
-1. Phase 5 — Business Features (services, products, appointments)
-2. Phase 6 — Membership Ecosystem (tiers, memberships, benefits, seasons)
-3. Phase 7 — Financial Ecosystem (rewards, cashback, wallet, vouchers)
-4. Phase 8 — Relationships (user_relationships, child_cards, wishlists)
-5. Phase 9 — Growth (affiliates, shares, QR codes, campaigns, offers, coupons)
-6. Phase 10 — Admin endpoints (`@Roles('ADMIN')`)
-7. Frontend reconciliation: point web `authService` at the new profile/settings/password routes and fix `User` type mismatches
+1. Phase 6 — Membership Ecosystem (tiers, memberships, benefits, seasons)
+2. Phase 7 — Financial Ecosystem (rewards, cashback, wallet, vouchers)
+3. Phase 8 — Relationships (user_relationships, child_cards, wishlists)
+4. Phase 9 — Growth (affiliates, shares, QR codes, campaigns, offers, coupons)
+5. Phase 10 — Admin endpoints (`@Roles('ADMIN')`)
+6. Frontend reconciliation: point web `authService` at the new profile/settings/password routes and fix `User` type mismatches
 
 ---
 
@@ -111,7 +110,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 ## Pending Decisions / Questions
 
 - Business↔Brand: **confirmed 1:N** (`brands.business_id` FK) — one business has many brands, each brand belongs to one business. No rework needed.
-- Phase 4 Cards: **complete** — module built against the reconstructed migration; templates seed added. Next up is Phase 5 (Business Features).
+- Phase 5 Business Features: **Milestone A — Services done** (migration `1712000000008`). Next: Milestone B — Products (+ product_images), Milestone C — Appointments. Appointments scope (full booking engine vs scoped CRUD) and products/appointments schema still pending confirmation — plan spec "Potential:" fields are the guide.
 - Card slug: user-supplied `slug` (validated lowercase-hyphen) or auto-generated random hex, uniqueness loop applied — no name-derived slug (cards have no name column; display name lives on the profile).
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
