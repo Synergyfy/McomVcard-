@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 8 Milestone C — Memberships module built + 53-check e2e passed → Phase 6 complete)
+> Last updated: 2026-08-19 (session: Phase 7 Milestone A — Wallet module built + 52-check e2e passed)
 > Working branch: `logic`
 > Latest commits: `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 7 Milestone A (Wallet) — migration `1712000000015` + module + service + controller + e2e script
 
 ---
 
@@ -19,7 +19,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
-| 7 — Financial Ecosystem | ⬜ Not started |
+| 7 — Financial Ecosystem | 🔄 In progress (Milestone A ✅ Wallet) |
 | 8 — Relationships | ⬜ Not started |
 | 9 — Growth | ⬜ Not started |
 | 10 — Admin | ⬜ Not started |
@@ -176,6 +176,19 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod).
 
 ### Remaining (Milestone D — Next Business Feature)
+
+---
+
+## Phase 7 — Financial Ecosystem 🔄 (Milestone A ✅ Wallet)
+
+**Milestone A — Wallet (migration `1712000000015-CreateWalletTables`)**: per spec §34 (`wallets`, `wallet_transactions`) and relationship map §47 (`USERS ── WALLET ── TRANSACTIONS`). One wallet per user; the transaction table is the **ledger** — balances are never mutated without a matching ledger row, written atomically in a DB transaction.
+- `wallets`: `user_id` (FK → users, ON DELETE CASCADE, UNIQUE — one per user), `balance` (numeric(12,2), default 0), `currency` (default `GBP`), `status` (default `active`).
+- `wallet_transactions`: `wallet_id` (FK → wallets, ON DELETE CASCADE), `type` (`CREDIT`/`DEBIT`), `amount`, `balance_after` (ledger snapshot), `description` (nullable). Indexes on wallet_id + created_at.
+- **Endpoints** (`/api`, Swagger-documented, `JwtAuthGuard`): `GET/POST /wallet` (idempotent create — returns existing), `GET/POST /wallet/transactions`, `GET /wallet/transactions/:id` — **per-user scoped**.
+- **Ledger integrity**: `createTransaction` runs inside `DataSource.transaction` — inserts the ledger row with `balance_after` then updates the wallet balance atomically (spec §34: "do not modify wallet balances without creating the corresponding transaction record"); overdraw debits rejected 400 (balance unchanged, no ledger row); ledger sum and last `balance_after` verified against balance via psql.
+- **Verified live (prod build + `NODE_ENV=production`, 52-check e2e)**: get-before-create 404, create 201 + snake_case + GBP + balance 0, idempotent re-create (HTTP 201, body statusCode 200, same wallet), credit/debit ledger writes + balance updates, overdraw 400 with no side effects, validation 400s (missing/bad type, zero/negative/string/3dp amount), per-user isolation (cross-user txn read → 404), auth 401s (no token ×2, garbage token), DB ledger consistency checks. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 3 paths + 3 schemas at `/api/docs-json` (non-prod).
+
+### Remaining (Milestone B — Rewards; Milestone C — Cashback)
 
 ## Pending Decisions / Questions
 
