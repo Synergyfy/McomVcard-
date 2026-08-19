@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm'
 import { UserRole } from '../../roles/entities/user-role.entity'
 import { Membership } from '../../memberships/entities/membership.entity'
+import { Wallet } from '../../finance/entities/wallet.entity'
 
 @Entity({ name: 'users' })
 export class User {
@@ -48,4 +49,7 @@ export class User {
 
   @OneToMany(() => Membership, (membership) => membership.user)
   memberships!: Membership[]
+
+  @OneToMany(() => Wallet, (wallet) => wallet.user)
+  wallet!: Wallet[]
 }
