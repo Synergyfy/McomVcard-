@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { authService } from '../services/auth'
+import { tokenStore } from '../services/tokenStore'
 import type { User, LoginData, RegisterData } from '../types'
 
 interface AuthContextValue {
@@ -43,17 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      setIsLoading(false)
-      return
-    }
+    // The access token lives only in memory, so on a fresh page load we
+    // exchange the HttpOnly refresh cookie for a new access token, then load
+    // the profile. No refresh cookie = not authenticated.
     authService
-      .getUser()
-      .then((u) => setStoredUser(u))
+      .refresh()
+      .then((res) => setStoredUser(res.user))
       .catch(() => {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('auth_user')
+        tokenStore.clear()
+        setStoredUser(null)
       })
       .finally(() => setIsLoading(false))
   }, [setStoredUser])
@@ -61,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (data: LoginData) => {
       const res = await authService.login(data)
-      localStorage.setItem('auth_token', res.token)
       setStoredUser(res.user)
     },
     [setStoredUser],
@@ -70,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (data: RegisterData) => {
       const res = await authService.register(data)
-      localStorage.setItem('auth_token', res.token)
       setStoredUser(res.user)
     },
     [setStoredUser],
@@ -82,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // continue logging out locally
     }
-    localStorage.removeItem('auth_token')
+    tokenStore.clear()
     setStoredUser(null)
   }, [setStoredUser])
 
@@ -96,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const impersonate = useCallback(
     async (userId: number) => {
       const res = await authService.impersonate(userId)
-      localStorage.setItem('auth_token', res.token)
       setStoredUser(res.user)
       setIsImpersonating(true)
     },
