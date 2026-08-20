@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common'
+import { Injectable, BadRequestException, UnauthorizedException, Logger, Inject, forwardRef } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryFailedError, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
 import { RolesService } from '../roles/roles.service'
 import { MailService } from '../mail/mail.service'
+import { AffiliatesService } from '../affiliates/affiliates.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
@@ -39,10 +40,11 @@ export class AuthService {
     private emailVerificationService: EmailVerificationService,
     private rolesService: RolesService,
     private mailService: MailService,
+    @Inject(forwardRef(() => AffiliatesService)) private affiliatesService: AffiliatesService,
   ) {}
 
 
-  async register(email: string, password: string, firstName?: string, lastName?: string, meta?: TokenMeta) {
+  async register(email: string, password: string, firstName?: string, lastName?: string, referralCode?: string, meta?: TokenMeta) {
     email = email.trim().toLowerCase()
 
     const existing = await this.usersService.findByEmail(email)
@@ -56,6 +58,17 @@ export class AuthService {
       // The server assigns roles; clients cannot submit a role during registration.
       await this.rolesService.ensureDefaultRole()
       await this.rolesService.assignDefaultRole(saved.id)
+
+      // Deterministic referral attribution (spec §39): a valid referral code at
+      // registration links the new user to the affiliate. Best-effort — a stale
+      // or invalid code must not block account creation.
+      if (referralCode) {
+        try {
+          await this.affiliatesService.recordReferral(referralCode, saved.id)
+        } catch (err) {
+          this.logger.warn(`Referral attribution skipped for ${email}: ${err instanceof Error ? err.message : err}`)
+        }
+      }
 
       const auth = await this.issueTokens(saved.id, meta)
 

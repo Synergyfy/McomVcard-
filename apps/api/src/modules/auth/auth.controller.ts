@@ -96,7 +96,7 @@ export class AuthController {
     examples: {
       default: {
         summary: 'New user registration',
-        value: { firstName: 'John', lastName: 'Doe', email: 'john.doe@example.com', password: 'secret123' },
+        value: { firstName: 'John', lastName: 'Doe', email: 'john.doe@example.com', password: 'secret123', referral_code: 'AFF-8K2QZ7' },
       },
     },
   })
@@ -122,7 +122,7 @@ export class AuthController {
   })
   @ApiBadRequestResponse({ description: 'Email already in use or invalid input' })
   async register(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: RegisterDto) {
-    const result = await this.authService.register(body.email, body.password, body.firstName, body.lastName, {
+    const result = await this.authService.register(body.email, body.password, body.firstName, body.lastName, body.referral_code, {
       userAgent: req.get('user-agent'),
       ip: req.ip,
     })
