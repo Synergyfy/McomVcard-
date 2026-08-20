@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-19 (session: Phase 7 Milestone C — Cashback module built + 69-check e2e passed → Phase 7 complete)
+> Last updated: 2026-08-20 (session: Phase 8 Milestone A — Relationships module e2e-verified live → 22 checks passed; migration applied; refresh-token HttpOnly-cookie flow in progress)
 > Working branch: `logic`
 > Latest commits: `c353525` (Phase 7 Milestone C — cashback), `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: none
+> Uncommitted: Phase 8 Relationships (migration `1712000000018` + `modules/relationships/` — module wired + e2e-verified ✅) + auth refresh-token HttpOnly-cookie flow (API + web: `cookie-parser`, `refresh-cookie.util.ts`, `tokenStore.ts`, `main.ts`, `auth.controller/service`, web `auth.ts`/`AuthContext.tsx`)
 
 ---
 
@@ -20,7 +20,7 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
 | 7 — Financial Ecosystem | ✅ Complete (Wallet, Rewards, Cashback) |
-| 8 — Relationships | ⬜ Not started |
+| 8 — Relationships | 🔄 In progress (Milestone A ✅ generalized `user_relationships` module verified; Milestone B child cards / Milestone C wishlists pending) |
 | 9 — Growth | ⬜ Not started |
 | 10 — Admin | ⬜ Not started |
 | 11 — Production Hardening | ⬜ Not started |
@@ -207,6 +207,16 @@ Tracked per the backend plan (Phases 1–11). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 69-check e2e)**: rule CRUD + snake_case + nullable min/max + date validation (bad date, ends-before-starts on create AND update, status not settable) + percentage bounds, account create + idempotent re-create, all three transaction types + signed amounts + balance_after, over-redeem 400 no side effects, validation 400s, per-user isolation (cross-user txn → 404), platform-wide rule management (other user reads/manages), auth 401s, DB ledger-sum == balance and last balance_after == balance. `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 5 paths + 6 schemas at `/api/docs-json` (non-prod).
 
 ### Remaining (Phase 8 — Relationships)
+
+## Phase 8 — Relationships 🔄 (Milestone A in progress)
+
+**Milestone A — Relationships (migration `1712000000018-CreateUserRelationshipTables.ts`, uncommitted)**: per spec §35 — a single generalized `user_relationships` table (no separate per-type tables). `UserRelationship` entity: `requester_id`/`recipient_id` (FK → users, ON DELETE CASCADE), `relationship_type` (`FAMILY`/`FRIEND`/`CHILD`), `status` (`pending`/`accepted`/`declined` default `pending`), `created_at`/`updated_at`. Unique `(requester_id, recipient_id)` pair + CHECK not-self (both enforced at the DB; not-self also checked in the service). `User` entity gains `sentRelationships`/`receivedRelationships` relations.
+
+- **Endpoints** (`/api/relationships`, Swagger-documented, `JwtAuthGuard`): `POST /relationships` (request — requester is the authenticated user; duplicate pair → 400), `GET /relationships` (list mine, requester OR recipient, newest first), `GET /relationships/:id` (must be part of the relationship, else 403), `PATCH /relationships/:id` (recipient-only respond `accepted`/`declined`, only while `pending`), `DELETE /relationships/:id` (either party may remove).
+- **DTOs**: `CreateRelationshipDto` (recipient_id UUID, relationship_type IsIn), `RespondRelationshipDto` (status IsIn), `RelationshipResponseDto` (snake_case; nests `requester`/`recipient` user summaries `{ id, first_name, last_name, email }`).
+- **Status**: module wired into `AppModule` (new `relationships.module.ts` + import), `tsc --noEmit` clean.
+- **Verified live (dev build, 22-check e2e)**: register ×2 → request (201, `FRIEND` pending), duplicate same-direction pair 400, self-request 400, invalid type 400, bad UUID 400, list mine (requester + recipient sides), get by id (either party), respond as requester 403, respond as recipient accept 200, respond again 400 (not pending), invalid respond status 400, delete by either party 200 + 404 after, unknown id 404, no token 401, garbage token 401, snake_case DTO keys (`relationship_type`, `created_at`, `updated_at`, nested requester/recipient summaries), **reverse-direction duplicate pair 400** (blocked both directions), unrelated third party 403, DB clean after cleanup (admin-only, 0 relationships). Bug found + fixed: `RelationshipResponseDto.fromEntity` passed directly to `.map()` lost its `this` binding → 500 on list; fixed with an arrow wrapper. Migration `1712000000018` applied live. Next: Milestone B (child cards / wallet allocations) and Milestone C (wishlists) — or commit this milestone first.
+- **Known issue**: recipient existence is NOT validated before insert — an unknown (non-existent) recipient UUID currently falls through to the FK constraint. `@IsUUID` catches malformed values (400) but a well-formed UUID for a missing user would hit the DB FK. Decide whether to add an explicit 404 check (docs are silent — flagged for clarification).
 
 ## Pending Decisions / Questions
 
