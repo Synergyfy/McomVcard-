@@ -23,6 +23,7 @@ import { VouchersModule } from './modules/vouchers/vouchers.module'
 import { AffiliatesModule } from './modules/affiliates/affiliates.module'
 import { SharesModule } from './modules/shares/shares.module'
 import { QrCodesModule } from './modules/qr-codes/qr-codes.module'
+import { CampaignsModule } from './modules/campaigns/campaigns.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -60,6 +61,7 @@ import { APP_GUARD } from '@nestjs/core'
     AffiliatesModule,
     SharesModule,
     QrCodesModule,
+    CampaignsModule,
   ],
   controllers: [],
   providers: [
