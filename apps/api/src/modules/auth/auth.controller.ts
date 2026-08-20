@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, Req, Put } from '@nestjs/common'
+import { Controller, Post, Body, Get, UseGuards, HttpCode, Req, Put, Res } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -11,7 +11,7 @@ import {
   ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger'
-import { Request } from 'express'
+import { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { JwtAuthGuard } from './jwt-auth.guard'
 import { CurrentUser } from './current-user.decorator'
@@ -24,6 +24,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
+import { setRefreshTokenCookie, clearRefreshTokenCookie, getRefreshTokenCookie } from '../../lib/utils/refresh-cookie.util'
 
 @ApiTags('auth')
 @ApiExtraModels(ApiResponse, UserResponseDto)
@@ -76,11 +77,15 @@ export class AuthController {
     },
   })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-  async login(@Req() req: Request, @Body() body: LoginDto) {
-    return this.authService.login(body.email, body.password, {
+  async login(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: LoginDto) {
+    const result = await this.authService.login(body.email, body.password, {
       userAgent: req.get('user-agent'),
       ip: req.ip,
     })
+
+    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+
+    return result
   }
 
 
@@ -116,11 +121,15 @@ export class AuthController {
     },
   })
   @ApiBadRequestResponse({ description: 'Email already in use or invalid input' })
-  async register(@Req() req: Request, @Body() body: RegisterDto) {
-    return this.authService.register(body.email, body.password, body.firstName, body.lastName, {
+  async register(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: RegisterDto) {
+    const result = await this.authService.register(body.email, body.password, body.firstName, body.lastName, {
       userAgent: req.get('user-agent'),
       ip: req.ip,
     })
+
+    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+
+    return result
   }
 
 
@@ -160,11 +169,18 @@ export class AuthController {
     },
   })
   @ApiUnauthorizedResponse({ description: 'Invalid, expired, or reused refresh token' })
-  async refresh(@Req() req: Request, @Body() body: RefreshTokenDto) {
-    return this.authService.refresh(body.refresh_token, {
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: RefreshTokenDto) {
+    const cookieToken = getRefreshTokenCookie(req)
+    const refreshToken = cookieToken ?? body.refresh_token
+
+    const result = await this.authService.refresh(refreshToken, {
       userAgent: req.get('user-agent'),
       ip: req.ip,
     })
+
+    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+
+    return result
   }
 
 
@@ -172,7 +188,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Log out',
-    description: 'Revokes the supplied refresh token (if any). The access token is short-lived and simply expires.',
+    description: 'Revokes the refresh token (from the HttpOnly cookie or request body) and clears the cookie. The access token is short-lived and simply expires.',
   })
   @ApiBody({ type: LogoutDto, required: false })
   @ApiOkResponse({
@@ -188,8 +204,14 @@ export class AuthController {
       ],
     },
   })
-  async logout(@Body() body: LogoutDto) {
-    return this.authService.logout(body.refresh_token)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: LogoutDto) {
+    const cookieToken = getRefreshTokenCookie(req)
+
+    await this.authService.logout(cookieToken ?? body.refresh_token)
+
+    clearRefreshTokenCookie(res)
+
+    return ApiResponse.message('Logged out', 200)
   }
 
 

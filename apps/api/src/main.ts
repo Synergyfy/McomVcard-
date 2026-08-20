@@ -8,6 +8,7 @@ import { setupSwagger } from './swagger'
 import { requestIdMiddleware } from './lib/common/middleware/request-id.middleware'
 import { httpLoggerMiddleware } from './lib/common/middleware/http-logger.middleware'
 import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
 import { ConfigService } from '@nestjs/config'
 
 async function bootstrap() {
@@ -17,12 +18,13 @@ async function bootstrap() {
   const config = app.get(ConfigService)
   const nodeEnv = config.get('NODE_ENV') || process.env.NODE_ENV
 
-  // CORS config driven by env; default to permissive in development
+  // CORS config driven by env; default to permissive in development.
+  // credentials: true is required for the HttpOnly refresh-token cookie flow.
   if (nodeEnv === 'production') {
     const origins = config.get('CORS_ORIGINS') ? config.get('CORS_ORIGINS').split(',') : []
     app.enableCors({ origin: origins, credentials: true })
   } else {
-    app.enableCors()
+    app.enableCors({ origin: true, credentials: true })
   }
 
   // request id middleware
@@ -31,6 +33,8 @@ async function bootstrap() {
   app.use(httpLoggerMiddleware)
   // security headers
   app.use(helmet())
+  // HttpOnly refresh-token cookie parsing
+  app.use(cookieParser())
 
   app.useGlobalPipes(
     new ValidationPipe({

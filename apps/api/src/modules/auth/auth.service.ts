@@ -105,7 +105,9 @@ export class AuthService {
   }
 
 
-  async refresh(refreshToken: string, meta?: TokenMeta) {
+  async refresh(refreshToken: string | undefined, meta?: TokenMeta) {
+    if (!refreshToken) throw new UnauthorizedException('Refresh token is required')
+
     const stored = await this.refreshTokensRepo.findOne({ where: { tokenHash: this.hashToken(refreshToken) } })
 
     if (!stored) throw new UnauthorizedException('Invalid refresh token')
@@ -317,6 +319,11 @@ export class AuthService {
     }
 
     return parseInt(match[1], 10) * multiplier[match[2]]
+  }
+
+  // Public wrapper used by the controller to size the refresh-token cookie.
+  refreshTokenTtl(): number {
+    return this.refreshTokenTtlMs()
   }
 
 

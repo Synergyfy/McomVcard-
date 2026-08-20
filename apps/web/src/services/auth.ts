@@ -1,31 +1,45 @@
 import axios from 'axios'
+import { tokenStore } from './tokenStore'
 import type { LoginData, RegisterData, ForgotPasswordData, ResetPasswordData, ProfileData, ChangePasswordData, AuthResponse, User } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
   headers: { Accept: 'application/json' },
+  withCredentials: true,
 })
 
+// The access token is kept in memory only (never localStorage). The refresh
+// token lives in an HttpOnly cookie sent automatically with each request.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
+  const token = tokenStore.get()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    const url = err.config?.url || ''
-    if (url === '/user') {
-      const raw = localStorage.getItem('auth_user')
-      if (raw) {
-        try { return Promise.resolve({ data: JSON.parse(raw) }) } catch {}
+  async (err) => {
+    const original = err.config
+
+    // One silent refresh-and-retry on 401 (access token expired), guarded so we
+    // never loop on the refresh call itself or replay a failed login.
+    const isAuthEndpoint = ['/login', '/register', '/refresh'].some((p) => (original?.url || '').startsWith(p))
+    const alreadyRetried = original?._retried === true
+
+    if (err.response?.status === 401 && !isAuthEndpoint && !alreadyRetried) {
+      original._retried = true
+
+      try {
+        const res = await api.post('/refresh')
+        tokenStore.set(res.data.data.token)
+        original.headers.Authorization = `Bearer ${res.data.data.token}`
+        return api(original)
+      } catch {
+        tokenStore.clear()
+        return Promise.reject(err)
       }
     }
-    if (err.response?.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
-    }
+
     return Promise.reject(err)
   },
 )
@@ -33,16 +47,26 @@ api.interceptors.response.use(
 export const authService = {
   async login(data: LoginData): Promise<AuthResponse> {
     const res = await api.post('/login', data)
-    return res.data
+    tokenStore.set(res.data.data.token)
+    return res.data.data
   },
 
   async register(data: RegisterData): Promise<AuthResponse> {
     const res = await api.post('/register', data)
+    tokenStore.set(res.data.data.token)
+    return res.data.data
+  },
+
+  async logout(): Promise<{ message: string }> {
+    const res = await api.post('/logout')
+    tokenStore.clear()
     return res.data
   },
 
-  async logout(): Promise<void> {
-    await api.post('/logout')
+  async refresh(): Promise<AuthResponse> {
+    const res = await api.post('/refresh')
+    tokenStore.set(res.data.data.token)
+    return res.data.data
   },
 
   async forgotPassword(data: ForgotPasswordData): Promise<{ message: string }> {
@@ -57,7 +81,7 @@ export const authService = {
 
   async getUser(): Promise<User> {
     const res = await api.get('/user')
-    return res.data
+    return res.data.data
   },
 
   async updateProfile(data: ProfileData): Promise<User> {
@@ -71,7 +95,7 @@ export const authService = {
     const res = await api.post('/profile', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return res.data
+    return res.data.data
   },
 
   async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
@@ -81,12 +105,12 @@ export const authService = {
 
   async updateLanguage(language: string): Promise<User> {
     const res = await api.put('/language', { language })
-    return res.data
+    return res.data.data
   },
 
   async updateTheme(theme_mode: 'light' | 'dark'): Promise<User> {
     const res = await api.put('/theme', { theme_mode })
-    return res.data
+    return res.data.data
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {
@@ -111,7 +135,8 @@ export const authService = {
 
   async impersonate(userId: number): Promise<AuthResponse> {
     const res = await api.post(`/admin/impersonate/${userId}`)
-    return res.data
+    tokenStore.set(res.data.data.token)
+    return res.data.data
   },
 
   async stopImpersonating(): Promise<void> {
