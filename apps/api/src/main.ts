@@ -10,10 +10,15 @@ import { httpLoggerMiddleware } from './lib/common/middleware/http-logger.middle
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import { ConfigService } from '@nestjs/config'
+import { join } from 'path'
+import express from 'express'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.setGlobalPrefix('api')
+
+  // Serve uploaded media files (spec §45): bytes live on disk, metadata in DB.
+  app.use('/media/uploads', express.static(join(process.cwd(), 'uploads', 'media')))
 
   const config = app.get(ConfigService)
   const nodeEnv = config.get('NODE_ENV') || process.env.NODE_ENV
