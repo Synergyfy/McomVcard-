@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–11). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-20 (session: Phase 8 Milestone A — Relationships module e2e-verified live → 22 checks passed; migration applied; refresh-token HttpOnly-cookie flow in progress)
+> Last updated: 2026-08-20 (session: Phase 8 Milestone A — Relationships module e2e-verified live → 22 checks passed; migration applied; refresh-token HttpOnly-cookie flow committed)
 > Working branch: `logic`
-> Latest commits: `c353525` (Phase 7 Milestone C — cashback), `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
-> Uncommitted: Phase 8 Relationships (migration `1712000000018` + `modules/relationships/` — module wired + e2e-verified ✅) + auth refresh-token HttpOnly-cookie flow (API + web: `cookie-parser`, `refresh-cookie.util.ts`, `tokenStore.ts`, `main.ts`, `auth.controller/service`, web `auth.ts`/`AuthContext.tsx`)
+> Latest commits: `4dad791` (auth — refresh token moved to HttpOnly cookie + web tokenStore), `f3c5e67` (Phase 8 Milestone A — user_relationships module, e2e-verified), `c353525` (Phase 7 Milestone C — cashback), `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Uncommitted: none
 
 ---
 
