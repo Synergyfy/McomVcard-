@@ -20,6 +20,7 @@ import { RelationshipsModule } from './modules/relationships/relationships.modul
 import { ChildCardsModule } from './modules/child-cards/child-cards.module'
 import { WishlistsModule } from './modules/wishlists/wishlists.module'
 import { VouchersModule } from './modules/vouchers/vouchers.module'
+import { AffiliatesModule } from './modules/affiliates/affiliates.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -54,6 +55,7 @@ import { APP_GUARD } from '@nestjs/core'
     ChildCardsModule,
     WishlistsModule,
     VouchersModule,
+    AffiliatesModule,
   ],
   controllers: [],
   providers: [

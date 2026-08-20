@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer'
-import { IsEmail, IsString, MaxLength, MinLength, IsOptional } from 'class-validator'
+import { IsEmail, IsString, MaxLength, MinLength, IsOptional, Matches } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class RegisterDto {
@@ -39,4 +39,16 @@ export class RegisterDto {
   @IsString()
   @MaxLength(50)
   lastName?: string
+
+  @ApiPropertyOptional({
+    example: 'AFF-8K2QZ7',
+    description: 'Optional affiliate referral code. When present, the new user is attributed to the affiliate.',
+  })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @IsString()
+  @MinLength(3)
+  @MaxLength(50)
+  @Matches(/^[A-Z0-9-]+$/, { message: 'referral_code may only contain uppercase letters, digits, and hyphens' })
+  referral_code?: string
 }

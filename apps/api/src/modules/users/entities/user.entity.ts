@@ -7,6 +7,7 @@ import { CashbackAccount } from '../../finance/entities/cashback-account.entity'
 import { UserRelationship } from '../../relationships/entities/user-relationship.entity'
 import { ChildCard } from '../../child-cards/entities/child-card.entity'
 import { Wishlist } from '../../wishlists/entities/wishlist.entity'
+import { Affiliate } from '../../affiliates/entities/affiliate.entity'
 
 @Entity({ name: 'users' })
 export class User {
@@ -75,4 +76,7 @@ export class User {
 
   @OneToMany(() => Wishlist, (wishlist) => wishlist.user)
   wishlists!: Wishlist[]
+
+  @OneToMany(() => Affiliate, (affiliate) => affiliate.user)
+  affiliate!: Affiliate[]
 }
