@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { VouchersService } from './vouchers.service'
 import { CreateVoucherVendorDto, UpdateVoucherVendorDto } from './dto/voucher.dto'
@@ -20,7 +22,8 @@ import { VoucherVendorDetailDto, VoucherVendorResponseDto } from './dto/voucher-
 
 @ApiTags('vouchers')
 @ApiExtraModels(ApiResponse, VoucherVendorResponseDto, VoucherVendorDetailDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('vouchers/vendors')
 export class VoucherVendorsController {
   constructor(private readonly vouchersService: VouchersService) {}
