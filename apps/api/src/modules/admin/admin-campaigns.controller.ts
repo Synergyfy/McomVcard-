@@ -25,7 +25,7 @@ import {
 } from '@nestjs/swagger'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { IsOptional, IsString, IsBoolean, IsNumber, IsDateString, MaxLength } from 'class-validator'
+import { IsIn, IsOptional, IsString, IsBoolean, IsNumber, IsDateString, MaxLength } from 'class-validator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
@@ -46,22 +46,23 @@ class UpdateCampaignBodyDto {
 
   @ApiPropertyOptional({ enum: ['Seasonal', 'Evergreen', 'Referral'], example: 'Seasonal', description: 'Campaign type' })
   @IsOptional()
-  @IsString()
+  @IsIn(['Seasonal', 'Evergreen', 'Referral'])
   type?: string
 
   @ApiPropertyOptional({ enum: ['draft', 'active', 'paused', 'ended'], example: 'active', description: 'Campaign status' })
   @IsOptional()
-  @IsString()
+  @IsIn(['draft', 'active', 'paused', 'ended'])
   status?: string
 
   @ApiPropertyOptional({ example: 'Huge discounts on all products', description: 'Campaign description' })
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   description?: string
 
   @ApiPropertyOptional({ example: 5000, description: 'Campaign budget' })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   budget?: number
 
   @ApiPropertyOptional({ example: '2026-06-01T00:00:00.000Z', description: 'Campaign start date' })
@@ -86,16 +87,17 @@ class UpdateOfferBodyDto {
   @ApiPropertyOptional({ example: 'Valid on all categories', description: 'Offer description' })
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   description?: string
 
   @ApiPropertyOptional({ enum: ['PERCENT', 'FIXED'], example: 'PERCENT', description: 'Discount type' })
   @IsOptional()
-  @IsString()
+  @IsIn(['PERCENT', 'FIXED'])
   discount_type?: string
 
   @ApiPropertyOptional({ example: 20, description: 'Discount value' })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   discount_value?: number
 
   @ApiPropertyOptional({ example: true, description: 'Whether the offer is active' })

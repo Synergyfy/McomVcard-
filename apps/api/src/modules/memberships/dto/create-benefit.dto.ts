@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateBenefitDto {
@@ -16,6 +16,6 @@ export class CreateBenefitDto {
 
   @ApiPropertyOptional({ example: 'perk', enum: ['perk', 'discount', 'access', 'gift'], default: 'perk' })
   @IsOptional()
-  @IsString()
+  @IsIn(['perk', 'discount', 'access', 'gift'])
   benefit_type?: string
 }

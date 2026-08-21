@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-21 (session: Phase 17 — Admin complete ✅ all e2e-verified; next Phase 18 — Testing/Security/Hardening)
+> Last updated: 2026-08-21 (session: Phase 18 — Testing/Security/Hardening committed ✅ `cb940af`; all phases done)
 > Working branch: `logic`
-> Latest commits: `8c5ff61` (Phase 16 — reviews/notifications/media modules + migrations 0026-0028, 46 e2e checks pass), `f4fe63a` (Phase 9 — campaigns/offers/coupons module, e2e-verified), `beeaecd` (Phase 9 — qr-codes module, e2e-verified), `b4889fc` (Phase 9 — shares module, e2e-verified), `e9343cb` (Phase 9 — affiliates module, e2e-verified), `64e2e79` (Phase 9 — vouchers module, e2e-verified), `0301c8e` (docs — PROGRESS.md header), `053c508` (Phase 8 Milestone C — wishlists module, e2e-verified), `d2f36ef` (docs — PROGRESS.md header), `ac52103` (Phase 8 Milestone B — child cards module, e2e-verified), `3d24c02` (docs — PROGRESS.md header), `4dad791` (auth — refresh token moved to HttpOnly cookie + web tokenStore), `f3c5e67` (Phase 8 Milestone A — user_relationships module, e2e-verified), `c353525` (Phase 7 Milestone C — cashback), `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
+> Latest commits: `cb940af` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening), `6f22d8a` (Phase 17 — admin module with 41 endpoints, 46 e2e checks pass), `8c5ff61` (Phase 16 — reviews/notifications/media modules + migrations 0026-0028, 46 e2e checks pass)
 > Uncommitted: none
 
 ---
@@ -27,7 +27,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 12–15 | ✅ Complete (ahead of plan — see phases below) |
 | 16 — Reviews, Notifications, Media | ✅ Complete (Reviews §43, Notifications §44, Media §45) |
 | 17 — Admin | ✅ Complete (8 controllers, 41 endpoints, 46 e2e checks) |
-| 18 — Testing/Security/Hardening | ⬜ Partially done (CI, throttling, helmet, RBAC) |
+| 18 — Testing/Security/Hardening | ✅ Complete (205 tests: 155 unit + 50 e2e; validation hardening) |
 
 ---
 
@@ -269,6 +269,8 @@ e2e-verified 46 checks (28 scenarios); tsc clean; migrations 0026–0028 applied
 - **AdminPaginatedQueryDto**: shared DTO for pagination (page, limit, search, status, sort, order)
 
 Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CRUD, season CRUD, membership tier/benefit CRUD on user-facing controllers. e2e-verified 46 checks pass; tsc clean.
+
+**Phase 18 — Testing/Security/Hardening**: Jest testing framework installed (`jest`, `ts-jest`, `@nestjs/testing`, `supertest`). E2e test suite (`test/`) with 4 test files covering Auth (10 checks), Admin (28 checks), Businesses (7 checks), Cards (5 checks) — 50 total e2e checks, all passing. Unit tests for 4 core services — AuthService (25 tests), UsersService (8 tests), CardsService (42 tests), BusinessesService (80 tests) — 155 total unit tests, all passing. Input validation hardened across 14 DTO files (~35 class-validator decorators added): `@IsString()`, `@IsIn()`, `@IsEmail()`, `@IsUUID()`, `@IsNumber()`, `@IsBoolean()`, `@IsArray()`, `@IsOptional()`, `@MaxLength()`, `@IsISO8601()`, `@ArrayMaxSize()` applied to all unvalidated DTO properties. All tests pass; tsc clean.
 
 ## Pending Decisions / Questions
 

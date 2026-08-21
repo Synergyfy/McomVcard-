@@ -25,7 +25,7 @@ import {
 } from '@nestjs/swagger'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { IsOptional, IsNumber, IsString, IsDateString } from 'class-validator'
+import { IsIn, IsOptional, IsNumber, IsString, IsDateString } from 'class-validator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
@@ -69,7 +69,7 @@ class UpdateCashbackRuleBodyDto {
 
   @ApiPropertyOptional({ enum: ['active', 'inactive'], example: 'active', description: 'Rule status' })
   @IsOptional()
-  @IsString()
+  @IsIn(['active', 'inactive'])
   status?: string
 }
 

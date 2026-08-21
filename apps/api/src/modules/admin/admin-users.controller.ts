@@ -27,6 +27,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { User } from '../users/entities/user.entity'
+import { IsIn, IsString } from 'class-validator'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { AdminPaginatedQueryDto } from './dto/admin-paginated-query.dto'
 
@@ -42,6 +43,8 @@ class UserListResponseDto {
 
 class UpdateStatusBodyDto {
   @ApiProperty({ enum: ['active', 'suspended', 'banned'], example: 'active', description: 'New status for the user' })
+  @IsString()
+  @IsIn(['active', 'suspended', 'banned'])
   status!: 'active' | 'suspended' | 'banned'
 }
 

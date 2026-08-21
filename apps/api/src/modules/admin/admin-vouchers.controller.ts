@@ -48,11 +48,13 @@ class CreateVendorBodyDto {
   @ApiPropertyOptional({ example: 'Amazon gift cards and vouchers', description: 'Vendor description' })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   description?: string
 
   @ApiPropertyOptional({ example: 'https://amazon.co.uk', description: 'Vendor website URL' })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   website?: string
 }
 
@@ -67,11 +69,13 @@ class UpdateVendorBodyDto {
   @ApiPropertyOptional({ example: 'Updated description', description: 'Vendor description' })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   description?: string
 
   @ApiPropertyOptional({ example: 'https://amazon.co.uk', description: 'Vendor website URL' })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   website?: string
 }
 
