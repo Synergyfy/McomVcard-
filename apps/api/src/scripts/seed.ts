@@ -55,54 +55,52 @@ async function seed() {
     // This section is intentionally left empty.
 
     const adminRole = await queryRunner.manager.findOneBy(Role, { name: 'ADMIN' })
+    const userRole = await queryRunner.manager.findOneBy(Role, { name: 'USER' })
+    const ownerRole = await queryRunner.manager.findOneBy(Role, { name: 'BUSINESS_OWNER' })
+    const staffRole = await queryRunner.manager.findOneBy(Role, { name: 'STAFF' })
 
-    // Insert admin user if missing (idempotent)
-    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com'
-    let adminPassword = process.env.SEED_ADMIN_PASSWORD || ''
-    let generatedPassword = false
-    if (!adminPassword) {
-      adminPassword = crypto.randomBytes(10).toString('base64').replace(/\+/g, 'A').replace(/\//g, 'B')
-      generatedPassword = true
-    }
+    // Seed users for each role (idempotent — skips existing emails)
+    const seedUsers = [
+      { email: 'admin@example.com', password: 'admin123', firstName: 'Admin', lastName: 'User', role: adminRole },
+      { email: 'user@example.com', password: 'user123', firstName: 'Regular', lastName: 'User', role: userRole },
+      { email: 'owner@example.com', password: 'owner123', firstName: 'Business', lastName: 'Owner', role: ownerRole },
+      { email: 'staff@example.com', password: 'staff123', firstName: 'Staff', lastName: 'Member', role: staffRole },
+    ]
 
-    let admin = await queryRunner.manager.findOneBy(User, { email: adminEmail })
+    for (const seed of seedUsers) {
+      let user = await queryRunner.manager.findOneBy(User, { email: seed.email })
 
-    if (!admin) {
-      const hashed = await bcrypt.hash(adminPassword, 10)
+      if (!user) {
+        const hashed = await bcrypt.hash(seed.password, 10)
+        user = await queryRunner.manager.save(
+          queryRunner.manager.create(User, {
+            email: seed.email,
+            passwordHash: hashed,
+            firstName: seed.firstName,
+            lastName: seed.lastName,
+            status: 'active',
+            isVerified: true,
+            emailVerifiedAt: new Date(),
+          }),
+        )
+      }
 
-      admin = await queryRunner.manager.save(
-        queryRunner.manager.create(User, {
-          email: adminEmail,
-          passwordHash: hashed,
-          firstName: 'Admin',
-          lastName: null,
-          status: 'active',
-          isVerified: true,
-          emailVerifiedAt: new Date(),
-        }),
-      )
-    }
-
-    // Associate admin role
-    if (adminRole) {
-      await queryRunner.manager.upsert(
-        UserRole,
-        { userId: admin.id, roleId: adminRole.id },
-        ['userId', 'roleId'],
-      )
+      if (seed.role) {
+        await queryRunner.manager.upsert(
+          UserRole,
+          { userId: user.id, roleId: seed.role.id },
+          ['userId', 'roleId'],
+        )
+      }
     }
 
     await queryRunner.commitTransaction()
 
-    if (admin && generatedPassword) {
-      // eslint-disable-next-line no-console
-      console.log(`Created admin user: ${adminEmail} / ${adminPassword} (password generated)`)
-      // eslint-disable-next-line no-console
-      console.log('NOTE: This password is printed only once. Store it securely.')
-    } else if (admin) {
-      // eslint-disable-next-line no-console
-      console.log(`Admin user ready: ${adminEmail}`)
+    console.log('\n=== Seeded users ===')
+    for (const seed of seedUsers) {
+      console.log(`  ${seed.email} / ${seed.password}  [${seed.role?.name}]`)
     }
+    console.log('')
   } catch (err) {
     await queryRunner.rollbackTransaction()
     // eslint-disable-next-line no-console
