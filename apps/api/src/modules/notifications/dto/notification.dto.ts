@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsJSON, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator'
+import { IsBoolean, IsJSON, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator'
 
 export class CreateNotificationDto {
   @ApiProperty({ description: 'Recipient user', example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' })
@@ -34,5 +34,6 @@ export class CreateNotificationDto {
 export class UpdateNotificationDto {
   @ApiPropertyOptional({ description: 'Mark as read', example: true })
   @IsOptional()
+  @IsBoolean()
   read!: boolean
 }

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import {
   IsBoolean,
   IsEnum,
+  IsISO8601,
   IsInt,
   IsNumber,
   IsOptional,
@@ -51,12 +52,12 @@ export class CreateCampaignDto {
 
   @ApiPropertyOptional({ description: 'Start date ISO', example: '2026-09-01T00:00:00.000Z' })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   starts_at?: string
 
   @ApiPropertyOptional({ description: 'End date ISO', example: '2026-10-31T23:59:59.000Z' })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   ends_at?: string
 }
 
@@ -97,12 +98,12 @@ export class UpdateCampaignDto {
 
   @ApiPropertyOptional({ description: 'Start date ISO', example: '2026-09-01T00:00:00.000Z' })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   starts_at?: string
 
   @ApiPropertyOptional({ description: 'End date ISO', example: '2026-10-31T23:59:59.000Z' })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   ends_at?: string
 }
 
@@ -184,7 +185,7 @@ export class CreateCouponDto {
 
   @ApiPropertyOptional({ description: 'Coupon expiry ISO', example: '2026-12-31T23:59:59.000Z', nullable: true })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   expires_at?: string
 
   @ApiPropertyOptional({ description: 'Coupon status', enum: CouponStatus, example: CouponStatus.ACTIVE, default: CouponStatus.ACTIVE })
@@ -220,7 +221,7 @@ export class UpdateCouponDto {
 
   @ApiPropertyOptional({ description: 'Coupon expiry ISO', example: '2027-01-31T23:59:59.000Z', nullable: true })
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   expires_at?: string
 
   @ApiPropertyOptional({ description: 'Coupon status', enum: CouponStatus, example: CouponStatus.EXPIRED })

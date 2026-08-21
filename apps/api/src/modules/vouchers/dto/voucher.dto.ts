@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsISO8601, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength } from 'class-validator'
+import { IsIn, IsISO8601, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength } from 'class-validator'
 
 export class CreateVoucherVendorDto {
   @ApiProperty({ description: 'Vendor name', example: 'Tesco' })
@@ -43,7 +43,7 @@ export class UpdateVoucherVendorDto {
 
   @ApiPropertyOptional({ description: 'Vendor status', example: 'active', enum: ['active', 'inactive'] })
   @IsOptional()
-  @IsString()
+  @IsIn(['active', 'inactive'])
   status?: string
 }
 

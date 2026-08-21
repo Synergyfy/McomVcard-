@@ -28,7 +28,7 @@ import {
 } from '@nestjs/swagger'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsIn, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
@@ -60,15 +60,17 @@ class CreateTierBodyDto {
 
   @ApiPropertyOptional({ example: 'percentage', description: 'Discount type (percentage or fixed)' })
   @IsOptional()
-  @IsString()
+  @IsIn(['percentage', 'fixed'])
   discount_type?: string
 
   @ApiPropertyOptional({ example: 15.5, description: 'Discount value' })
   @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
   discount_value?: number
 
   @ApiPropertyOptional({ example: 1, description: 'Sort order for display' })
   @IsOptional()
+  @IsNumber()
   sort_order?: number
 }
 
@@ -87,15 +89,17 @@ class UpdateTierBodyDto {
 
   @ApiPropertyOptional({ example: 'fixed', description: 'Discount type' })
   @IsOptional()
-  @IsString()
+  @IsIn(['percentage', 'fixed'])
   discount_type?: string
 
   @ApiPropertyOptional({ example: 20, description: 'Discount value' })
   @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
   discount_value?: number
 
   @ApiPropertyOptional({ example: 2, description: 'Sort order' })
   @IsOptional()
+  @IsNumber()
   sort_order?: number
 }
 
@@ -113,7 +117,7 @@ class CreateBenefitBodyDto {
 
   @ApiPropertyOptional({ example: 'perk', description: 'Benefit type (perk, discount, access, etc.)' })
   @IsOptional()
-  @IsString()
+  @IsIn(['perk', 'discount', 'access', 'gift'])
   benefit_type?: string
 }
 
@@ -132,7 +136,7 @@ class UpdateBenefitBodyDto {
 
   @ApiPropertyOptional({ example: 'access', description: 'Benefit type' })
   @IsOptional()
-  @IsString()
+  @IsIn(['perk', 'discount', 'access', 'gift'])
   benefit_type?: string
 }
 
