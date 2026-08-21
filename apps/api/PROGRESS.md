@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-20 (session: Phase 16 — Reviews + Notifications + Media complete ✅ all e2e-verified; next Phase 17 — Admin)
+> Last updated: 2026-08-21 (session: Phase 17 — Admin complete ✅ all e2e-verified; next Phase 18 — Testing/Security/Hardening)
 > Working branch: `logic`
 > Latest commits: `8c5ff61` (Phase 16 — reviews/notifications/media modules + migrations 0026-0028, 46 e2e checks pass), `f4fe63a` (Phase 9 — campaigns/offers/coupons module, e2e-verified), `beeaecd` (Phase 9 — qr-codes module, e2e-verified), `b4889fc` (Phase 9 — shares module, e2e-verified), `e9343cb` (Phase 9 — affiliates module, e2e-verified), `64e2e79` (Phase 9 — vouchers module, e2e-verified), `0301c8e` (docs — PROGRESS.md header), `053c508` (Phase 8 Milestone C — wishlists module, e2e-verified), `d2f36ef` (docs — PROGRESS.md header), `ac52103` (Phase 8 Milestone B — child cards module, e2e-verified), `3d24c02` (docs — PROGRESS.md header), `4dad791` (auth — refresh token moved to HttpOnly cookie + web tokenStore), `f3c5e67` (Phase 8 Milestone A — user_relationships module, e2e-verified), `c353525` (Phase 7 Milestone C — cashback), `5742783` (Phase 7 Milestone B — rewards ledger), `ad57b17` (Phase 7 Milestone A — per-user wallet), `49ce832` (Phase 8 Milestone C — per-user memberships), `6b45bfa` (Phase 8 Milestone B — membership tiers & benefits), `f149579` (Phase 8 Milestone A — seasons module), `a302b81` (Phase 5 Milestone C — appointments booking engine), `00deeca` (Phase 5 Milestone B — products module + GBP currency default), `1e94c5a` (Phase 5 Milestone A — services module), `fc910c6` (Phase 4 Core Cards module + templates seed), `f6bb430` (reconstructed card-tables migration), `67adeb9` (slug + by-slug + read-only categories + soft account deactivation + CORS fix), `488bee3` (Phase 3 businesses)
 > Uncommitted: none
@@ -26,7 +26,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 11 — Production Hardening | ⬜ Not started |
 | 12–15 | ✅ Complete (ahead of plan — see phases below) |
 | 16 — Reviews, Notifications, Media | ✅ Complete (Reviews §43, Notifications §44, Media §45) |
-| 17 — Admin | ⬜ Not started |
+| 17 — Admin | ✅ Complete (8 controllers, 41 endpoints, 46 e2e checks) |
 | 18 — Testing/Security/Hardening | ⬜ Partially done (CI, throttling, helmet, RBAC) |
 
 ---
@@ -255,6 +255,20 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 **Media (§45, migration `1712000000028-CreateMediaTables.ts`, committed `8c5ff61`)**: `media` table (metadata-only — bytes never stored in PostgreSQL per spec §45; `uploaded_by` FK CASCADE, `provider`, `key`, `url`, `mime_type`, `size`). Storage abstracted — `MediaStorageProvider` interface (`save/getUrl/remove`, provider enum `LOCAL`), injected via string token `'MediaStorageProvider'`, default `LocalMediaStorageProvider` writes bytes to `uploads/media/` and serves them at `/media/uploads/*` (express.static in `main.ts`); S3-compatible provider swaps in later. Endpoints (`/api/media`, `JwtAuthGuard`): `POST /media/upload` (multipart, FileInterceptor, 5 MB limit), `POST /media/from-url` (register external URL without storing bytes, provider `external`), `GET /media` (mine), `GET /media/:id` (any authenticated user — URLs are public), `DELETE /media/:id` (owner-only, removes stored file too; foreign user → 404). Uploaded bytes verified served then purged on delete.
 
 e2e-verified 46 checks (28 scenarios); tsc clean; migrations 0026–0028 applied live; DB clean after.
+
+**Phase 17 — Admin Module (§46)**: Single `AdminModule` with sub-controllers per resource; status toggle for users (active/suspended/banned). `AdminDashboardController` serves the only GET /admin endpoint — returns a lightweight health-check snapshot (service/DB uptime, user count). All other admin endpoints require `JwtAuthGuard` + `@Roles('ADMIN')` via class-level `@UseGuards(JwtAuthGuard, RolesGuard)`. Admin CRUD endpoints across 8 controllers (41 endpoints total):
+
+- **AdminUsersController**: paginated list/search/status-update/delete users
+- **AdminBusinessesController**: paginated list/search/status-update/delete with owner info
+- **AdminCardsController**: paginated list/search/status-update/delete with owner info
+- **AdminTemplatesController**: full CRUD
+- **AdminMembershipsController**: membership list/status/delete + tier CRUD + benefit CRUD
+- **AdminFinanceController**: wallets/rewards/cashback list/detail/transactions + cashback rules CRUD
+- **AdminVouchersController**: vendor CRUD + voucher list/detail/delete
+- **AdminCampaignsController**: campaign list/detail/update/delete + offer list/detail/update/delete
+- **AdminPaginatedQueryDto**: shared DTO for pagination (page, limit, search, status, sort, order)
+
+Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CRUD, season CRUD, membership tier/benefit CRUD on user-facing controllers. e2e-verified 46 checks pass; tsc clean.
 
 ## Pending Decisions / Questions
 

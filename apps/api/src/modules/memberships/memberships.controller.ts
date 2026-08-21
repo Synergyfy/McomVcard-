@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -30,7 +32,7 @@ import { UpdateMembershipDto } from './dto/update-membership.dto'
 
 @ApiTags('memberships')
 @ApiExtraModels(ApiResponse, MembershipTierResponseDto, BenefitResponseDto, MembershipResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller()
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
@@ -38,8 +40,9 @@ export class MembershipsController {
   // --- Tiers ---
 
   @Post('membership-tiers')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a membership tier', description: 'Creates a platform-wide membership tier. Any authenticated user can manage tiers.' })
+  @ApiOperation({ summary: 'Create a membership tier', description: 'Creates a platform-wide membership tier. Admin only.' })
   @ApiBody({ type: CreateMembershipTierDto, examples: { default: { summary: 'Gold tier', value: { name: 'Gold', description: 'Premium tier with extra perks', discount_type: 'percentage', discount_value: 10, sort_order: 2 } } } })
   @ApiCreatedResponse({
     description: 'Membership tier created',
@@ -57,8 +60,9 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List membership tiers', description: 'Returns all platform-wide tiers ordered by sort_order, each with its linked benefits. Readable by any authenticated user.' })
+  @ApiOperation({ summary: 'List membership tiers', description: 'Returns all platform-wide tiers ordered by sort_order, each with its linked benefits. Admin only.' })
   @ApiOkResponse({
     description: 'Membership tiers list',
     schema: {
@@ -78,8 +82,9 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a membership tier', description: 'Returns a single membership tier with its linked benefits. Readable by any authenticated user.' })
+  @ApiOperation({ summary: 'Get a membership tier', description: 'Returns a single membership tier with its linked benefits. Admin only.' })
   @ApiOkResponse({
     description: 'Membership tier found',
     schema: {
@@ -96,8 +101,9 @@ export class MembershipsController {
   }
 
   @Patch('membership-tiers/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a membership tier', description: 'Updates a platform-wide membership tier. Any authenticated user can manage tiers.' })
+  @ApiOperation({ summary: 'Update a membership tier', description: 'Updates a platform-wide membership tier. Admin only.' })
   @ApiBody({ type: UpdateMembershipTierDto, examples: { default: { summary: 'Raise discount', value: { discount_value: 15 } } } })
   @ApiOkResponse({
     description: 'Membership tier updated',
@@ -116,8 +122,9 @@ export class MembershipsController {
   }
 
   @Delete('membership-tiers/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a membership tier', description: 'Deletes a membership tier. Any authenticated user can manage tiers.' })
+  @ApiOperation({ summary: 'Delete a membership tier', description: 'Deletes a membership tier. Admin only.' })
   @ApiOkResponse({
     description: 'Membership tier deleted',
     schema: {
@@ -136,8 +143,9 @@ export class MembershipsController {
   // --- Benefits ---
 
   @Post('benefits')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a benefit', description: 'Creates a platform-wide benefit. Any authenticated user can manage benefits.' })
+  @ApiOperation({ summary: 'Create a benefit', description: 'Creates a platform-wide benefit. Admin only.' })
   @ApiBody({ type: CreateBenefitDto, examples: { default: { summary: 'Delivery perk', value: { name: 'Free delivery', description: 'Complimentary delivery on all orders', benefit_type: 'perk' } } } })
   @ApiCreatedResponse({
     description: 'Benefit created',
@@ -155,8 +163,9 @@ export class MembershipsController {
   }
 
   @Get('benefits')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List benefits', description: 'Returns all platform-wide benefits. Readable by any authenticated user.' })
+  @ApiOperation({ summary: 'List benefits', description: 'Returns all platform-wide benefits. Admin only.' })
   @ApiOkResponse({
     description: 'Benefits list',
     schema: {
@@ -176,8 +185,9 @@ export class MembershipsController {
   }
 
   @Get('benefits/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a benefit', description: 'Returns a single benefit. Readable by any authenticated user.' })
+  @ApiOperation({ summary: 'Get a benefit', description: 'Returns a single benefit. Admin only.' })
   @ApiOkResponse({
     description: 'Benefit found',
     schema: {
@@ -194,8 +204,9 @@ export class MembershipsController {
   }
 
   @Patch('benefits/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a benefit', description: 'Updates a platform-wide benefit. Any authenticated user can manage benefits.' })
+  @ApiOperation({ summary: 'Update a benefit', description: 'Updates a platform-wide benefit. Admin only.' })
   @ApiBody({ type: UpdateBenefitDto, examples: { default: { summary: 'Rename perk', value: { name: 'Priority delivery' } } } })
   @ApiOkResponse({
     description: 'Benefit updated',
@@ -214,8 +225,9 @@ export class MembershipsController {
   }
 
   @Delete('benefits/:id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a benefit', description: 'Deletes a benefit. Any authenticated user can manage benefits.' })
+  @ApiOperation({ summary: 'Delete a benefit', description: 'Deletes a benefit. Admin only.' })
   @ApiOkResponse({
     description: 'Benefit deleted',
     schema: {
@@ -234,8 +246,9 @@ export class MembershipsController {
   // --- Tier ↔ Benefit linking ---
 
   @Post('membership-tiers/:id/benefits')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Link a benefit to a tier', description: 'Links a benefit to a membership tier (DB-driven relationship). Any authenticated user can manage tiers.' })
+  @ApiOperation({ summary: 'Link a benefit to a tier', description: 'Links a benefit to a membership tier (DB-driven relationship). Admin only.' })
   @ApiBody({ type: LinkBenefitDto, examples: { default: { summary: 'Link benefit', value: { benefit_id: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' } } } })
   @ApiCreatedResponse({
     description: 'Benefit linked',
@@ -254,8 +267,9 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers/:id/benefits')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List a tier benefits', description: 'Returns the benefits linked to a membership tier. Readable by any authenticated user.' })
+  @ApiOperation({ summary: 'List a tier benefits', description: 'Returns the benefits linked to a membership tier. Admin only.' })
   @ApiOkResponse({
     description: 'Tier benefits',
     schema: {
@@ -276,8 +290,9 @@ export class MembershipsController {
   }
 
   @Delete('membership-tiers/:id/benefits/:benefitId')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Unlink a benefit from a tier', description: 'Removes the benefit link from a membership tier. Any authenticated user can manage tiers.' })
+  @ApiOperation({ summary: 'Unlink a benefit from a tier', description: 'Removes the benefit link from a membership tier. Admin only.' })
   @ApiOkResponse({
     description: 'Benefit unlinked',
     schema: {
