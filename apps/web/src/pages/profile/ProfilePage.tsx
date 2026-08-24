@@ -12,9 +12,10 @@ export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
-    name: user?.name || '',
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
     email: user?.email || '',
-    contact: user?.contact || '',
+    phone: user?.phone || '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [message, setMessage] = useState('')
@@ -24,7 +25,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name || '', email: user.email, contact: user.contact || '' })
+      setForm({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email,
+        phone: user.phone || '',
+      })
     }
   }, [user])
 
@@ -42,10 +48,10 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       const updated = await authService.updateProfile({
-        name: form.name,
-        email: form.email,
-        contact: form.contact || undefined,
-        profile_image: fileRef.current?.files?.[0] || null,
+        first_name: form.first_name || undefined,
+        last_name: form.last_name || undefined,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
       })
       updateUser(updated)
       setMessage(t('auth.profile_updated'))
@@ -129,11 +135,19 @@ export default function ProfilePage() {
           </div>
 
           <InputField
-            label={t('auth.name')}
+            label={t('auth.first_name') || 'First Name'}
             type="text"
-            value={form.name}
-            error={errors.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            value={form.first_name}
+            error={errors.first_name}
+            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+          />
+
+          <InputField
+            label={t('auth.last_name') || 'Last Name'}
+            type="text"
+            value={form.last_name}
+            error={errors.last_name}
+            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
           />
 
           <InputField
@@ -147,9 +161,9 @@ export default function ProfilePage() {
           <InputField
             label={t('auth.contact')}
             type="text"
-            value={form.contact}
-            error={errors.contact}
-            onChange={(e) => setForm({ ...form, contact: e.target.value })}
+            value={form.phone}
+            error={errors.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
             placeholder="+1 234 567 8900"
           />
 

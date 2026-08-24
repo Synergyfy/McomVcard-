@@ -2,16 +2,21 @@ import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
 import AdminHeader from './AdminHeader'
+import { tokenStore } from '../../services/tokenStore'
 
 export default function AdminLayout() {
   useEffect(() => {
-    if (!localStorage.getItem('auth_token')) {
-      localStorage.setItem('auth_token', 'mock-token-00000')
+    // Seed a mock access token in memory for demo/admin flows that bypass
+    // the real auth system. The token lives only in memory (tokenStore),
+    // never in localStorage, preserving XSS protection.
+    if (!tokenStore.get()) {
+      tokenStore.set('mock-token-00000')
     }
     const raw = localStorage.getItem('auth_user')
     if (!raw || raw === 'null') {
       localStorage.setItem('auth_user', JSON.stringify({
-        id: 1, name: 'Super Admin', email: 'admin@vcardlink.com', is_active: true, is_verified: true,
+        id: '1', name: 'Super Admin', first_name: 'Super', last_name: 'Admin',
+        email: 'admin@vcardlink.com', status: 'active', is_active: true, is_verified: true,
       }))
       window.location.reload()
     }

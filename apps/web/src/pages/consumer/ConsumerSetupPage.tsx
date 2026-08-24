@@ -26,7 +26,7 @@ export default function ConsumerSetupPage() {
   const [phase, setPhase] = useState<Phase>('welcome')
   const [existingName, setExistingName] = useState('')
   const [existingMembership, setExistingMembership] = useState('')
-  const [form, setForm] = useState({ name: user?.name || '', phone: user?.contact || '', location: 'London, UK' })
+  const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', location: 'London, UK' })
   const [business, setBusiness] = useState(invitedBusiness || '')
   const [card] = useState(invitedCard || '')
   const [saving, setSaving] = useState(false)

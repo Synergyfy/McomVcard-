@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { tokenStore } from './tokenStore'
+import { attach401Retry } from './retry401'
 import type { VCard, SocialLink, Service, Gallery, VCardTestimonial, BlogPost, AppointmentSlot, Appointment, VCardSEO, VCardCustomization, UserDashboardStats, AnalyticsData, Subscription } from '../types'
 
 const api = axios.create({
@@ -7,10 +9,12 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
+  const token = tokenStore.get()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+attach401Retry(api)
 
 export const userService = {
   // Dashboard
