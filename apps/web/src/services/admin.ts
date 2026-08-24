@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { tokenStore } from './tokenStore'
+import { attach401Retry } from './retry401'
 import type {
   AdminStats, User, VCard, Enquiry, Subscriber, Plan, PlanFeature, Template, Currency, Role,
   DashboardMeta, EmailSetting, PaymentSetting, FrontTestimonial, Feature as FrontFeature, AboutUs,
@@ -15,10 +17,13 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
+  const token = tokenStore.get()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+// Auto-refresh on 401 — swap HttpOnly cookie for fresh JWT, retry once.
+attach401Retry(api)
 
 api.interceptors.response.use(
   (res) => res,
@@ -95,7 +100,7 @@ export const adminService = {
     return res.data
   },
 
-  async getUser(id: number): Promise<User> {
+  async getUser(id: string): Promise<User> {
     const res = await api.get(`/admin/users/${id}`)
     return res.data
   },
@@ -105,16 +110,16 @@ export const adminService = {
     return res.data
   },
 
-  async updateUser(id: number, data: Partial<User>): Promise<User> {
+  async updateUser(id: string, data: Partial<User>): Promise<User> {
     const res = await api.put(`/admin/users/${id}`, data)
     return res.data
   },
 
-  async deleteUser(id: number): Promise<void> {
+  async deleteUser(id: string): Promise<void> {
     await api.delete(`/admin/users/${id}`)
   },
 
-  async impersonateUser(id: number): Promise<{ token: string }> {
+  async impersonateUser(id: string): Promise<{ token: string }> {
     const res = await api.post(`/admin/users/${id}/impersonate`)
     return res.data
   },

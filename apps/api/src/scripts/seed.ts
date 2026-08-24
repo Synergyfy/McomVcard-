@@ -70,8 +70,9 @@ async function seed() {
     for (const seed of seedUsers) {
       let user = await queryRunner.manager.findOneBy(User, { email: seed.email })
 
+      const hashed = await bcrypt.hash(seed.password, 10)
+
       if (!user) {
-        const hashed = await bcrypt.hash(seed.password, 10)
         user = await queryRunner.manager.save(
           queryRunner.manager.create(User, {
             email: seed.email,
@@ -83,6 +84,10 @@ async function seed() {
             emailVerifiedAt: new Date(),
           }),
         )
+      } else {
+        // Always sync password hash so the seed credentials stay valid.
+        user.passwordHash = hashed
+        await queryRunner.manager.save(user)
       }
 
       if (seed.role) {

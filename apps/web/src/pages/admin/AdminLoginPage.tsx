@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
+import { tokenStore } from '../../services/tokenStore'
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
@@ -15,16 +16,18 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setLoading(true)
     await new Promise((r) => setTimeout(r, 800))
-    localStorage.setItem('auth_token', 'mock_admin_token_abc123')
+    tokenStore.set('mock_admin_token_abc123')
     localStorage.setItem(
       'auth_user',
       JSON.stringify({
-        id: 1,
+        id: '1',
         name: 'Admin',
+        first_name: 'Admin',
+        last_name: '',
         email: 'admin@mcom.com',
-        role: 'admin',
-        is_admin: true,
-        avatar: null,
+        status: 'active',
+        is_active: true,
+        is_verified: true,
       })
     )
     setLoading(false)

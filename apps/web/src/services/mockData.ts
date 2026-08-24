@@ -7,14 +7,14 @@ import type {
 } from '../types'
 
 export const mockUsers: User[] = [
-  { id: 1, name: 'Sarah Johnson', email: 'sarah@example.com', contact: '+1-555-0101', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-01-15' },
-  { id: 2, name: 'Mike Chen', email: 'mike@example.com', contact: '+1-555-0102', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-02-03' },
-  { id: 3, name: 'Emily Williams', email: 'emily@example.com', contact: '+1-555-0103', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-02-20' },
-  { id: 4, name: 'David Smith', email: 'david@example.com', contact: '+1-555-0104', profile_image: '', is_active: false, is_verified: false, email_verified_at: null },
-  { id: 5, name: 'Anna Garcia', email: 'anna@example.com', contact: '+1-555-0105', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-03-12' },
-  { id: 6, name: 'James Brown', email: 'james@example.com', contact: '+1-555-0106', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-03-28' },
-  { id: 7, name: 'Lisa Anderson', email: 'lisa@example.com', contact: '+1-555-0107', profile_image: '', is_active: true, is_verified: true, email_verified_at: '2025-04-02' },
-  { id: 8, name: 'Robert Taylor', email: 'robert@example.com', contact: '+1-555-0108', profile_image: '', is_active: false, is_verified: false, email_verified_at: null },
+  { id: '1', name: 'Sarah Johnson', first_name: 'Sarah', last_name: 'Johnson', email: 'sarah@example.com', phone: '+1-555-0101', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-01-15' },
+  { id: '2', name: 'Mike Chen', first_name: 'Mike', last_name: 'Chen', email: 'mike@example.com', phone: '+1-555-0102', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-02-03' },
+  { id: '3', name: 'Emily Williams', first_name: 'Emily', last_name: 'Williams', email: 'emily@example.com', phone: '+1-555-0103', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-02-20' },
+  { id: '4', name: 'David Smith', first_name: 'David', last_name: 'Smith', email: 'david@example.com', phone: '+1-555-0104', status: 'inactive', is_active: false, is_verified: false, email_verified_at: null },
+  { id: '5', name: 'Anna Garcia', first_name: 'Anna', last_name: 'Garcia', email: 'anna@example.com', phone: '+1-555-0105', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-03-12' },
+  { id: '6', name: 'James Brown', first_name: 'James', last_name: 'Brown', email: 'james@example.com', phone: '+1-555-0106', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-03-28' },
+  { id: '7', name: 'Lisa Anderson', first_name: 'Lisa', last_name: 'Anderson', email: 'lisa@example.com', phone: '+1-555-0107', status: 'active', is_active: true, is_verified: true, email_verified_at: '2025-04-02' },
+  { id: '8', name: 'Robert Taylor', first_name: 'Robert', last_name: 'Taylor', email: 'robert@example.com', phone: '+1-555-0108', status: 'inactive', is_active: false, is_verified: false, email_verified_at: null },
 ]
 
 export const mockVcards: VCard[] = [

@@ -41,14 +41,13 @@ export default function UserEditPage() {
 
   useEffect(() => {
     if (!id) return
-    adminService.getUser(Number(id))
+    adminService.getUser(id as string)
       .then((u: any) => {
-        const parts = (u.name || '').split(' ')
         setForm({
-          first_name: parts[0] || '', last_name: parts.slice(1).join(' ') || '',
-          email: u.email, contact: u.contact || '', location: u.location || '',
+          first_name: u.first_name || '', last_name: u.last_name || '',
+          email: u.email, contact: u.phone || u.contact || '', location: u.location || '',
           occupation: u.occupation || '', website: u.website || '', bio: u.description || '',
-          is_active: u.is_active, is_verified: u.is_verified,
+          is_active: u.status === 'active' || u.is_active, is_verified: u.is_verified,
         })
       })
       .catch(() => navigate('/admin/users'))
@@ -62,9 +61,10 @@ export default function UserEditPage() {
     setErrors({})
     setLoading(true)
     try {
-      await adminService.updateUser(Number(id), {
-        name: userName, email: form.email, contact: form.contact || undefined,
-        is_active: form.is_active,
+      await adminService.updateUser(id as string, {
+        first_name: form.first_name || undefined, last_name: form.last_name || undefined,
+        email: form.email, phone: form.contact || undefined,
+        status: form.is_active ? 'active' : 'inactive',
       })
       toast.success('User updated successfully')
     } catch (err: any) {
@@ -88,7 +88,7 @@ export default function UserEditPage() {
     }
     setLoading(true)
     try {
-      await adminService.updateUser(Number(id), { password: newPassword, password_confirmation: newPassword } as any)
+      await adminService.updateUser(id as string, { password: newPassword, password_confirmation: newPassword } as any)
       toast.success('Password changed successfully')
       setNewPassword('')
     } catch (err: any) {
