@@ -36,6 +36,11 @@ import { CreateSocialLinkDto } from './dto/create-social-link.dto'
 import { UpdateSocialLinkDto } from './dto/update-social-link.dto'
 import { CreateCardAccessDto } from './dto/create-card-access.dto'
 import { UpdateCardAccessDto } from './dto/update-card-access.dto'
+import { UpsertCardSectionDto } from './dto/upsert-card-section.dto'
+import { UpsertCentreControlDto } from './dto/upsert-centre-controls.dto'
+import { ApplyTemplateDto } from './dto/apply-template.dto'
+import { CardSectionResponseDto } from './dto/card-section-response.dto'
+import { CardCentreControlResponseDto } from './dto/card-centre-control-response.dto'
 
 @ApiTags('cards')
 @ApiExtraModels(
@@ -46,6 +51,8 @@ import { UpdateCardAccessDto } from './dto/update-card-access.dto'
   SocialLinkResponseDto,
   CardAccessResponseDto,
   TemplateResponseDto,
+  CardSectionResponseDto,
+  CardCentreControlResponseDto,
 )
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -533,5 +540,224 @@ export class CardsController {
   @ApiNotFoundResponse({ description: 'Template not found' })
   async findTemplate(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.cardsService.findTemplate(id)
+  }
+
+  // ---- Business cards ----
+
+  @Get('businesses/:businessId/cards')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List cards for a business', description: 'Returns all cards linked to a business owned by the authenticated user.' })
+  @ApiOkResponse({
+    description: 'Business cards',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this business' })
+  async listForBusiness(@Param('businessId', new ParseUUIDPipe()) businessId: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.listForBusiness(businessId, user.id)
+  }
+
+  // ---- Template claiming ----
+
+  @Post('cards/claim')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Claim a template', description: 'Creates a new card from a published template, linking it to a business.' })
+  @ApiBody({ schema: { properties: { template_id: { type: 'string', format: 'uuid' }, business_id: { type: 'string', format: 'uuid' }, custom_slug: { type: 'string' } } } })
+  @ApiCreatedResponse({
+    description: 'Template claimed',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(CardResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this business' })
+  @ApiBadRequestResponse({ description: 'Template not found or not published' })
+  async claimTemplate(@CurrentUser() user: UserResponseDto, @Body() body: { template_id: string; business_id: string; custom_slug?: string }) {
+    return this.cardsService.claimTemplate(user.id, body.business_id, body.template_id, body.custom_slug)
+  }
+
+  // ---- Template applying (replace on an existing card) ----
+
+  @Post('cards/:id/apply-template')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Apply a template to an existing card',
+    description: 'Swaps the published template linked to one of your cards. Sections the new template enables are upserted (saved content is kept where section ids match); sections no longer part of the template are disabled, not deleted. Card name/category mirror the template.',
+  })
+  @ApiBody({ type: ApplyTemplateDto, examples: { default: { summary: 'Apply template', value: { template_id: undefined } } } })
+  @ApiOkResponse({
+    description: 'Template applied',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(CardResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this card' })
+  @ApiBadRequestResponse({ description: 'Template not found or not published' })
+  async applyTemplate(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: ApplyTemplateDto) {
+    return this.cardsService.applyTemplate(id, user.id, body.template_id)
+  }
+
+  // ---- Duplication ----
+
+  @Post('cards/:id/duplicate')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Duplicate a card',
+    description: 'Creates a copy of one of your cards with a fresh slug, zeroed stats and copied sections/centre controls. Access settings, profile, customization and social links are NOT copied — they belong to the original card.',
+  })
+  @ApiOkResponse({
+    description: 'Card duplicated',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(CardResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this card' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  async duplicate(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.duplicate(id, user.id)
+  }
+
+
+  // ---- Card stats ----
+
+  @Get('cards/:id/stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get card stats', description: 'Returns aggregated analytics stats (views, scans, shares, events) for a card.' })
+  @ApiOkResponse({ description: 'Card stats' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  async getCardStats(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.getCardStats(id)
+  }
+
+  // ---- Sections ----
+
+  @Get('cards/:id/sections')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List card sections', description: 'Returns all sections for a card, ordered by sort order.' })
+  @ApiOkResponse({
+    description: 'Card sections',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardSectionResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listSections(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.listSections(id)
+  }
+
+  @Patch('cards/:id/sections')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upsert card sections', description: 'Creates or updates sections for a card owned by the authenticated user. Sections are matched by schema_id.' })
+  @ApiBody({ type: [UpsertCardSectionDto] })
+  @ApiOkResponse({
+    description: 'Sections upserted',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardSectionResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this card' })
+  async upsertSections(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: UpsertCardSectionDto[]) {
+    return this.cardsService.upsertSections(id, user.id, body)
+  }
+
+  @Delete('sections/:sectionId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a section', description: 'Deletes a section. The section must belong to a card the authenticated user owns.' })
+  @ApiOkResponse({
+    description: 'Section deleted',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { message: { type: 'string', example: 'Section deleted' } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own the parent card' })
+  @ApiNotFoundResponse({ description: 'Section not found' })
+  async removeSection(@Param('sectionId', new ParseUUIDPipe()) sectionId: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.removeSection(sectionId, user.id)
+  }
+
+  // ---- Centre controls ----
+
+  @Get('cards/:id/centre-controls')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List card centre controls', description: 'Returns all centre controls for a card.' })
+  @ApiOkResponse({
+    description: 'Centre controls',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardCentreControlResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listCentreControls(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.listCentreControls(id)
+  }
+
+  @Patch('cards/:id/centre-controls')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upsert card centre controls', description: 'Creates or updates centre controls for a card owned by the authenticated user.' })
+  @ApiBody({ type: [UpsertCentreControlDto] })
+  @ApiOkResponse({
+    description: 'Centre controls upserted',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardCentreControlResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this card' })
+  async upsertCentreControls(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: UpsertCentreControlDto[]) {
+    return this.cardsService.upsertCentreControls(id, user.id, body)
   }
 }

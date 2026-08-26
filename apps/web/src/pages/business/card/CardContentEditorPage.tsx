@@ -1,19 +1,15 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { LayoutFaceContent } from '../../../components/admin/CardPreview'
 import {
-  getCardEditorContent,
-  saveCardEditorContent,
-  resetCardEditorContent,
   sectionsToFaces,
-  countEditableCardFields,
   BIZ_CARD_SECTIONS,
   type BizCardSectionState,
   type BizCardFieldDef,
 } from '../../../services/businessCardEditorStore'
-import { getBusinessCardRow } from '../../../services/businessCardEditorStore'
+import { businessService, type VCard, type VCardSection } from '../../../services/businessApi'
 
 /* ------------------------------------------------------------------ */
 /*  Small building blocks                                              */
@@ -372,18 +368,78 @@ function BizCardFlipPreview({ sections }: { sections: BizCardSectionState[] }) {
 
 type CardFace = 'front' | 'back'
 
+/* API sections → editor state, merged with the client-side section schema */
+function apiToEditorSections(apiSections: VCardSection[]): BizCardSectionState[] {
+  return BIZ_CARD_SECTIONS.map(def => {
+    const apiSec = apiSections.find(a => a.schema_id === def.id)
+    const raw = (apiSec?.content ?? {}) as Record<string, unknown>
+    const values = (((raw.values ?? raw) as Record<string, string>) || {})
+    const items = (((raw.items ?? {}) as Record<string, Record<string, string>[]>) || {})
+    def.fields.forEach(f => {
+      if (f.type === 'list' && f.itemFields && !items[f.key]) items[f.key] = []
+    })
+    return {
+      uid: `${def.face}-${def.id}`,
+      face: def.face,
+      schemaId: def.id,
+      name: apiSec?.name ?? def.name,
+      enabled: apiSec?.enabled ?? true,
+      values,
+      items,
+      blocks: [],
+      locked: apiSec?.locked ?? def.locked,
+      blocksAllowed: false,
+    }
+  })
+}
+
+function countEditable(sections: BizCardSectionState[]): number {
+  let n = 0
+  sections.forEach(s => {
+    if (s.locked) return
+    const def = BIZ_CARD_SECTIONS.find(d => d.id === s.schemaId)
+    def?.fields.forEach(f => {
+      if (f.type === 'list') {
+        if (f.editable !== false) n += 1
+      } else if (f.editable !== false) {
+        n += 1
+      }
+    })
+  })
+  return n
+}
+
 export default function CardContentEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const cardId = Number(id)
-  const row = getBusinessCardRow(cardId)
 
-  const [sections, setSections] = useState<BizCardSectionState[]>(() => getCardEditorContent(cardId))
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [card, setCard] = useState<VCard | null>(null)
+  const [sections, setSections] = useState<BizCardSectionState[]>([])
   const [expanded, setExpanded] = useState<string | null>('front-branding')
   const [face, setFace] = useState<CardFace>('front')
   const [previewFace, setPreviewFace] = useState<CardFace>('front')
 
-  const editableCount = useMemo(() => countEditableCardFields(sections), [sections])
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      try {
+        const c = await businessService.getVCard(id)
+        if (cancelled) return
+        setCard(c)
+        setSections(c ? apiToEditorSections(c.sections ?? []) : [])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [id])
+
+  const editableCount = useMemo(() => countEditable(sections), [sections])
   const faceSections = sections.filter(s => s.face === face)
 
   const updateValue = (uid: string, key: string, value: string) => {
@@ -429,24 +485,61 @@ export default function CardContentEditorPage() {
     }))
   }
 
-  const handleSave = () => {
-    saveCardEditorContent(cardId, sections)
-    toast.success('Card content saved')
+  const persistSections = async (): Promise<boolean> => {
+    if (!id) return false
+    setSaving(true)
+    try {
+      const result = await businessService.upsertVCardSections(id, sections.map((s, i) => ({
+        schema_id: s.schemaId,
+        name: s.name,
+        locked: s.locked,
+        enabled: s.enabled,
+        sort_order: i,
+        content: { values: s.values, items: s.items },
+      })))
+      return result.length > 0
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handlePublish = () => {
-    saveCardEditorContent(cardId, sections)
-    toast.success('Card published — new version created')
-    navigate(`/b/cards/${cardId}`)
+  const handleSave = async () => {
+    const ok = await persistSections()
+    if (ok) toast.success('Card content saved')
+    else toast.error('Could not save card content')
   }
 
-  const handleReset = () => {
-    resetCardEditorContent(cardId)
-    setSections(getCardEditorContent(cardId))
-    toast.success('Changes reset to Admin template defaults')
+  const handlePublish = async () => {
+    const ok = await persistSections()
+    if (ok) {
+      toast.success('Card published — new version created')
+      navigate(`/b/cards/${id}`)
+    } else {
+      toast.error('Could not publish card content')
+    }
   }
 
-  if (!row) {
+  const handleReset = async () => {
+    if (!id) return
+    try {
+      const fresh = await businessService.getVCard(id)
+      setCard(fresh)
+      setSections(fresh ? apiToEditorSections(fresh.sections ?? []) : [])
+      toast.success('Changes reset to Admin template defaults')
+    } catch {
+      toast.error('Could not reset changes')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-10 text-center">
+        <p className="text-xs text-gray-400">Loading card content…</p>
+      </div>
+    )
+  }
+
+  if (!card) {
     return (
       <div>
         <Helmet><title>Card not found - MCOMVCard</title></Helmet>
@@ -459,21 +552,20 @@ export default function CardContentEditorPage() {
     )
   }
 
-  const statusCls = row.status === 'Published'
+  const isActive = card.status === 'active'
+  const statusCls = isActive
     ? 'bg-green-50 dark:bg-green-500/10 text-green-600'
-    : row.status === 'Draft'
-      ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600'
-      : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
+    : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
 
   return (
     <div className="space-y-4">
-      <Helmet><title>Edit {row.name} Content - MCOMVCard</title></Helmet>
+      <Helmet><title>Edit {card.name ?? card.slug} Content - MCOMVCard</title></Helmet>
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
         <Link to="/b/cards" className="hover:text-orange-600">My Cards</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-        <Link to={`/b/cards/${row.id}`} className="hover:text-orange-600">{row.name}</Link>
+        <Link to={`/b/cards/${card.id}`} className="hover:text-orange-600">{card.name ?? card.slug}</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         <span className="text-gray-900 dark:text-white font-medium">Edit Content</span>
       </div>
@@ -483,24 +575,24 @@ export default function CardContentEditorPage() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">{row.name}</h1>
-              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${statusCls}`}>{row.status}</span>
+              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">{card.name ?? card.slug}</h1>
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${statusCls}`}>{isActive ? 'Active' : card.status}</span>
             </div>
-            <p className="text-[10px] text-gray-400 truncate">{row.templateId} · v{row.version} · {row.category} · 85 × 55 mm</p>
+            <p className="text-[10px] text-gray-400 truncate">{card.template?.name ?? 'No template'} · {card.category ?? 'Uncategorised'} · 85 × 55 mm</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <button onClick={handleReset} className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 border border-gray-200 dark:border-gray-600 hover:text-gray-600">Reset</button>
-          <button onClick={handleSave} className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 flex items-center gap-1 hover:bg-gray-50">
+          <button onClick={handleSave} disabled={saving} className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 flex items-center gap-1 hover:bg-gray-50 disabled:opacity-50">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
             Save Draft
           </button>
-          <button onClick={handlePublish} className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-orange-500 text-white flex items-center gap-1 hover:bg-orange-600">
+          <button onClick={handlePublish} disabled={saving} className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-orange-500 text-white flex items-center gap-1 hover:bg-orange-600 disabled:opacity-50">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             Publish
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
-          <Link to={`/b/cards/${row.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
+          <Link to={`/b/cards/${card.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
         </div>
       </div>
 
@@ -585,10 +677,9 @@ export default function CardContentEditorPage() {
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
             <h4 className="text-xs font-semibold text-gray-800 dark:text-white mb-3">Template from Admin</h4>
             <div className="space-y-2 text-[10px]">
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Template ID</span><span className="font-medium text-gray-700 dark:text-gray-200 font-mono">{row.templateId}</span></div>
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Version</span><span className="font-medium text-gray-700 dark:text-gray-200">v{row.version}</span></div>
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Category</span><span className="font-medium text-gray-700 dark:text-gray-200">{row.category}</span></div>
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Updated</span><span className="font-medium text-gray-700 dark:text-gray-200">{row.lastUpdated}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Template</span><span className="font-medium text-gray-700 dark:text-gray-200 truncate max-w-[60%]">{card.template?.name ?? 'No template'}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Category</span><span className="font-medium text-gray-700 dark:text-gray-200">{card.category ?? '—'}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Last Admin Update</span><span className="font-medium text-gray-700 dark:text-gray-200">{card.last_admin_update ? new Date(card.last_admin_update).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></div>
               <div className="flex justify-between py-1"><span className="text-gray-400">Locked sections</span><span className="font-medium text-gray-700 dark:text-gray-200">{sections.filter(s => s.locked).length} of {sections.length}</span></div>
             </div>
           </div>

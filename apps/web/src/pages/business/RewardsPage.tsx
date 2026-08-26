@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockIntegrations } from '../../services/businessStore'
 
 const actions = [
     { to: '/b/rewards/issue', label: 'Issue Reward', subtitle: 'Give points or perks', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'from-orange-500 to-orange-600' },
@@ -15,7 +14,6 @@ const actions = [
 
 export default function BusinessRewardsPage() {
     const navigate = useNavigate()
-    const mcomRewards = mockIntegrations.find(i => i.id === 'rewards')
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -49,25 +47,23 @@ export default function BusinessRewardsPage() {
             </div>
 
             {/* Connected MCOM Rewards */}
-            {mcomRewards && (
-                <button
-                    onClick={() => navigate('/b/integrations')}
-                    className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex items-center gap-4"
-                >
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm5 3h6a1 1 0 011 1v2a1 1 0 01-1 1h-1v6a1 1 0 01-1 1H7a1 1 0 01-1-1v-6H5a1 1 0 01-1-1V9a1 1 0 011-1h6" />
-                        </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">MCOM Rewards</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{mcomRewards.description}</p>
-                    </div>
-                    <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600">
-                        Coming soon
-                    </span>
-                </button>
-            )}
+            <button
+                onClick={() => navigate('/b/integrations')}
+                className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 flex items-center gap-4"
+            >
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shrink-0">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm5 3h6a1 1 0 011 1v2a1 1 0 01-1 1h-1v6a1 1 0 01-1 1H7a1 1 0 01-1-1v-6H5a1 1 0 01-1-1V9a1 1 0 011-1h6" />
+                    </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">MCOM Rewards</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Connect your MCOM Rewards account for advanced loyalty features.</p>
+                </div>
+                <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600">
+                    Coming soon
+                </span>
+            </button>
         </div>
     )
 }

@@ -5,11 +5,11 @@ import toast from 'react-hot-toast'
 import Badge from '../../components/business/primitives/Badge'
 import ErrorState from '../../components/business/states/ErrorState'
 import ScrollingVCard, { type ScrollingVCardHandle } from '../../components/common/ScrollingVCard'
-import { getVCardById, mockBusinessProfile } from '../../services/businessStore'
 import { BIZ_SECTIONS, buildBusinessCentres, getVCardEditorContent, getVCardProtection, clearVCardProtection, getBusinessCentreControls } from '../../services/businessVCardEditorStore'
 import ShareExchangeRedeemPanel from './vcard/ShareExchangeRedeemPanel'
 import BottomSheet from '../../components/business/primitives/BottomSheet'
 import QRCodeBlock from '../../components/business/primitives/QRCodeBlock'
+import { businessService, type VCard as ApiVCard, type VCardSection as ApiSection } from '../../services/businessApi'
 
 const SECTION_ICONS = new Map(BIZ_SECTIONS.map(s => [s.id, s.icon]))
 
@@ -39,13 +39,56 @@ function SectionRow({ schemaId, name, locked }: { schemaId: string; name: string
 
 export default function VCardDetailPage() {
     const { id } = useParams<{ id: string }>()
-    const vcard = getVCardById(Number(id))
     const [params] = useSearchParams()
 
     const scrollRef = useRef<ScrollingVCardHandle>(null)
     const [scrollActive, setScrollActive] = useState(false)
     const [qrOpen, setQrOpen] = useState(false)
     const [confirmingReset, setConfirmingReset] = useState(false)
+
+    /* ── Fetch real card from API ── */
+    const [apiCard, setApiCard] = useState<ApiVCard | null>(null)
+    const [apiSections, setApiSections] = useState<ApiSection[]>([])
+
+    useEffect(() => {
+        if (!id) return
+        let cancelled = false
+        const load = async () => {
+            try {
+                const card = await businessService.getVCard(id)
+                if (cancelled || !card) return
+                setApiCard(card)
+                const secs = await businessService.getVCardSections(card.id)
+                if (!cancelled) setApiSections(secs)
+            } catch {
+                // API unavailable
+            }
+        }
+        load()
+        return () => { cancelled = true }
+    }, [id])
+
+    /* Map API card to UI format */
+    const vcard = apiCard ? {
+        id: parseInt(apiCard.id.slice(0, 8), 16) || Number(id),
+        name: apiCard.name || apiCard.slug || 'Untitled',
+        type: apiCard.type === 'BUSINESS' ? 'Business VCard' : apiCard.type,
+        category: apiCard.category || 'General',
+        description: apiCard.description || '',
+        status: (apiCard.status === 'active' ? 'active' : apiCard.status === 'suspended' ? 'locked' : 'needs_update') as 'active' | 'locked' | 'needs_update',
+        assignedAt: apiCard.assigned_at ? new Date(apiCard.assigned_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+        lastAdminUpdate: apiCard.last_admin_update ? new Date(apiCard.last_admin_update).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+        urlSlug: apiCard.url_slug || apiCard.slug,
+        views: apiCard.views ?? 0,
+        shares: apiCard.shares ?? 0,
+        scans: apiCard.scans ?? 0,
+    } : null
+
+    /* Build sections list for the section rows */
+    const sectionNames = apiSections.length > 0
+        ? apiSections.map(s => ({ schemaId: s.schema_id, name: s.name, locked: s.locked }))
+        : []
+
     const sections = getVCardEditorContent(Number(id) || 0)
     const centreControls = getBusinessCentreControls(Number(id) || 0)
     const protection = getVCardProtection(Number(id) || 0)
@@ -143,7 +186,7 @@ export default function VCardDetailPage() {
                         <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-2.5 text-[10px]">
                             <span><span className="text-gray-400">Template · </span><span className="font-medium text-gray-700 dark:text-gray-300">{vcard.name}</span></span>
                             <span><span className="text-gray-400">Sector · </span><span className="font-medium text-gray-700 dark:text-gray-300">{vcard.category}</span></span>
-                            <span><span className="text-gray-400">Membership · </span><span className="font-medium text-gray-700 dark:text-gray-300">{mockBusinessProfile.membership} {mockBusinessProfile.tier}</span></span>
+                            <span><span className="text-gray-400">Membership · </span><span className="font-medium text-gray-700 dark:text-gray-300">{apiCard?.template?.name ?? 'Standard'} plan</span></span>
                             <span><span className="text-gray-400">Season · </span><span className="font-medium text-gray-700 dark:text-gray-300">{getSeason()}</span></span>
                             <span><span className="text-gray-400">Status · </span><span className="font-medium text-green-600 dark:text-green-400">{vcard.status === 'active' ? 'Active' : 'Draft'}</span></span>
                             <span><span className="text-gray-400">Customisation · </span><span className="font-medium text-gray-700 dark:text-gray-300">Limited to approved fields</span></span>
@@ -192,7 +235,7 @@ export default function VCardDetailPage() {
                     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h4 className="text-xs font-semibold text-gray-900 dark:text-white">Performance</h4>
-                            <span className="text-[10px] text-gray-400">{mockBusinessProfile.name}</span>
+                            <span className="text-[10px] text-gray-400">{vcard.name}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-3">
                             <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/30 text-center">
@@ -211,7 +254,7 @@ export default function VCardDetailPage() {
                         <div className="space-y-1.5">
                             <div className="flex justify-between text-[10px]"><span className="text-gray-400">Assigned</span><span className="font-medium text-gray-700 dark:text-gray-300">{vcard.assignedAt}</span></div>
                             <div className="flex justify-between text-[10px]"><span className="text-gray-400">Last admin update</span><span className="font-medium text-gray-700 dark:text-gray-300">{vcard.lastAdminUpdate}</span></div>
-                            <div className="flex justify-between text-[10px]"><span className="text-gray-400">Membership</span><span className="font-medium text-gray-700 dark:text-gray-300">{mockBusinessProfile.membership} {mockBusinessProfile.tier}</span></div>
+                            <div className="flex justify-between text-[10px]"><span className="text-gray-400">Membership</span><span className="font-medium text-gray-700 dark:text-gray-300">{apiCard?.template?.name ?? 'Standard'} plan</span></div>
                         </div>
                     </div>
 
@@ -219,12 +262,12 @@ export default function VCardDetailPage() {
                     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
                         <div className="flex items-center justify-between mb-1">
                             <h4 className="text-xs font-semibold text-gray-900 dark:text-white">Content Sections</h4>
-                            <span className="text-[10px] text-gray-400">{sections.length} sections</span>
+                            <span className="text-[10px] text-gray-400">{sectionNames.length} sections</span>
                         </div>
                         <p className="text-[10px] text-gray-400 mb-3">Green sections are editable by you. Grey sections are managed by your Admin and fixed on the template.</p>
                         <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-1 mb-3">
-                            {sections.map(s => (
-                                <SectionRow key={s.uid} schemaId={s.schemaId} name={s.name} locked={s.locked} />
+                            {sectionNames.map(s => (
+                                <SectionRow key={s.schemaId} schemaId={s.schemaId} name={s.name} locked={s.locked} />
                             ))}
                         </div>
                         <Link to={`/b/vcards/${vcard.id}/edit`} className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600">
@@ -241,7 +284,7 @@ export default function VCardDetailPage() {
                                 {protection.enabled ? 'Locked' : 'Off'}
                             </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 mb-3">Available on your {mockBusinessProfile.membership} {mockBusinessProfile.tier} plan — lock sections of this VCard behind a 6-digit PIN on the published card.</p>
+                        <p className="text-[10px] text-gray-400 mb-3">Lock sections of this VCard behind a 6-digit PIN on the published card.</p>
                         <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 p-3">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="min-w-0">

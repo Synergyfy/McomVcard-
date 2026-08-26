@@ -1,48 +1,44 @@
 import { useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import ScrollingVCard, { type ScrollingVCardHandle } from '../../../components/common/ScrollingVCard'
-import { buildPublishedSections } from '../../admin/card-management/BusinessVCardWorkspace'
-import type { BizVCardTemplate } from '../../admin/card-management/BusinessVCardTemplatesPage'
-import { loadUserTemplatesByType } from '../../../services/vcardTemplateStore'
-import { claimVCard } from '../../../services/businessStore'
+import { businessService } from '../../../services/businessApi'
 import { saveVCardEditorContent, buildBusinessCentres, BIZ_SECTIONS, type BizSectionState, type BizCustomBlock, type BizCustomBlockType } from '../../../services/businessVCardEditorStore'
 import { SectionCard } from './VCardContentEditorPage'
 
-/* Convert template builder sections (or synthesized published sections)
-   into the business editor shape so the SectionCard fields can edit them,
-   and the locked flags come from the admin template definition. */
-function toEditorSections(t: BizVCardTemplate): BizSectionState[] {
-  const stored = loadUserTemplatesByType('business')
-    .find(x => x.id === t.id || x.templateId === t.templateId)
-  const base = stored
-    ? (stored.builder.sections as unknown as BizSectionState[])
-    : (buildPublishedSections(t) as unknown as BizSectionState[])
+type BizVCardTemplate = {
+  id: string
+  templateId: string
+  name: string
+  description: string
+  category: string
+  status: string
+  membershipSupport: string[]
+  features: string[]
+  version: number
+  businessesUsing: number
+  customization: { logo: boolean; banner: boolean; colors: boolean; font: boolean; layout: boolean }
+}
 
-  return base.map(s => {
-    const def = BIZ_SECTIONS.find(d => d.id === s.schemaId)
+/* Build editor sections from the template features (API-driven, no mock) */
+function toEditorSections(t: BizVCardTemplate): BizSectionState[] {
+  return t.features.map((feature, idx) => {
+    const def = BIZ_SECTIONS.find(d => d.id === feature)
     return {
-      uid: s.uid,
-      schemaId: s.schemaId,
-      name: s.name,
-      enabled: s.enabled,
-      values: { ...(s.values ?? {}) },
-      items: { ...(s.items ?? {}) },
-      blocks: s.blocks ?? [],
+      uid: feature,
+      schemaId: feature,
+      name: def?.name ?? feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      enabled: true,
+      values: {},
+      items: {},
+      blocks: [],
       locked: def?.locked ?? true,
       blocksAllowed: !!def?.blocksAllowed,
-      centre: s.centre,
-    }
+      centre: undefined,
+      sortOrder: idx,
+    } as BizSectionState
   })
 }
 
-const GRADIENTS = [
-  'from-orange-500 to-amber-500',
-  'from-emerald-500 to-teal-500',
-  'from-sky-500 to-blue-500',
-  'from-violet-500 to-purple-500',
-  'from-rose-500 to-pink-500',
-  'from-indigo-500 to-blue-500',
-]
 
 export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
   template: BizVCardTemplate
@@ -53,6 +49,7 @@ export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
   const [expanded, setExpanded] = useState<string | null>(sections[0]?.uid ?? null)
   const scrollRef = useRef<ScrollingVCardHandle>(null)
   const [scrollActive, setScrollActive] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   const editableCount = useMemo(() => {
     let n = 0
@@ -135,25 +132,44 @@ export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
     }))
   }
 
-  const handleClaim = () => {
-    /* Save the claimed vcard into the business vcard list + editor store. */
-    const name = sections.find(s => s.schemaId === 'profile')?.values.name || template.name
-    const sectionNames = sections.map(s => s.name)
-    const gradient = GRADIENTS[(template.id + sections.length) % GRADIENTS.length]
+  const handleClaim = async () => {
+    setClaiming(true)
+    try {
+      // Get business ID from API
+      const businesses = await businessService.getMyBusinesses()
+      if (businesses.length === 0) {
+        toast.error('No business found — create a business first')
+        setClaiming(false)
+        return
+      }
 
-    const vcard = claimVCard({
-      name,
-      type: template.category,
-      category: template.industry,
-      description: template.description,
-      urlSlug: template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      sections: sectionNames,
-      previewColor: '#F97316',
-      previewGradient: gradient,
-    })
-    saveVCardEditorContent(vcard.id, sections)
-    toast.success(`"${template.name}" claimed — added to your VCards`)
-    onClaimed(vcard.id)
+      // Claim template via API
+      const claimed = await businessService.claimTemplate(businesses[0].id, template.templateId)
+      if (!claimed) {
+        toast.error('Failed to claim template')
+        setClaiming(false)
+        return
+      }
+
+      // Save sections to the API
+      await businessService.upsertVCardSections(claimed.id, sections.map(s => ({
+        schema_id: s.schemaId,
+        name: s.name,
+        locked: s.locked,
+        enabled: s.enabled,
+        content: { ...s.values },
+      })))
+
+      // Also save to localStorage for the editor
+      saveVCardEditorContent(parseInt(claimed.id.slice(0, 8), 16) || 0, sections)
+
+      toast.success(`"${template.name}" claimed — added to your VCards`)
+      onClaimed(parseInt(claimed.id.slice(0, 8), 16) || 0)
+    } catch {
+      toast.error('Failed to claim template')
+    } finally {
+      setClaiming(false)
+    }
   }
 
   return (
@@ -164,7 +180,7 @@ export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
           <div className="min-w-0">
             <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">Claim & Customise — {template.name}</h4>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              {template.templateId} · v{template.version} · {template.category} — edit only the fields your Admin allows, then it's added to your VCards.
+              {template.category} — edit only the fields your Admin allows, then it's added to your VCards.
             </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
@@ -219,8 +235,10 @@ export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700 shrink-0">
           <span className="text-[9px] text-gray-400">Grey sections are Admin-managed and fixed to the template — they're shown for reference.</span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-            <button onClick={handleClaim} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Claim VCard</button>
+            <button onClick={onClose} disabled={claiming} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40">Cancel</button>
+            <button onClick={handleClaim} disabled={claiming} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 disabled:opacity-40">
+              {claiming ? 'Claiming...' : 'Claim VCard'}
+            </button>
           </div>
         </div>
       </div>

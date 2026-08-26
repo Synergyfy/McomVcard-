@@ -1,9 +1,23 @@
-import { Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 import BusinessSidebar from './BusinessSidebar'
 import BusinessTopBar from './BusinessTopBar'
 import BusinessBottomNav from './BusinessBottomNav'
+import { useAuth } from '../../../contexts/AuthContext'
 
 export default function BusinessLayout() {
+    const { isAuthenticated, isLoading } = useAuth()
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            navigate('/login', { replace: true })
+        }
+    }, [isAuthenticated, isLoading, navigate])
+
+    if (isLoading) return null
+    if (!isAuthenticated) return null
+
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
             <BusinessSidebar />

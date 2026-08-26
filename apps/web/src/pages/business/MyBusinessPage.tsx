@@ -1,25 +1,31 @@
+import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockBusinessProfile, getAllAssignedVCards, mockAssignedCards, mockActivity, businessVCardLink } from '../../services/businessStore'
 import {
-    homeKpiPages,
+    businessService,
+    type Business,
+    type Notification,
+    type Wallet,
+    type Membership,
+    type DashboardStats,
+    type ActivityItem,
+    type AnalyticsOverview,
+} from '../../services/businessApi'
+import { businessVCardLink } from '../../services/businessStore'
+import {
     quickActions,
-    mockNotifications,
     currentSeason,
     mockMembership,
     activeVCardTemplate,
     activeCardTemplate,
-    mockAppointments,
-    mockCampaigns,
 } from '../../services/businessDashboardStore'
-import type { HomeKpiCard } from '../../services/businessDashboardStore'
 
 const greeting = () => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good Morning 👋'
-    if (h < 17) return 'Good Afternoon 👋'
-    return 'Good Evening 👋'
+    if (h < 12) return 'Good Morning'
+    if (h < 17) return 'Good Afternoon'
+    return 'Good Evening'
 }
 
 const walletIcon = 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'
@@ -29,37 +35,102 @@ const customersIcon = 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.
 const rewardsIcon = 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
 const membershipIcon = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
 
-export default function BusinessHomePage() {
-    const firstName = mockBusinessProfile.owner.split(' ')[0]
+function timeAgo(dateStr: string): string {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+    if (seconds < 60) return 'Just now'
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}m ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
+}
 
-    const activeVCards = getAllAssignedVCards().filter(v => v.status === 'active').length
-    const activeCards = mockAssignedCards.filter(c => c.status === 'active').length
-    const pendingAppointments = mockAppointments.filter(a => a.status === 'pending').length
-    const activeCampaigns = mockCampaigns.filter(c => c.status === 'active')
+export default function BusinessHomePage() {
+    const [business, setBusiness] = useState<Business | null>(null)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [wallet, setWallet] = useState<Wallet | null>(null)
+    const [memberships, setMemberships] = useState<Membership[]>([])
+    const [stats, setStats] = useState<DashboardStats | null>(null)
+    const [activity, setActivity] = useState<ActivityItem[]>([])
+    const [analytics, setAnalytics] = useState<AnalyticsOverview>({})
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        async function fetchDashboard() {
+            try {
+                const [businesses, notifs, walletData, memberData, dashStats, activityData, analyticsData] = await Promise.all([
+                    businessService.getMyBusinesses(),
+                    businessService.getNotifications(),
+                    businessService.getWallet(),
+                    businessService.getMyMemberships(),
+                    businessService.getDashboardStats(),
+                    businessService.getActivity(10),
+                    businessService.getAnalyticsOverview(),
+                ])
+
+                if (businesses.length > 0) {
+                    const detailed = await businessService.getBusiness(businesses[0].id)
+                    setBusiness(detailed)
+                }
+
+                setNotifications(notifs)
+                setWallet(walletData)
+                setMemberships(memberData)
+                setStats(dashStats)
+                setActivity(activityData.items)
+                setAnalytics(analyticsData)
+            } catch {
+                setError('Failed to load dashboard data')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDashboard()
+    }, [])
+
+    const activeCards = stats?.totalCards ?? 0
+    const pendingAppointments = stats?.pendingAppointments ?? 0
+    const activeCampaigns = stats?.activeCampaigns ?? 0
     const membershipPct = Math.round((mockMembership.daysRemaining / mockMembership.totalDays) * 100)
 
-    /* ── Main cards (six core business surfaces) ── */
+    const businessName = business?.name ?? 'Your Business'
+    const categoryName = business?.category?.name ?? 'Business'
+    const locationStr = business?.locations?.length
+        ? [business.locations[0].city, business.locations[0].country].filter(Boolean).join(', ')
+        : ''
+
+    const activeMembership = memberships.find(m => m.status === 'active')
+    const membershipName = activeMembership?.tier?.name ?? mockMembership.plan
+    const walletBalance = wallet?.balance ?? 0
+    const walletCurrency = wallet?.currency ?? 'GBP'
+
+    const symbol = walletCurrency === 'GBP' ? '\u00A3' : walletCurrency === 'USD' ? '$' : walletCurrency + ' '
+
     const mainCards = [
         {
             label: 'My VCard',
-            subtitle: `${activeVCards} active · ${activeVCardTemplate.name}`,
-            value: '12,480',
+            subtitle: 'Digital profile',
+            value: stats?.totalCards?.toString() ?? '--',
             icon: vcardIcon,
             gradient: 'from-orange-500 to-amber-500',
             to: '/b/vcards',
         },
         {
             label: 'My Business Card',
-            subtitle: `${activeCards} active · ${activeCardTemplate.name}`,
-            value: '8,342',
+            subtitle: `${activeCards} active . ${activeCardTemplate.name}`,
+            value: stats?.totalShares?.toString() ?? '--',
             icon: cardIcon,
             gradient: 'from-slate-600 to-slate-800',
             to: '/b/cards',
         },
         {
             label: 'Membership',
-            subtitle: `${mockMembership.plan} · ${mockMembership.daysRemaining}d left`,
-            value: mockBusinessProfile.membership,
+            subtitle: activeMembership
+                ? `${membershipName} . ${activeMembership.status}`
+                : 'No active membership',
+            value: membershipName,
             icon: membershipIcon,
             gradient: 'from-amber-500 to-orange-600',
             to: '/b/membership',
@@ -67,7 +138,7 @@ export default function BusinessHomePage() {
         {
             label: 'Customers',
             subtitle: 'New & returning guests',
-            value: '2,451',
+            value: stats?.totalAppointments?.toString() ?? '--',
             icon: customersIcon,
             gradient: 'from-blue-500 to-indigo-600',
             to: '/b/customers',
@@ -75,37 +146,35 @@ export default function BusinessHomePage() {
         {
             label: 'Rewards',
             subtitle: 'Points, perks & campaigns',
-            value: '1,208',
+            value: stats?.totalRewardsRedeemed?.toString() ?? '--',
             icon: rewardsIcon,
             gradient: 'from-purple-500 to-violet-600',
             to: '/b/rewards',
         },
         {
             label: 'Wallet / Smart Money',
-            subtitle: 'Balance & history',
-            value: '£4,850',
+            subtitle: wallet ? `${wallet.currency} balance` : 'No wallet yet',
+            value: wallet ? `${symbol}${walletBalance.toFixed(2)}` : '--',
             icon: walletIcon,
             gradient: 'from-emerald-500 to-teal-600',
             to: '/b/rewards/cashback',
         },
     ]
 
-    /* ── Performance — only metrics available from connected systems ── */
     const performance = [
-        { label: 'VCard views', kpi: homeKpiPages[0][0] },
-        { label: 'QR scans', kpi: homeKpiPages[0][1] },
-        { label: 'Shares', kpi: homeKpiPages[1][2] },
-        { label: 'Exchanges', kpi: homeKpiPages[1][3] },
-        { label: 'Redemptions', kpi: homeKpiPages[2][1] },
-        { label: 'Reward activity', kpi: homeKpiPages[0][3] },
-        { label: 'Appointments', kpi: homeKpiPages[1][0] },
-        { label: 'Campaign activity', kpi: homeKpiPages[2][0] },
+        { label: 'VCard views', value: analytics['profile_view'] ?? 0 },
+        { label: 'QR scans', value: analytics['qr_scan'] ?? 0 },
+        { label: 'Shares', value: stats?.totalShares ?? 0 },
+        { label: 'Appointments', value: stats?.totalAppointments ?? 0 },
+        { label: 'Pending', value: stats?.pendingAppointments ?? 0 },
+        { label: 'Completed', value: stats?.completedAppointments ?? 0 },
+        { label: 'Reviews', value: stats?.totalReviews ?? 0 },
+        { label: 'Avg rating', value: stats?.avgRating ? stats.avgRating.toFixed(1) : '0.0' },
     ]
 
-    /* ── Quick actions (all eight) ── */
     const actionItems = [
         { label: 'View VCard', subtitle: 'Digital profile', icon: vcardIcon, color: 'from-orange-500 to-amber-500', to: '/b/vcards' },
-        { label: 'View Business Card', subtitle: '85 × 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/b/cards' },
+        { label: 'View Business Card', subtitle: '85 x 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/b/cards' },
         { label: 'Share', subtitle: 'Send to anyone', icon: quickActions[0].icon, color: 'from-blue-500 to-cyan-500', to: businessVCardLink('share') },
         { label: 'Show QR', subtitle: 'Scan & connect', icon: quickActions[1].icon, color: 'from-purple-500 to-violet-600', to: '/b/qr' },
         { label: 'Reward Customer', subtitle: 'Points & perks', icon: quickActions[2].icon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue' },
@@ -114,40 +183,64 @@ export default function BusinessHomePage() {
         { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/rewards/cashback' },
     ]
 
-    /* ── Alerts — grouped by type ── */
     const alerts = [
-        { tone: 'warning' as const, title: 'Membership expiry', description: `Your Gold membership expires in ${mockMembership.daysRemaining} days (${mockMembership.renewalDate}). Renew to keep Premium benefits active.`, time: '2 hrs ago', to: '/b/membership' },
+        { tone: 'warning' as const, title: 'Membership expiry', description: activeMembership?.expires_at
+            ? `Your ${membershipName} membership expires on ${new Date(activeMembership.expires_at).toLocaleDateString()}.`
+            : `Your membership is ${activeMembership?.status ?? 'not set'}.`, time: '2 hrs ago', to: '/b/membership' },
         { tone: 'success' as const, title: 'Template activation', description: `Your ${activeVCardTemplate.name} VCard template and ${activeCardTemplate.name} card are active and live.`, time: 'Today' },
-        { tone: 'success' as const, title: 'Reward activity', description: '23 customers redeemed rewards today. Great engagement — rewards are working.', time: '5 hrs ago' },
+        { tone: 'success' as const, title: 'Reward activity', description: stats?.totalRewardsRedeemed
+            ? `${stats.totalRewardsRedeemed} rewards redeemed so far. Great engagement.`
+            : 'No reward redemptions yet.', time: '5 hrs ago' },
         { tone: 'info' as const, title: 'Appointment activity', description: `${pendingAppointments} appointment${pendingAppointments === 1 ? '' : 's'} awaiting confirmation for today.`, time: 'Today' },
-        { tone: 'info' as const, title: 'Campaign notifications', description: activeCampaigns.length
-            ? `${activeCampaigns.map(c => c.name).join(' · ')} — ${activeCampaigns.reduce((s, c) => s + c.redemptions, 0)} redemptions so far.`
+        { tone: 'info' as const, title: 'Campaign notifications', description: activeCampaigns
+            ? `${activeCampaigns} active campaign${activeCampaigns === 1 ? '' : 's'} running right now.`
             : 'No campaigns running right now.', time: 'Today' },
-        { tone: 'warning' as const, title: 'Important system message', description: 'Scheduled maintenance Sunday 02:00–04:00. Some analytics may be delayed.', time: 'Yesterday' },
     ]
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Loading your dashboard...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-sm text-red-500">{error}</p>
+                    <button onClick={() => window.location.reload()} className="mt-3 text-sm text-orange-600 underline">Retry</button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6 animate-fadeIn">
             <Helmet><title>Home - Business Dashboard - MCOMVCard</title></Helmet>
 
-            {/* ── Welcome + identity header ── */}
+            {/* Welcome + identity header */}
             <section>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome {firstName}</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{greeting()} Here's your business at a glance.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{greeting()}</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Here's your business at a glance.</p>
             </section>
 
             <section className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg shadow-orange-200 dark:shadow-none">
                 <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-bold shrink-0">
-                        {mockBusinessProfile.name.charAt(0)}
+                        {businessName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-lg font-bold truncate">{mockBusinessProfile.name}</p>
-                        <p className="text-xs text-white/80">{mockBusinessProfile.category} · {mockBusinessProfile.sector}</p>
+                        <p className="text-lg font-bold truncate">{businessName}</p>
+                        <p className="text-xs text-white/80">{categoryName}{locationStr ? ` . ${locationStr}` : ''}</p>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-semibold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                {mockBusinessProfile.membership} · {mockBusinessProfile.tier}
+                                {membershipName}
                             </span>
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-semibold">
                                 {currentSeason.name}
@@ -156,7 +249,6 @@ export default function BusinessHomePage() {
                     </div>
                 </div>
 
-                {/* Season + membership expiry countdown */}
                 <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/20">
                     <div>
                         <p className="text-[11px] text-white/70">Season ends in</p>
@@ -164,8 +256,14 @@ export default function BusinessHomePage() {
                     </div>
                     <div>
                         <p className="text-[11px] text-white/70">Membership expires</p>
-                        <p className="text-lg font-bold">{mockMembership.daysRemaining} days</p>
-                        <p className="text-[10px] text-white/70">{mockMembership.renewalDate}</p>
+                        <p className="text-lg font-bold">
+                            {activeMembership?.expires_at
+                                ? `${Math.max(0, Math.ceil((new Date(activeMembership.expires_at).getTime() - Date.now()) / 86400000))} days`
+                                : 'N/A'}
+                        </p>
+                        {activeMembership?.expires_at && (
+                            <p className="text-[10px] text-white/70">{new Date(activeMembership.expires_at).toLocaleDateString()}</p>
+                        )}
                     </div>
                 </div>
                 <div className="mt-3">
@@ -179,7 +277,7 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* ── Main cards ── */}
+            {/* Main cards */}
             <section>
                 <SectionTitle>Your Business</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
@@ -207,20 +305,23 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* ── Performance — only expose available metrics ── */}
+            {/* Performance */}
             <section>
                 <div className="flex items-center justify-between mb-3">
                     <SectionTitle>Performance</SectionTitle>
                     <Link to="/b/analytics" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View analytics</Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {performance.map(({ label, kpi }) => (
-                        <KpiCard key={label} label={label} kpi={kpi} />
+                    {performance.map(({ label, value }) => (
+                        <div key={label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                            <p className="text-xl font-bold text-gray-900 dark:text-white">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
+                        </div>
                     ))}
                 </div>
             </section>
 
-            {/* ── Quick Actions (all eight) ── */}
+            {/* Quick Actions */}
             <section>
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
@@ -244,7 +345,7 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* ── Alerts ── */}
+            {/* Alerts */}
             <section>
                 <SectionTitle>Alerts</SectionTitle>
                 <div className="space-y-3">
@@ -289,52 +390,47 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* ── Guidance notifications ── */}
+            {/* For You — real notifications from API */}
             <section>
                 <SectionTitle>For You</SectionTitle>
                 <div className="space-y-3">
-                    {mockNotifications.map((n) => (
-                        <div
-                            key={n.id}
-                            className={`flex items-start gap-3 p-4 rounded-2xl border shadow-sm ${
-                                n.tone === 'warning'
-                                    ? 'bg-amber-50/80 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/40'
-                                    : n.tone === 'success'
-                                        ? 'bg-emerald-50/80 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/40'
-                                        : 'bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40'
-                            }`}
-                        >
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                                n.tone === 'warning'
-                                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
-                                    : n.tone === 'success'
-                                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                                        : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                            }`}>
-                                {n.tone === 'warning'
-                                    ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.024-.833-2.732 0L4.354 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-                                    : n.tone === 'success'
-                                        ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                }
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.description}</p>
-                                {n.actionLabel && n.actionTo && (
-                                    <Link to={n.actionTo} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                        {n.actionLabel}
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                    </Link>
-                                )}
-                            </div>
-                            <span className="text-[10px] text-gray-400 shrink-0">{n.time}</span>
+                    {notifications.length === 0 && (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p>
                         </div>
-                    ))}
+                    )}
+                    {notifications.slice(0, 10).map((n) => {
+                        const tone = n.type === 'system' ? 'info' : n.read_at ? 'success' : 'info'
+                        return (
+                            <div
+                                key={n.id}
+                                className={`flex items-start gap-3 p-4 rounded-2xl border shadow-sm ${
+                                    tone === 'info'
+                                        ? 'bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40'
+                                        : 'bg-emerald-50/80 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/40'
+                                }`}
+                            >
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                                    tone === 'info'
+                                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                                        : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
+                                    {n.message && (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.message}</p>
+                                    )}
+                                </div>
+                                <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(n.created_at)}</span>
+                            </div>
+                        )
+                    })}
                 </div>
             </section>
 
-            {/* ── Recent activity + Admin updates ── */}
+            {/* Recent activity + Business Info */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section>
                     <div className="flex items-center justify-between mb-3">
@@ -342,7 +438,12 @@ export default function BusinessHomePage() {
                         <Link to="/b/reports" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View all</Link>
                     </div>
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
-                        {mockActivity.slice(0, 5).map(a => (
+                        {activity.length === 0 && (
+                            <div className="p-4 text-center">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity yet.</p>
+                            </div>
+                        )}
+                        {activity.slice(0, 5).map(a => (
                             <div key={a.id} className="flex items-start gap-3 p-3.5">
                                 <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
                                     <ActivityIcon type={a.type} />
@@ -351,32 +452,68 @@ export default function BusinessHomePage() {
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">{a.title}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.description}</p>
                                 </div>
-                                <span className="text-[10px] text-gray-400 shrink-0">{a.time}</span>
+                                <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(a.created_at)}</span>
                             </div>
                         ))}
                     </div>
                 </section>
 
                 <section>
-                    <SectionTitle>Admin Updates</SectionTitle>
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
-                        {getAllAssignedVCards().filter(v => v.status === 'needs_update').map(v => (
-                            <div key={v.id} className="flex items-center justify-between p-3.5 border-l-4 border-l-amber-400">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                                        <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{v.name}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Updated {v.lastAdminUpdate}</p>
-                                    </div>
-                                </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-semibold shrink-0">Needs update</span>
+                    <SectionTitle>Business Info</SectionTitle>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 space-y-3">
+                        {!business && (
+                            <div className="text-center py-4">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">No business profile yet.</p>
+                                <Link to="/b/settings" className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                    Create one
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </Link>
                             </div>
-                        ))}
-                        {getAllAssignedVCards().filter(v => v.status === 'needs_update').length === 0 && (
-                            <div className="p-4">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">No pending admin updates.</p>
+                        )}
+                        {business?.email && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Email</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.email}</p>
+                            </div>
+                        )}
+                        {business?.phone && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Phone</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.phone}</p>
+                            </div>
+                        )}
+                        {business?.website && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Website</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.website}</p>
+                            </div>
+                        )}
+                        {business?.locations?.[0] && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Location</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {[business.locations[0].address, business.locations[0].city, business.locations[0].state, business.locations[0].country].filter(Boolean).join(', ')}
+                                </p>
+                            </div>
+                        )}
+                        {business?.brands?.[0] && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Brand</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.brands[0].name}</p>
+                            </div>
+                        )}
+                        {business?.hours?.length > 0 && (
+                            <div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Opening Hours</p>
+                                {business.hours.map(h => {
+                                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                                    return (
+                                        <div key={h.id} className="flex justify-between text-xs text-gray-700 dark:text-gray-300">
+                                            <span>{dayNames[h.day_of_week]}</span>
+                                            <span>{h.is_closed ? 'Closed' : `${h.opens_at?.slice(0, 5)} - ${h.closes_at?.slice(0, 5)}`}</span>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
@@ -388,25 +525,6 @@ export default function BusinessHomePage() {
 
 function SectionTitle({ children }: { children: ReactNode }) {
     return <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{children}</h2>
-}
-
-function KpiCard({ label, kpi }: { label: string; kpi: HomeKpiCard }) {
-    return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-            <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={kpi.icon} />
-                    </svg>
-                </div>
-                <span className={`text-[11px] font-semibold ${kpi.trend === 'up' ? 'text-emerald-600' : kpi.trend === 'down' ? 'text-red-500' : 'text-gray-500'}`}>
-                    {kpi.change}
-                </span>
-            </div>
-            <p className="text-xl font-bold text-gray-900 dark:text-white mt-3">{kpi.value}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
-        </div>
-    )
 }
 
 function ActivityIcon({ type }: { type: string }) {

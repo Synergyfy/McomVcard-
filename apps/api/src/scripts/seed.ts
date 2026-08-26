@@ -28,91 +28,9 @@ const DEFAULT_CATEGORIES = [
   { name: 'Other', description: 'Anything else' },
 ]
 
-const DEFAULT_TEMPLATES = [
-  {
-    name: 'Minimal',
-    slug: 'minimal',
-    path: '/templates/minimal',
-    previewUrl: null,
-    category: 'Business',
-    status: 'published',
-    isBusiness: true,
-    isConsumer: true,
-    fontFamily: 'Inter',
-    primaryColor: '#1e293b',
-    secondaryColor: '#94a3b8',
-    buttonStyle: 'rounded',
-    logoPosition: 'center',
-    bgStyle: 'plain',
-    sections: { wallet: false, rewards: false, services: true, appointments: false },
-  },
-  {
-    name: 'Modern',
-    slug: 'modern',
-    path: '/templates/modern',
-    previewUrl: null,
-    category: 'Consumer',
-    status: 'published',
-    isBusiness: true,
-    isConsumer: true,
-    fontFamily: 'Poppins',
-    primaryColor: '#0f172a',
-    secondaryColor: '#f59e0b',
-    buttonStyle: 'pill',
-    logoPosition: 'left',
-    bgStyle: 'gradient',
-    sections: { wallet: true, rewards: true, services: true, appointments: true },
-  },
-  {
-    name: 'Bold',
-    slug: 'bold',
-    path: '/templates/bold',
-    previewUrl: null,
-    category: 'Consumer',
-    status: 'published',
-    isBusiness: false,
-    isConsumer: true,
-    fontFamily: 'Space Grotesk',
-    primaryColor: '#111827',
-    secondaryColor: '#ef4444',
-    buttonStyle: 'sharp',
-    logoPosition: 'top',
-    bgStyle: 'pattern',
-    sections: { wallet: false, rewards: false, services: false, appointments: false },
-  },
-]
+const DEFAULT_TEMPLATES: Array<Record<string, unknown>> = []
 
-const DEFAULT_TEMPLATE_FIELDS: Record<string, Array<Record<string, unknown>>> = {
-  minimal: [
-    { fieldKey: 'display_name', label: 'Name', fieldType: 'text', isEditable: true, isRequired: true, displayOrder: 1 },
-    { fieldKey: 'job_title', label: 'Job title', fieldType: 'text', isEditable: true, isRequired: false, displayOrder: 2 },
-    { fieldKey: 'bio', label: 'Bio', fieldType: 'textarea', isEditable: true, isRequired: false, displayOrder: 3 },
-    { fieldKey: 'email', label: 'Email', fieldType: 'email', isEditable: true, isRequired: false, displayOrder: 4 },
-    { fieldKey: 'phone', label: 'Phone', fieldType: 'phone', isEditable: true, isRequired: false, displayOrder: 5 },
-    { fieldKey: 'social_links', label: 'Social links', fieldType: 'social', isEditable: true, isRequired: false, displayOrder: 6 },
-  ],
-  modern: [
-    { fieldKey: 'display_name', label: 'Name', fieldType: 'text', isEditable: true, isRequired: true, displayOrder: 1 },
-    { fieldKey: 'job_title', label: 'Job title', fieldType: 'text', isEditable: true, isRequired: false, displayOrder: 2 },
-    { fieldKey: 'bio', label: 'Bio', fieldType: 'textarea', isEditable: true, isRequired: false, displayOrder: 3 },
-    { fieldKey: 'email', label: 'Email', fieldType: 'email', isEditable: true, isRequired: false, displayOrder: 4 },
-    { fieldKey: 'phone', label: 'Phone', fieldType: 'phone', isEditable: true, isRequired: false, displayOrder: 5 },
-    { fieldKey: 'location', label: 'Location', fieldType: 'text', isEditable: true, isRequired: false, displayOrder: 6 },
-    { fieldKey: 'website', label: 'Website', fieldType: 'url', isEditable: true, isRequired: false, displayOrder: 7 },
-    { fieldKey: 'cover_image', label: 'Cover image', fieldType: 'image', isEditable: true, isRequired: false, displayOrder: 8 },
-    { fieldKey: 'primary_color', label: 'Primary color', fieldType: 'color', isEditable: true, isRequired: false, displayOrder: 9 },
-    { fieldKey: 'secondary_color', label: 'Secondary color', fieldType: 'color', isEditable: true, isRequired: false, displayOrder: 10 },
-    { fieldKey: 'social_links', label: 'Social links', fieldType: 'social', isEditable: true, isRequired: false, displayOrder: 11 },
-  ],
-  bold: [
-    { fieldKey: 'display_name', label: 'Name', fieldType: 'text', isEditable: true, isRequired: true, displayOrder: 1 },
-    { fieldKey: 'bio', label: 'Bio', fieldType: 'textarea', isEditable: true, isRequired: false, displayOrder: 2 },
-    { fieldKey: 'cover_image', label: 'Cover image', fieldType: 'image', isEditable: true, isRequired: false, displayOrder: 3 },
-    { fieldKey: 'font', label: 'Font', fieldType: 'font', isEditable: true, isRequired: false, displayOrder: 4 },
-    { fieldKey: 'primary_color', label: 'Primary color', fieldType: 'color', isEditable: true, isRequired: false, displayOrder: 5 },
-    { fieldKey: 'social_links', label: 'Social links', fieldType: 'social', isEditable: true, isRequired: false, displayOrder: 6 },
-  ],
-}
+const DEFAULT_TEMPLATE_FIELDS: Record<string, Array<Record<string, unknown>>> = {}
 
 async function seed() {
   await appDataSource.initialize()
@@ -133,27 +51,8 @@ async function seed() {
     }
 
     // Upsert default templates + their fields (idempotent by template slug)
-    for (const templateData of DEFAULT_TEMPLATES) {
-      await queryRunner.manager.upsert(Template, templateData, ['slug'])
-      const template = await queryRunner.manager.findOneBy(Template, { slug: templateData.slug })
-
-      const fields = DEFAULT_TEMPLATE_FIELDS[templateData.slug] ?? []
-      for (const fieldData of fields) {
-        const existing = await queryRunner.manager.findOneBy(TemplateField, {
-          templateId: template.id,
-          fieldKey: fieldData.fieldKey as string,
-        })
-
-        if (!existing) {
-          await queryRunner.manager.save(
-            queryRunner.manager.create(TemplateField, {
-              templateId: template.id,
-              ...fieldData,
-            }),
-          )
-        }
-      }
-    }
+    // No default templates — templates are created by Admin at runtime.
+    // This section is intentionally left empty.
 
     const adminRole = await queryRunner.manager.findOneBy(Role, { name: 'ADMIN' })
 

@@ -21,7 +21,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 function getStoredUser(): User | null {
   try {
     const raw = localStorage.getItem('auth_user')
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Map backend first_name/last_name to single name field if needed
+    if (!parsed.name && (parsed.first_name || parsed.last_name)) {
+      parsed.name = [parsed.first_name, parsed.last_name].filter(Boolean).join(' ') || parsed.email
+    }
+    return parsed
   } catch {
     return null
   }
@@ -35,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user
 
   const setStoredUser = useCallback((u: User | null) => {
+    // Map backend first_name/last_name to single name field if needed
+    if (u && !u.name && (u as any).first_name || (u as any).last_name) {
+      u.name = [(u as any).first_name, (u as any).last_name].filter(Boolean).join(' ') || u.email
+    }
     setUser(u)
     if (u) {
       localStorage.setItem('auth_user', JSON.stringify(u))

@@ -27,6 +27,10 @@ import { CampaignsModule } from './modules/campaigns/campaigns.module'
 import { ReviewsModule } from './modules/reviews/reviews.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { MediaModule } from './modules/media/media.module'
+import { DashboardModule } from './modules/dashboard/dashboard.module'
+import { ActivityModule } from './modules/activity/activity.module'
+import { AnalyticsModule } from './modules/analytics/analytics.module'
+import { CustomersModule } from './modules/customers/customers.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -68,6 +72,10 @@ import { APP_GUARD } from '@nestjs/core'
     ReviewsModule,
     NotificationsModule,
     MediaModule,
+    DashboardModule,
+    ActivityModule,
+    AnalyticsModule,
+    CustomersModule,
   ],
   controllers: [],
   providers: [

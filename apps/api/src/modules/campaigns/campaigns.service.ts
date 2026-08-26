@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { Campaign, CampaignStatus, CampaignType } from './entities/campaign.entity'
 import { Offer } from './entities/offer.entity'
 import { Coupon, CouponStatus } from './entities/coupon.entity'
+import { CampaignTemplate } from './entities/campaign-template.entity'
 import { BusinessesService } from '../businesses/businesses.service'
 import {
   CreateCampaignDto,
@@ -18,6 +19,7 @@ import {
   OfferResponseDto,
   CouponResponseDto,
   CouponRedemptionResponseDto,
+  CampaignTemplateResponseDto,
 } from './dto/campaign-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
@@ -31,6 +33,7 @@ export class CampaignsService {
     @InjectRepository(Campaign) private campaignsRepo: Repository<Campaign>,
     @InjectRepository(Offer) private offersRepo: Repository<Offer>,
     @InjectRepository(Coupon) private couponsRepo: Repository<Coupon>,
+    @InjectRepository(CampaignTemplate) private templatesRepo: Repository<CampaignTemplate>,
     private readonly businessesService: BusinessesService,
   ) {}
 
@@ -287,6 +290,30 @@ export class CampaignsService {
     if (!campaign) throw new NotFoundException('Campaign not found')
 
     return campaign
+  }
+
+  // --- Campaign Templates ---
+
+  async listTemplates() {
+    const templates = await this.templatesRepo.find({ order: { createdAt: 'ASC' } })
+    return ApiResponse.success(templates.map(CampaignTemplateResponseDto.fromEntity), 'Campaign templates retrieved', 200)
+  }
+
+  async getTemplate(id: string) {
+    const template = await this.templatesRepo.findOne({ where: { id } })
+    if (!template) throw new NotFoundException('Campaign template not found')
+    return ApiResponse.success(CampaignTemplateResponseDto.fromEntity(template), 'Campaign template retrieved', 200)
+  }
+
+  async createTemplate(name: string, type?: string, description?: string, suggestedReward?: string) {
+    const template = this.templatesRepo.create({
+      name,
+      type: type ?? 'Evergreen',
+      description: description ?? null,
+      suggestedReward: suggestedReward ?? null,
+    })
+    const saved = await this.templatesRepo.save(template)
+    return ApiResponse.success(CampaignTemplateResponseDto.fromEntity(saved), 'Campaign template created', 201)
   }
 
   private async findOwnedCampaign(ownerId: string, id: string): Promise<Campaign> {

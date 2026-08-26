@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsIn, IsObject, IsOptional, IsString, MinLength } from 'class-validator'
+import { IsArray, IsBoolean, IsDateString, IsIn, IsObject, IsOptional, IsString, MinLength } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateCardAccessDto {
@@ -13,10 +13,21 @@ export class CreateCardAccessDto {
   @MinLength(6)
   password?: string
 
+  @ApiPropertyOptional({ example: 'Password hint text', description: 'A hint shown to users when they try to access protected sections' })
+  @IsOptional()
+  @IsString()
+  hint?: string
+
   @ApiPropertyOptional({ example: { wallet: true, rewards: true } })
   @IsOptional()
   @IsObject()
   protected_sections?: Record<string, boolean>
+
+  @ApiPropertyOptional({ example: ['profile', 'wallet'], description: 'Array of section schema IDs that require password to view' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  protected_section_ids?: string[]
 
   @ApiPropertyOptional({ example: 'never', enum: ['never', 'until'], description: 'Access expiry policy' })
   @IsOptional()

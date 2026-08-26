@@ -17,6 +17,38 @@ import { UpdateBrandDto } from './dto/update-brand.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { slugify } from '../../lib/utils/slug.util'
 import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto } from './dto/business-response.dto'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { Card } from '../cards/entities/card.entity'
+
+/* Plan levels + per-tier limits, mirroring the default pricing catalogue
+   (membershipPricingStore defaults on the frontend). null = Unlimited. */
+const PLAN_LEVELS = ['Bronze', 'Silver', 'Gold', 'Platinum'] as const
+type PlanLevel = (typeof PLAN_LEVELS)[number]
+
+const PLAN_LIMIT_MATRIX: Record<PlanLevel, {
+  vcards: (number | null)[]
+  businessCards: (number | null)[]
+  friendsFamily: (number | null)[]
+  qrRoutingRules: (number | null)[]
+}> = {
+  Bronze:   { vcards: [10, 25, 50],       businessCards: [25, 50, 100],    friendsFamily: [10, 25, 50],    qrRoutingRules: [5, 10, 20] },
+  Silver:   { vcards: [20, 50, 100],      businessCards: [50, 100, 200],   friendsFamily: [25, 50, 100],   qrRoutingRules: [10, 25, 50] },
+  Gold:     { vcards: [50, 100, 200],     businessCards: [100, 250, 500],  friendsFamily: [50, 100, 200],  qrRoutingRules: [null, null, null] },
+  Platinum: { vcards: [null, null, null], businessCards: [null, null, null], friendsFamily: [100, 200, 400], qrRoutingRules: [null, null, null] },
+}
+
+function resolvePlanLevel(name: string): PlanLevel {
+  const lower = name.toLowerCase()
+  return PLAN_LEVELS.find(l => lower.includes(l.toLowerCase())) ?? 'Bronze'
+}
+
+function resolvePlanTier(name: string): 'Normal' | 'Pro' | 'Pro+' {
+  const lower = name.toLowerCase()
+  if (lower.includes('pro+')) return 'Pro+'
+  if (lower.includes('pro')) return 'Pro'
+  return 'Normal'
+}
 
 @Injectable()
 export class BusinessesService {
@@ -26,6 +58,9 @@ export class BusinessesService {
     @InjectRepository(BusinessLocation) private locationsRepo: Repository<BusinessLocation>,
     @InjectRepository(BusinessHour) private hoursRepo: Repository<BusinessHour>,
     @InjectRepository(Brand) private brandsRepo: Repository<Brand>,
+    @InjectRepository(Membership) private membershipsRepo: Repository<Membership>,
+    @InjectRepository(MembershipTier) private membershipTiersRepo: Repository<MembershipTier>,
+    @InjectRepository(Card) private cardsRepo: Repository<Card>,
   ) {}
 
   // --- Businesses ---
@@ -73,6 +108,62 @@ export class BusinessesService {
     }
 
     return business
+  }
+
+  // --- Permissions ---
+
+  /**
+   * Resolves the authenticated user's plan limits and current allocation.
+   * Plan level is derived from the latest membership's tier name; the
+   * limit matrix mirrors the default pricing catalogue. null = Unlimited.
+   */
+  async getPermissionsForUser(userId: string) {
+    const business = await this.businessesRepo.findOne({
+      where: { ownerId: userId },
+      order: { createdAt: 'DESC' },
+    })
+
+    const membership = await this.membershipsRepo.findOne({
+      where: { userId },
+      order: { startedAt: 'DESC' },
+      relations: { tier: true },
+    })
+    const tierName = membership?.tier?.name ?? ''
+    const planLevel = resolvePlanLevel(tierName)
+    const planTier = resolvePlanTier(tierName)
+    const tierIndex = planTier === 'Pro+' ? 2 : planTier === 'Pro' ? 1 : 0
+
+    const matrix = PLAN_LIMIT_MATRIX[planLevel]
+    const limits = {
+      vcards: matrix.vcards[tierIndex],
+      business_cards: matrix.businessCards[tierIndex],
+      friends_family: matrix.friendsFamily[tierIndex],
+      qr_routing_rules: matrix.qrRoutingRules[tierIndex],
+    }
+
+    const allocatedVcards = await this.cardsRepo.count({ where: { ownerId: userId } })
+    const allocatedBusinessCards = business
+      ? await this.cardsRepo.count({ where: { businessId: business.id, type: 'BUSINESS' } })
+      : 0
+
+    const remaining = (limit: number | null, used: number) => (limit === null ? null : Math.max(0, limit - used))
+
+    return ApiResponse.success({
+      business: business ? { id: business.id, name: business.name } : null,
+      has_membership: !!membership,
+      tier_name: tierName || null,
+      plan_level: planLevel,
+      plan_tier: planTier,
+      limits,
+      allocated: {
+        vcards: allocatedVcards,
+        business_cards: allocatedBusinessCards,
+      },
+      remaining: {
+        vcards: remaining(limits.vcards, allocatedVcards),
+        business_cards: remaining(limits.business_cards, allocatedBusinessCards),
+      },
+    }, 'Business permissions retrieved', 200)
   }
 
   async findBySlug(slug: string) {

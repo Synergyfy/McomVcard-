@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
@@ -6,12 +6,80 @@ import Badge from '../../components/business/primitives/Badge'
 import EmptyState from '../../components/business/states/EmptyState'
 import ActionDropdown from '../../components/common/ActionDropdown'
 import ScrollingVCard, { type ScrollingVCardHandle } from '../../components/common/ScrollingVCard'
-import { getBusinessPermissions, getVCardById, getAllAssignedVCards, mockBusinessProfile } from '../../services/businessStore'
-import { getVCardEditorContent, buildBusinessCentres } from '../../services/businessVCardEditorStore'
-import { loadUserTemplatesByType, type StoredSection } from '../../services/vcardTemplateStore'
-import { MOCK, toBizTemplate, templateSeason, templateSectors, templateCustomization, type BizVCardTemplate } from '../admin/card-management/BusinessVCardTemplatesPage'
-import { buildPublishedSections } from '../admin/card-management/BusinessVCardWorkspace'
+import { buildBusinessCentres, BIZ_SECTION_CENTRES, type BizSectionState } from '../../services/businessVCardEditorStore'
 import ClaimTemplateModal from './vcard/ClaimTemplateModal'
+import { businessService, type VCard as ApiVCard, type Template as ApiTemplate, type BusinessPermissions } from '../../services/businessApi'
+import type { AssignedVCard } from '../../types/business'
+
+/* Map API card sections onto the BizSectionState shape used by the phone preview */
+function apiSectionsToBizStates(sections: ApiVCard['sections']): BizSectionState[] {
+    return sections.map(s => {
+        const raw = (s.content ?? {}) as Record<string, unknown>
+        const values = (((raw.values ?? raw) as Record<string, string>) || {})
+        const items = (((raw.items ?? {}) as Record<string, Record<string, string>[]>) || {})
+        return {
+            uid: s.id,
+            schemaId: s.schema_id,
+            name: s.name,
+            enabled: s.enabled,
+            values,
+            items,
+            blocks: [],
+            locked: s.locked,
+            blocksAllowed: false,
+            centre: BIZ_SECTION_CENTRES[s.schema_id] ?? 'other',
+        }
+    })
+}
+
+/* Map API template to the BizVCardTemplate shape used by the template cards */
+function apiTemplateToBiz(t: ApiTemplate): BizVCardTemplate {
+    return {
+        id: t.id,
+        templateId: t.id,
+        name: t.name,
+        description: t.category ?? t.name,
+        category: t.category ?? 'General',
+        status: t.status === 'published' ? 'Published' : 'Draft',
+        membershipSupport: ['Gold', 'Silver', 'Bronze', 'Platinum'],
+        features: (t.sections ? Object.keys(t.sections) : []).slice(0, 5),
+        version: 1,
+        businessesUsing: t.usage ?? 0,
+        customization: { logo: true, banner: true, colors: true, font: false, layout: false },
+    }
+}
+
+type BizVCardTemplate = {
+    id: string
+    templateId: string
+    name: string
+    description: string
+    category: string
+    status: string
+    membershipSupport: string[]
+    features: string[]
+    version: number
+    businessesUsing: number
+    customization: { logo: boolean; banner: boolean; colors: boolean; font: boolean; layout: boolean }
+}
+
+function templateSeason(_t: BizVCardTemplate): string {
+    const m = new Date().getMonth() + 1
+    if (m >= 3 && m <= 5) return 'Spring'
+    if (m >= 6 && m <= 8) return 'Summer'
+    if (m >= 9 && m <= 11) return 'Autumn'
+    return 'Winter'
+}
+
+function templateSectors(t: BizVCardTemplate): string[] {
+    return [t.category]
+}
+
+function templateCustomization(t: BizVCardTemplate): string {
+    const c = t.customization
+    const count = [c.logo, c.banner, c.colors, c.font, c.layout].filter(Boolean).length
+    return `${count}/5`
+}
 
 const STATUSES = ['all', 'active', 'needs_update', 'locked']
 const TYPES = ['All', 'Business VCard', 'Retail VCard', 'Seasonal VCard', 'International VCard']
@@ -36,8 +104,12 @@ function VCardThumb({ gradient }: { gradient: string }) {
 
 export default function VCardsPage() {
     const navigate = useNavigate()
-    const perms = getBusinessPermissions()
-    const limit = perms.limits.businessVCards
+    const [perms, setPerms] = useState<BusinessPermissions | null>(null)
+
+    useEffect(() => {
+        businessService.getBusinessPermissions().then(setPerms).catch(() => {})
+    }, [])
+    const limit = perms?.limits.vcards ?? null
 
     const [mainTab, setMainTab] = useState<'vcards' | 'templates'>('vcards')
     const [search, setSearch] = useState('')
@@ -50,9 +122,53 @@ export default function VCardsPage() {
     const [scrollActive, setScrollActive] = useState(false)
     const scrollRef = useRef<ScrollingVCardHandle>(null)
 
-    const all = useMemo(() => getAllAssignedVCards(), [])
+    /* ── Fetch real cards from API ── */
+    const [apiCards, setApiCards] = useState<ApiVCard[]>([])
+
+    useEffect(() => {
+        let cancelled = false
+        const load = async () => {
+            try {
+                const businesses = await businessService.getMyBusinesses()
+                if (cancelled) return
+                if (businesses.length > 0) {
+                    const cards = await businessService.getVCardsByBusiness(businesses[0].id)
+                    if (!cancelled) setApiCards(cards)
+                } else {
+                    const cards = await businessService.getMyVCards()
+                    if (!cancelled) setApiCards(cards)
+                }
+            } catch {
+                // API unavailable — show empty state
+            }
+        }
+        load()
+        return () => { cancelled = true }
+    }, [])
+
+    /* Map API cards to AssignedVCard format */
+    const all = useMemo(() => {
+        return apiCards.map(c => ({
+            id: parseInt(c.id.slice(0, 8), 16) || 0,
+            name: c.name || c.slug || 'Untitled',
+            type: c.type === 'BUSINESS' ? 'Business VCard' : c.type === 'PERSONAL' ? 'Personal VCard' : c.type,
+            category: c.category || 'General',
+            description: c.description || '',
+            status: c.status === 'active' ? 'active' : c.status === 'suspended' ? 'locked' : 'needs_update',
+            assignedAt: c.assigned_at ? new Date(c.assigned_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+            lastAdminUpdate: c.last_admin_update ? new Date(c.last_admin_update).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+            urlSlug: c.url_slug || c.slug,
+            views: c.views ?? 0,
+            shares: c.shares ?? 0,
+            scans: c.scans ?? 0,
+            previewColor: c.customization?.primary_color || '#F97316',
+            previewGradient: 'from-orange-500 to-amber-500',
+            sections: (c.sections ?? []).map(s => s.name || s.schema_id),
+            _apiId: c.id,
+        } as AssignedVCard & { _apiId?: string }))
+    }, [apiCards])
     const used = all.length
-    const remaining = limit === null || limit === Infinity ? 'Unlimited' : Math.max(0, limit - used)
+    const remaining = limit === null ? 'Unlimited' : Math.max(0, limit - used)
 
     const filtered = useMemo(() => {
         return all.filter(v => {
@@ -72,13 +188,27 @@ export default function VCardsPage() {
         })
     }, [all, search, statusFilter, typeFilter])
 
+    /* ── Fetch business membership for template eligibility ── */
+    const [membershipTier, setMembershipTier] = useState('Gold')
+    useEffect(() => {
+        businessService.getMyMemberships().then(m => {
+            if (m.length > 0 && m[0].tier) {
+                setMembershipTier(m[0].tier.name)
+            }
+        }).catch(() => {})
+    }, [])
+
+    /* ── Fetch templates from API ── */
+    const [apiTemplates, setApiTemplates] = useState<BizVCardTemplate[]>([])
+    useEffect(() => {
+        businessService.listTemplates().then(t => {
+            setApiTemplates(t.filter(t => t.is_business).map(apiTemplateToBiz))
+        }).catch(() => {})
+    }, [])
+
     /* ── Templates available to claim from Admin ── */
-    const stored = loadUserTemplatesByType('business')
-    const allTemplates: BizVCardTemplate[] = [
-        ...MOCK.filter(m => !stored.some(s => s.templateId === m.templateId)),
-        ...stored.map(toBizTemplate),
-    ]
-    const businessPlanNames = [mockBusinessProfile.membership]
+    const allTemplates = apiTemplates
+    const businessPlanNames = [membershipTier]
     const isEligible = (t: BizVCardTemplate) =>
         t.membershipSupport.some(m => businessPlanNames.some(b => m.toLowerCase().startsWith(b.toLowerCase())))
     const publishedTemplates = useMemo(() => allTemplates.filter(t => t.status === 'Published'), [allTemplates])
@@ -93,8 +223,7 @@ export default function VCardsPage() {
     }), [publishedTemplates, search, categoryFilter])
 
     const sectionsFor = (t: BizVCardTemplate) => {
-        const s = stored.find(x => x.id === t.id) ?? stored.find(x => x.templateId === t.templateId)
-        return s ? (s.builder.sections as unknown as StoredSection[]) : (buildPublishedSections(t) as unknown as StoredSection[])
+        return t.features.map(f => ({ uid: f, schemaId: f, name: f, enabled: true, locked: true, values: {}, items: {}, blocks: [], blocksAllowed: false }))
     }
 
     const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
@@ -113,7 +242,12 @@ export default function VCardsPage() {
         shares: all.reduce((s, v) => s + v.shares, 0),
     }
 
-    const previewVCard = previewId !== null ? getVCardById(previewId) : undefined
+    const previewVCard = previewId !== null ? all.find(v => v.id === previewId) ?? null : null
+    const previewBizSections = useMemo(() => {
+        if (!previewVCard) return []
+        const raw = apiCards.find(c => c.id === (previewVCard as { _apiId?: string })._apiId)
+        return apiSectionsToBizStates(raw?.sections ?? [])
+    }, [previewVCard, apiCards])
     const atLimit = limit !== null && limit !== Infinity && used >= limit
 
     return (
@@ -132,8 +266,12 @@ export default function VCardsPage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400">Long-scrolling digital profiles assigned to your business by Admin — or claim one from the template library. Structure is fixed; you can edit approved content.</p>
                         <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
                             <span>{used} assigned · {remaining} remaining</span>
-                            <span>·</span>
-                            <span>{perms.planLevel} {perms.tier} plan</span>
+                            {perms && (
+                                <>
+                                    <span>·</span>
+                                    <span>{perms.plan_level} {perms.plan_tier !== 'Normal' ? perms.plan_tier : ''} plan</span>
+                                </>
+                            )}
                         </div>
                     </div>
                     <button
@@ -178,7 +316,7 @@ export default function VCardsPage() {
                     </div>
                     <div className="p-2.5">
                         <p className="text-[10px] text-gray-400">Allocation</p>
-                        <p className="text-lg font-bold text-orange-600">{used} / {limit === null || limit === Infinity ? '∞' : limit}</p>
+                        <p className="text-lg font-bold text-orange-600">{used} / {limit === null ? '∞' : limit}</p>
                     </div>
                 </div>
             </div>
@@ -492,7 +630,7 @@ export default function VCardsPage() {
                             </div>
                         </div>
                         <div className="flex items-start justify-center bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 py-8">
-                            <ScrollingVCard ref={scrollRef} sections={getVCardEditorContent(previewVCard.id)} centres={buildBusinessCentres(getVCardEditorContent(previewVCard.id))} heightClass="h-[62vh]" widthClass="w-[280px] sm:w-[300px]" onStateChange={setScrollActive} />
+                            <ScrollingVCard ref={scrollRef} sections={previewBizSections} centres={buildBusinessCentres(previewBizSections)} heightClass="h-[62vh]" widthClass="w-[280px] sm:w-[300px]" onStateChange={setScrollActive} />
                         </div>
                         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-gray-700">
                             <span className="text-[10px] text-gray-400">{previewVCard.sections.length} sections · {previewVCard.views.toLocaleString()} views</span>

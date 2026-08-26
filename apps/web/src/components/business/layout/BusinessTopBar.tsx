@@ -2,14 +2,34 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ThemeToggle from '../../common/ThemeToggle'
 import { useAuth } from '../../../contexts/AuthContext'
-import { mockBusinessProfile } from '../../../services/businessStore'
+import { businessService, type Business, type Membership } from '../../../services/businessApi'
 import Logo from '../../common/Logo'
 
 export default function BusinessTopBar() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const [open, setOpen] = useState(false)
+    const [business, setBusiness] = useState<Business | null>(null)
+    const [membership, setMembership] = useState<Membership | null>(null)
     const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const businesses = await businessService.getMyBusinesses()
+                if (businesses.length > 0) {
+                    const detailed = await businessService.getBusiness(businesses[0].id)
+                    setBusiness(detailed)
+                }
+                const memberships = await businessService.getMyMemberships()
+                const active = memberships.find(m => m.status === 'active')
+                if (active) setMembership(active)
+            } catch {
+                // stay with null — fallback initials will be used
+            }
+        }
+        load()
+    }, [])
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -23,6 +43,13 @@ export default function BusinessTopBar() {
         await logout()
         navigate('/login')
     }
+
+    const displayName = business?.name || 'Your Business'
+    const userName = user?.name || user?.email || 'User'
+    const userEmail = user?.email || ''
+    const initial = displayName.charAt(0).toUpperCase()
+    const userInitial = userName.charAt(0).toUpperCase()
+    const tierName = membership?.tier?.name || 'Member'
 
     return (
         <header className="sticky top-0 z-30 h-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 shrink-0">
@@ -39,7 +66,7 @@ export default function BusinessTopBar() {
                     Business
                 </span>
                 {/* Page identity on larger screens */}
-                <p className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">{mockBusinessProfile.name}</p>
+                <p className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">{displayName}</p>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
@@ -61,11 +88,11 @@ export default function BusinessTopBar() {
                         aria-label="Account menu"
                     >
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                            {user?.name?.charAt(0).toUpperCase() || mockBusinessProfile.name.charAt(0)}
+                            {userInitial}
                         </div>
                         <div className="text-left hidden sm:block">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{user?.name || mockBusinessProfile.owner}</p>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{user?.email || mockBusinessProfile.email}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{userName}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{userEmail}</p>
                         </div>
                         <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -75,8 +102,8 @@ export default function BusinessTopBar() {
                     {open && (
                         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-xl py-2 z-50">
                             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name || mockBusinessProfile.owner}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || mockBusinessProfile.email}</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{userName}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{userEmail}</p>
                                 <Link
                                     to="/b/membership"
                                     onClick={() => setOpen(false)}
@@ -84,7 +111,7 @@ export default function BusinessTopBar() {
                                 >
                                     <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                                     <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                        {mockBusinessProfile.membership} · {mockBusinessProfile.tier}
+                                        {tierName}
                                     </span>
                                 </Link>
                             </div>

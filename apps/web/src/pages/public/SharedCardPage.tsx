@@ -8,6 +8,7 @@ import SharedCardView from '../../components/public/SharedCardView'
 import ConsumerWelcomeGate from '../../components/consumer/ConsumerWelcomeGate'
 import { useAuth } from '../../contexts/AuthContext'
 import { consumerService } from '../../services/consumer'
+import { businessService } from '../../services/businessApi'
 
 export default function SharedCardPage() {
     const { cardId } = useParams()
@@ -26,6 +27,14 @@ export default function SharedCardPage() {
         if (cardId) {
             cardProtectionService.getState(cardId).then(setProtection)
         }
+    }, [cardId])
+
+    // Track public view / scan (?src=qr marks QR-scan arrivals). Best-effort.
+    const trackSrc = searchParams.get('src')
+    useEffect(() => {
+        if (!cardId || isClaim) return
+        businessService.trackCardEvent(cardId, trackSrc === 'qr' ? 'scan' : 'view')
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cardId])
 
     // Claim flow: an authenticated consumer arriving from a business/card link
