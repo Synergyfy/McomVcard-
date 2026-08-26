@@ -1,31 +1,56 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockCampaigns, type RewardCampaign } from '../../../services/businessDashboardStore'
+import { businessService, type Campaign, type CampaignTemplate } from '../../../services/businessApi'
 
-interface AvailableCampaign {
-    name: string
-    type: string
-    description: string
-}
-
-const AVAILABLE_CAMPAIGNS: AvailableCampaign[] = [
-    { name: 'Spring Expo Promo', type: 'Seasonal', description: 'Seasonal push timed to the Spring Expo — drive footfall and limited-time offers.' },
-    { name: 'Loyalty Boost', type: 'Evergreen', description: 'Always-on points boost to keep customers coming back all year round.' },
-    { name: 'Referral Rewards', type: 'Referral', description: 'Reward customers who bring friends into your business.' },
-]
-
-function budgetPct(c: RewardCampaign): number {
-    const b = parseInt(c.budget.replace(/[^0-9]/g, ''), 10) || 0
-    const r = parseInt(c.remaining.replace(/[^0-9]/g, ''), 10) || 0
-    if (b <= 0) return 0
-    return Math.min(100, Math.round(((b - r) / b) * 100))
+function fmtDate(iso: string | null | undefined): string {
+    if (!iso) return '—'
+    try {
+        return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    } catch {
+        return '—'
+    }
 }
 
 export default function CampaignsPage() {
     const navigate = useNavigate()
+    const [campaigns, setCampaigns] = useState<Campaign[]>([])
+    const [templates, setTemplates] = useState<CampaignTemplate[]>([])
+    const [loading, setLoading] = useState(true)
     const [activated, setActivated] = useState<string[]>([])
+
+    useEffect(() => {
+        let cancelled = false
+        const load = async () => {
+            setLoading(true)
+            try {
+                const [c, t] = await Promise.all([
+                    businessService.getCampaigns(),
+                    businessService.getCampaignTemplates(),
+                ])
+                if (!cancelled) {
+                    setCampaigns(c)
+                    setTemplates(t)
+                }
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+        load()
+        return () => { cancelled = true }
+    }, [])
+
+    const handleToggleStatus = async (c: Campaign) => {
+        const newStatus = c.status === 'active' ? 'paused' : 'active'
+        const updated = await businessService.updateCampaign(c.id, { status: newStatus })
+        if (!updated) {
+            toast.error('Could not update campaign')
+            return
+        }
+        setCampaigns((prev) => prev.map((x) => x.id === c.id ? { ...x, status: newStatus as Campaign['status'] } : x))
+        toast.success(`Campaign ${newStatus === 'active' ? 'activated' : 'paused'}`)
+    }
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -41,108 +66,86 @@ export default function CampaignsPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Campaigns</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Launch and manage promotions your customers will love.</p>
                 </div>
-                <button className="shrink-0 px-4 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white text-sm font-bold shadow-md">
-                    New Campaign
-                </button>
             </div>
 
-            <div className="space-y-3">
-                {mockCampaigns.map((c) => (
-                    <div key={c.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white">{c.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.type} · {c.redemptions} redemptions</p>
+            {loading ? (
+                <div className="p-8 text-center text-sm text-gray-400">Loading…</div>
+            ) : campaigns.length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-8 text-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No campaigns yet. Create one below.</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {campaigns.map((c) => (
+                        <div key={c.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{c.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.type}{c.description ? ` · ${c.description}` : ''}</p>
+                                </div>
+                                <StatusPill status={c.status} />
                             </div>
-                            <StatusPill status={c.status} />
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
-                                <p className="text-[11px] font-semibold text-gray-400">Participation</p>
-                                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{c.participants} customers</p>
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                                <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+                                    <p className="text-[11px] font-semibold text-gray-400">Budget</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{c.budget ? `£${c.budget}` : 'Not set'}</p>
+                                </div>
+                                <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+                                    <p className="text-[11px] font-semibold text-gray-400">Duration</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{fmtDate(c.starts_at)} – {fmtDate(c.ends_at)}</p>
+                                </div>
                             </div>
-                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
-                                <p className="text-[11px] font-semibold text-gray-400">Campaign reward</p>
-                                <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{c.reward}</p>
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
-                                <span className="text-xs text-gray-500">Reached</span>
-                                <span className="text-xs font-semibold text-gray-900 dark:text-white">{c.performance.impressions.toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
-                                <span className="text-xs text-gray-500">Converted</span>
-                                <span className="text-xs font-semibold text-gray-900 dark:text-white">{c.performance.conversions.toLocaleString()}</span>
+                            <div className="flex gap-2 mt-3">
+                                {c.status === 'paused' && <button onClick={() => handleToggleStatus(c)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 text-white text-xs font-bold">Resume</button>}
+                                {c.status === 'active' && <button onClick={() => handleToggleStatus(c)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-amber-500 text-white text-xs font-bold">Pause</button>}
+                                {(c.status === 'draft' || c.status === 'ended') && <button onClick={() => handleToggleStatus(c)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 text-white text-xs font-bold">Activate</button>}
                             </div>
                         </div>
-
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                            <span className="text-xs text-gray-500">Budget used</span>
-                            <span className="text-xs font-semibold text-gray-900 dark:text-white">{c.budget} · {c.remaining} left</span>
-                        </div>
-                        <div className="mt-2 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                            <div className="h-full bg-orange-500 rounded-full" style={{ width: `${budgetPct(c)}%` }} />
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/40">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6v6m-9 3l9-9" />
-                                </svg>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.link}</span>
-                            </div>
-                            <button
-                                onClick={() => { navigator.clipboard?.writeText(`https://${c.link}`); toast.success('Campaign link copied') }}
-                                className="shrink-0 text-xs font-semibold text-orange-600 dark:text-orange-400"
-                            >
-                                Copy link
-                            </button>
-                        </div>
-
-                        <div className="flex gap-2 mt-3">
-                            {c.status === 'paused' && <button className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 text-white text-xs font-bold">Resume</button>}
-                            {c.status === 'active' && <button className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-amber-500 text-white text-xs font-bold">Pause</button>}
-                            <button onClick={() => navigate('/b/analytics')} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold">View Analytics</button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             <div>
-                <h2 className="text-base font-bold text-gray-900 dark:text-white">Available campaigns</h2>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">Available campaign templates</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-2">Curated templates — activate the ones that fit your business.</p>
-                <div className="space-y-3">
-                    {AVAILABLE_CAMPAIGNS.map((a) => {
-                        const isActive = activated.includes(a.name)
-                        return (
-                            <div key={a.name} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{a.name}</p>
-                                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${a.type === 'Seasonal' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600'}`}>{a.type}</span>
+                {templates.length === 0 ? (
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-200 dark:border-gray-600 p-6 text-center">
+                        <p className="text-xs text-gray-400">No templates available yet.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {templates.map((t) => {
+                            const isActive = activated.includes(t.id)
+                            return (
+                                <div key={t.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{t.name}</p>
+                                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${t.type === 'Seasonal' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600'}`}>{t.type}</span>
+                                    </div>
+                                    {t.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.description}</p>}
+                                    {t.suggested_reward && <p className="text-[11px] text-orange-500 mt-1">Reward: {t.suggested_reward}</p>}
+                                    <button
+                                        onClick={() => {
+                                            if (isActive) return
+                                            setActivated([...activated, t.id])
+                                            toast.success(`${t.name} activated`)
+                                        }}
+                                        disabled={isActive}
+                                        className={`mt-3 w-full py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-colors ${
+                                            isActive
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                                : 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md hover:opacity-95'
+                                        }`}
+                                    >
+                                        {isActive ? 'Activated' : 'Activate'}
+                                    </button>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{a.description}</p>
-                                <button
-                                    onClick={() => {
-                                        if (isActive) return
-                                        setActivated([...activated, a.name])
-                                        toast.success(`${a.name} activated`)
-                                    }}
-                                    disabled={isActive}
-                                    className={`mt-3 w-full py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-colors ${
-                                        isActive
-                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                            : 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md hover:opacity-95'
-                                    }`}
-                                >
-                                    {isActive ? 'Activated' : 'Activate'}
-                                </button>
-                            </div>
-                        )
-                    })}
-                </div>
+                            )
+                        })}
+                    </div>
+                )}
             </div>
 
             <button
@@ -156,7 +159,7 @@ export default function CampaignsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">MCOM Campaigns</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Campaign creation and promotion run on the MCOM platform. Connect to build seasonal and evergreen campaigns into events and Expos.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Campaign creation and promotion run on the MCOM platform.</p>
                 </div>
                 <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600">
                     Coming soon
@@ -171,11 +174,12 @@ export default function CampaignsPage() {
     )
 }
 
-function StatusPill({ status }: { status: 'active' | 'paused' | 'ended' }) {
-    const styles = {
+function StatusPill({ status }: { status: string }) {
+    const styles: Record<string, string> = {
         active: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600',
+        draft: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600',
         paused: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600',
         ended: 'bg-gray-100 dark:bg-gray-700 text-gray-500',
     }
-    return <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${styles[status]}`}>{status}</span>
+    return <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${styles[status] ?? styles.draft}`}>{status}</span>
 }

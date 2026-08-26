@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Campaign, CampaignStatus, CampaignType } from '../entities/campaign.entity'
 import { Offer, DiscountType } from '../entities/offer.entity'
 import { Coupon, CouponStatus } from '../entities/coupon.entity'
+import { CampaignTemplate } from '../entities/campaign-template.entity'
 
 const toIso = (d: Date | string | null): string | null =>
   d === null || d === undefined ? null : d instanceof Date ? d.toISOString() : (d as string)
@@ -202,6 +203,45 @@ export class CouponRedemptionResponseDto {
     dto.used_count = coupon.usedCount
     dto.accepted = true
 
+    return dto
+  }
+}
+
+export class CampaignTemplateResponseDto {
+  @ApiProperty({ example: 'a1b2c3d4-...' })
+  id!: string
+
+  @ApiProperty({ example: 'Spring Expo Promo' })
+  name!: string
+
+  @ApiProperty({ example: 'Seasonal' })
+  type!: string
+
+  @ApiProperty({ example: 'Seasonal push timed to the Spring Expo' })
+  description!: string | null
+
+  @ApiProperty({ example: 'Seasonal vouchers and limited-time discounts' })
+  suggested_reward!: string | null
+
+  @ApiProperty({ example: 'active' })
+  status!: string
+
+  @ApiProperty({ example: '2026-08-20T09:00:00.000Z' })
+  created_at!: string
+
+  @ApiProperty({ example: '2026-08-20T09:00:00.000Z' })
+  updated_at!: string
+
+  static fromEntity(t: CampaignTemplate): CampaignTemplateResponseDto {
+    const dto = new CampaignTemplateResponseDto()
+    dto.id = t.id
+    dto.name = t.name
+    dto.type = t.type
+    dto.description = t.description
+    dto.suggested_reward = t.suggestedReward
+    dto.status = t.status
+    dto.created_at = t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt
+    dto.updated_at = t.updatedAt instanceof Date ? t.updatedAt.toISOString() : t.updatedAt
     return dto
   }
 }

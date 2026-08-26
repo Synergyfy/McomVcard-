@@ -30,6 +30,7 @@ import {
   OfferResponseDto,
   CouponResponseDto,
   CouponRedemptionResponseDto,
+  CampaignTemplateResponseDto,
 } from './dto/campaign-response.dto'
 
 @ApiTags('campaigns')
@@ -74,6 +75,29 @@ export class CampaignsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   async listCampaignsForBusiness(@CurrentUser() user: UserResponseDto, @Param('businessId', new ParseUUIDPipe()) businessId: string) {
     return this.campaignsService.listCampaignsForBusiness(user, businessId)
+  }
+
+  // --- Campaign Templates (must come before :id routes) ---
+
+  @Get('templates')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List campaign templates', description: 'Returns all available campaign templates. Any authenticated user can read.' })
+  @ApiOkResponse({ description: 'Campaign templates', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(CampaignTemplateResponseDto) } } } }] } })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listTemplates() {
+    return this.campaignsService.listTemplates()
+  }
+
+  @Get('templates/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a campaign template' })
+  @ApiOkResponse({ description: 'Campaign template', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { $ref: getSchemaPath(CampaignTemplateResponseDto) } } }] } })
+  @ApiNotFoundResponse({ description: 'Campaign template not found' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async getTemplate(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.campaignsService.getTemplate(id)
   }
 
   @Get(':id')

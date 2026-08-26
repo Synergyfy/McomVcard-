@@ -19,8 +19,14 @@ export class CardAccess {
   @Column({ name: 'password_hash', nullable: true })
   passwordHash!: string | null
 
+  @Column({ name: 'hint', type: 'varchar', length: 200, nullable: true })
+  hint!: string | null
+
   @Column({ name: 'protected_sections', type: 'jsonb', nullable: true })
   protectedSections!: Record<string, boolean> | null
+
+  @Column({ name: 'protected_section_ids', type: 'jsonb', nullable: true })
+  protectedSectionIds!: string[] | null
 
   @Column({ name: 'access_expiry', default: 'never' })
   accessExpiry!: string

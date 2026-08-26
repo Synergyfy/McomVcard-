@@ -1,22 +1,48 @@
+import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { mockCustomers } from '../../../services/businessDashboardStore'
+import { businessService, type RewardTransaction, type RewardBalance } from '../../../services/businessApi'
 
-const statusStyles = {
-    available: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600',
-    pending: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600',
-    redeemed: 'bg-gray-100 dark:bg-gray-700 text-gray-500',
-} as const
+function fmtDate(iso: string): string {
+    try {
+        return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    } catch {
+        return iso
+    }
+}
 
 export default function RewardsIssuedPage() {
-    const rows = mockCustomers.flatMap((c) =>
-        c.rewards.map((r) => ({ ...r, customer: c.name, tier: c.tier }))
-    )
+    const [balance, setBalance] = useState<RewardBalance | null>(null)
+    const [transactions, setTransactions] = useState<RewardTransaction[]>([])
+    const [loading, setLoading] = useState(true)
 
+    useEffect(() => {
+        let cancelled = false
+        const load = async () => {
+            setLoading(true)
+            try {
+                const [b, txs] = await Promise.all([
+                    businessService.getRewardBalance(),
+                    businessService.getRewardTransactions(),
+                ])
+                if (!cancelled) {
+                    setBalance(b)
+                    setTransactions(txs)
+                }
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+        load()
+        return () => { cancelled = true }
+    }, [])
+
+    const earns = transactions.filter((t) => t.type === 'EARN')
+    const adjusts = transactions.filter((t) => t.type === 'ADJUST')
     const totals = {
-        issued: rows.length,
-        available: rows.filter(r => r.status === 'available').length,
-        pending: rows.filter(r => r.status === 'pending').length,
-        redeemed: rows.filter(r => r.status === 'redeemed').length,
+        issued: earns.length + adjusts.length,
+        totalEarned: earns.reduce((s, t) => s + t.amount, 0),
+        totalAdjusted: adjusts.reduce((s, t) => s + t.amount, 0),
+        currentBalance: balance?.balance ?? 0,
     }
 
     return (
@@ -30,31 +56,45 @@ export default function RewardsIssuedPage() {
 
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Rewards Issued</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Every reward your business has given to customers.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Points and adjustments your business has given out.</p>
             </div>
 
-            <div className="grid grid-cols-4 gap-3">
-                <IssueStat label="Issued" value={String(totals.issued)} />
-                <IssueStat label="Available" value={String(totals.available)} className="text-emerald-600" />
-                <IssueStat label="Pending" value={String(totals.pending)} className="text-amber-600" />
-                <IssueStat label="Redeemed" value={String(totals.redeemed)} className="text-gray-400" />
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
-                {rows.map((r, i) => (
-                    <div key={i} className="p-4 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{r.label}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.customer} · {r.tier} · {r.value}</p>
-                        </div>
-                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize ${statusStyles[r.status]}`}>{r.status}</span>
+            {loading ? (
+                <div className="p-8 text-center text-sm text-gray-400">Loading…</div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-4 gap-3">
+                        <IssueStat label="Issued" value={String(totals.issued)} />
+                        <IssueStat label="Points Given" value={String(totals.totalEarned)} className="text-emerald-600" />
+                        <IssueStat label="Adjusted" value={String(totals.totalAdjusted)} className="text-amber-600" />
+                        <IssueStat label="Balance" value={String(totals.currentBalance)} className="text-orange-600" />
                     </div>
-                ))}
-            </div>
 
-            <p className="text-xs text-gray-400">
-                Rewards issued on a customer's card are owned and tracked by MCOM Rewards. MCOMVCard only surfaces them for your business.
-            </p>
+                    {transactions.length === 0 ? (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-8 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No rewards issued yet.</p>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+                            {transactions.map((tx) => (
+                                <div key={tx.id} className="p-4 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{tx.description ?? `Reward ${tx.type}`}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Balance after: {tx.balance_after} · {fmtDate(tx.created_at)}</p>
+                                    </div>
+                                    <span className={`shrink-0 text-sm font-bold ${tx.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                        {tx.amount >= 0 ? '+' : ''}{tx.amount}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <p className="text-xs text-gray-400">
+                        Rewards are tracked on your business reward balance ledger. Points issued via Issue Reward appear here.
+                    </p>
+                </>
+            )}
         </div>
     )
 }

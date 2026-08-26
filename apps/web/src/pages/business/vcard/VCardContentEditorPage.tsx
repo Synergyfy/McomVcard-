@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import { VCardPhoneContent, CENTRES, CENTRE_ORDER } from '../../admin/card-management/TemplateBuilderPage'
 import ScrollingVCard from '../../../components/common/ScrollingVCard'
 import Badge from '../../../components/business/primitives/Badge'
-import { getVCardById, mockBusinessProfile } from '../../../services/businessStore'
 import {
   getVCardEditorContent,
   saveVCardEditorContent,
@@ -33,6 +32,7 @@ import {
 } from '../../../services/businessVCardEditorStore'
 import { ShareCentreControls, ExchangeCentreControls, RedeemCentreControls } from './BusinessCentrePanels'
 import AppointmentSettingsPanel from './AppointmentSettingsPanel'
+import { businessService } from '../../../services/businessApi'
 
 /* ------------------------------------------------------------------ */
 /*  Small building blocks                                              */
@@ -625,7 +625,13 @@ export default function VCardContentEditorPage() {
   const navigate = useNavigate()
   const vcardId = Number(id)
 
-  const vcard = getVCardById(vcardId)
+  /* ── Fetch real card from API ── */
+  const [apiCardName, setApiCardName] = useState<string>('')
+  const [apiCardStatus, setApiCardStatus] = useState<string>('active')
+  const [apiCardType, setApiCardType] = useState<string>('BUSINESS')
+  const [apiCardCategory, setApiCardCategory] = useState<string>('')
+  const [apiCardSlug, setApiCardSlug] = useState<string>('')
+  const [apiCardId, setApiCardId] = useState<string | null>(null)
   const [sections, setSections] = useState<BizSectionState[]>(() => getVCardEditorContent(vcardId))
   const [protection, setProtection] = useState<VCardProtection>(() => getVCardProtection(vcardId))
   const [centreControls, setCentreControls] = useState<BusinessCentreControls>(() => getBusinessCentreControls(vcardId))
@@ -635,6 +641,70 @@ export default function VCardContentEditorPage() {
   const [autoScroll, setAutoScroll] = useState(false)
   const [previewSection, setPreviewSection] = useState<string | null>(null)
   const [params] = useSearchParams()
+
+  /* ── Fetch real sections/centre-controls from API on mount ── */
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const card = await businessService.getVCard(id)
+        if (cancelled || !card) return
+        setApiCardId(card.id)
+        setApiCardName(card.name || card.slug || 'Untitled')
+        setApiCardStatus(card.status)
+        setApiCardType(card.type)
+        setApiCardCategory(card.category || '')
+        setApiCardSlug(card.url_slug || card.slug)
+
+        const [apiSections, apiControls] = await Promise.all([
+          businessService.getVCardSections(card.id),
+          businessService.getVCardCentreControls(card.id),
+        ])
+        if (cancelled) return
+
+        // Merge API sections into editor state
+        if (apiSections.length > 0) {
+          setSections(prev => prev.map(s => {
+            const apiSec = apiSections.find(a => a.schema_id === s.schemaId)
+            if (!apiSec) return s
+            return {
+              ...s,
+              name: apiSec.name || s.name,
+              enabled: apiSec.enabled,
+              locked: apiSec.locked,
+              values: apiSec.content && typeof apiSec.content === 'object'
+                ? { ...s.values, ...(apiSec.content as Record<string, string>) }
+                : s.values,
+            }
+          }))
+        }
+
+        // Merge API centre controls
+        if (apiControls.length > 0) {
+          setCentreControls(prev => {
+            const next = { ...prev }
+            for (const ctrl of apiControls) {
+              if (ctrl.centre_id === 'share' && ctrl.settings) {
+                next.share = { ...next.share, ...(ctrl.settings as Partial<typeof next.share>) }
+              }
+              if (ctrl.centre_id === 'exchange' && ctrl.settings) {
+                next.exchange = { ...next.exchange, ...(ctrl.settings as Partial<typeof next.exchange>) }
+              }
+              if (ctrl.centre_id === 'redeem' && ctrl.settings) {
+                next.redeem = { ...next.redeem, ...(ctrl.settings as Partial<typeof next.redeem>) }
+              }
+            }
+            return next
+          })
+        }
+      } catch {
+        // API unavailable
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [id])
 
   const centreParam = params.get('centre') || ''
 
@@ -736,19 +806,63 @@ export default function VCardContentEditorPage() {
     }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     saveVCardEditorContent(vcardId, sections)
     saveVCardProtection(vcardId, protection)
     saveBusinessCentreControls(vcardId, centreControls)
     saveAppointmentSettings(vcardId, appointment)
+
+    // Persist sections and centre controls to API if available
+    if (apiCardId) {
+      try {
+        await Promise.all([
+          businessService.upsertVCardSections(apiCardId, sections.map(s => ({
+            schema_id: s.schemaId,
+            name: s.name,
+            locked: s.locked,
+            enabled: s.enabled,
+            content: { ...s.values },
+          }))),
+          businessService.upsertVCardCentreControls(apiCardId, [
+            { centre_id: 'share', enabled: true, settings: centreControls.share },
+            { centre_id: 'exchange', enabled: true, settings: centreControls.exchange },
+            { centre_id: 'redeem', enabled: true, settings: centreControls.redeem },
+          ]),
+        ])
+      } catch {
+        // saved locally at least
+      }
+    }
     toast.success('VCard content saved')
   }
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     saveVCardEditorContent(vcardId, sections)
     saveVCardProtection(vcardId, protection)
     saveBusinessCentreControls(vcardId, centreControls)
     saveAppointmentSettings(vcardId, appointment)
+
+    // Persist to API
+    if (apiCardId) {
+      try {
+        await Promise.all([
+          businessService.upsertVCardSections(apiCardId, sections.map(s => ({
+            schema_id: s.schemaId,
+            name: s.name,
+            locked: s.locked,
+            enabled: s.enabled,
+            content: { ...s.values },
+          }))),
+          businessService.upsertVCardCentreControls(apiCardId, [
+            { centre_id: 'share', enabled: true, settings: centreControls.share },
+            { centre_id: 'exchange', enabled: true, settings: centreControls.exchange },
+            { centre_id: 'redeem', enabled: true, settings: centreControls.redeem },
+          ]),
+        ])
+      } catch {
+        // published locally at least
+      }
+    }
     toast.success('VCard published — new version created')
     navigate(`/b/vcards/${vcardId}`)
   }
@@ -765,7 +879,7 @@ export default function VCardContentEditorPage() {
     toast.success('Changes reset to Admin template defaults')
   }
 
-  if (!vcard) {
+  if (!apiCardId && !apiCardName) {
     return (
       <div>
         <Helmet><title>VCard not found - MCOMVCard</title></Helmet>
@@ -782,13 +896,13 @@ export default function VCardContentEditorPage() {
 
   return (
     <div className="space-y-4">
-      <Helmet><title>Edit {vcard.name} Content - MCOMVCard</title></Helmet>
+      <Helmet><title>Edit {apiCardName} Content - MCOMVCard</title></Helmet>
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
         <Link to="/b/vcards" className="hover:text-orange-600">My VCards</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-        <Link to={`/b/vcards/${vcard.id}`} className="hover:text-orange-600">{vcard.name}</Link>
+        <Link to={`/b/vcards/${vcardId}`} className="hover:text-orange-600">{apiCardName}</Link>
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         <span className="text-gray-900 dark:text-white font-medium">Edit Content</span>
       </div>
@@ -798,10 +912,10 @@ export default function VCardContentEditorPage() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">{vcard.name}</h1>
-              <Badge status={vcard.status} />
+              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">{apiCardName}</h1>
+              <Badge status={apiCardStatus === 'active' ? 'active' : apiCardStatus === 'suspended' ? 'locked' : 'needs_update'} />
             </div>
-            <p className="text-[10px] text-gray-400 truncate">{vcard.category} · {vcard.type} · {vcard.urlSlug}</p>
+            <p className="text-[10px] text-gray-400 truncate">{apiCardCategory} · {apiCardType} · {apiCardSlug}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -815,7 +929,7 @@ export default function VCardContentEditorPage() {
             Publish
           </button>
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />
-          <Link to={`/b/vcards/${vcard.id}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
+          <Link to={`/b/vcards/${vcardId}`} className="px-2 py-1.5 rounded-lg text-[10px] font-medium text-gray-400 hover:text-gray-600">Cancel</Link>
         </div>
       </div>
 
@@ -971,9 +1085,9 @@ export default function VCardContentEditorPage() {
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
             <h4 className="text-xs font-semibold text-gray-800 dark:text-white mb-3">Template from Admin</h4>
             <div className="space-y-2 text-[10px]">
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Template</span><span className="font-medium text-gray-700 dark:text-gray-200">{vcard.type}</span></div>
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Business</span><span className="font-medium text-gray-700 dark:text-gray-200">{mockBusinessProfile.name}</span></div>
-              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Last Admin update</span><span className="font-medium text-gray-700 dark:text-gray-200">{vcard.lastAdminUpdate}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Template</span><span className="font-medium text-gray-700 dark:text-gray-200">{apiCardType}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Business</span><span className="font-medium text-gray-700 dark:text-gray-200">{apiCardName}</span></div>
+              <div className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700"><span className="text-gray-400">Last Admin update</span><span className="font-medium text-gray-700 dark:text-gray-200">—</span></div>
               <div className="flex justify-between py-1"><span className="text-gray-400">Locked sections</span><span className="font-medium text-gray-700 dark:text-gray-200">{sections.filter(s => s.locked).length} of {sections.length}</span></div>
             </div>
           </div>

@@ -140,6 +140,19 @@ export class BusinessesController {
   }
 
 
+  @Get('users/me/business-permissions')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get my business permissions',
+    description: 'Resolves the plan limits (from the latest membership tier name), current allocation and remaining allowance for the authenticated user. null limit values mean Unlimited.',
+  })
+  @ApiOkResponse({ description: 'Business permissions' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async getMyPermissions(@CurrentUser() user: UserResponseDto) {
+    return this.businessesService.getPermissionsForUser(user.id)
+  }
+
+
   @Patch('businesses/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a business', description: 'Updates a business owned by the authenticated user.' })

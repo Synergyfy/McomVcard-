@@ -1,7 +1,7 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import Logo from '../../common/Logo'
-import { mockBusinessProfile } from '../../../services/businessStore'
-import { currentSeason, mockMembership } from '../../../services/businessDashboardStore'
+import { businessService, type Business, type Membership } from '../../../services/businessApi'
 import { businessVCardLink } from '../../../services/businessStore'
 
 interface NavItem {
@@ -40,6 +40,31 @@ const secondaryNav: NavItem[] = [
 ]
 
 export default function BusinessSidebar() {
+    const [business, setBusiness] = useState<Business | null>(null)
+    const [membership, setMembership] = useState<Membership | null>(null)
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const businesses = await businessService.getMyBusinesses()
+                if (businesses.length > 0) {
+                    const detailed = await businessService.getBusiness(businesses[0].id)
+                    setBusiness(detailed)
+                }
+                const memberships = await businessService.getMyMemberships()
+                const active = memberships.find(m => m.status === 'active')
+                if (active) setMembership(active)
+            } catch {
+                // stay with null
+            }
+        }
+        load()
+    }, [])
+
+    const displayName = business?.name || 'Your Business'
+    const categoryName = business?.category?.name || 'Business'
+    const tierName = membership?.tier?.name || 'Member'
+
     return (
         <aside className="hidden md:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white flex-col shrink-0 h-screen sticky top-0 overflow-y-auto">
             <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-800">
@@ -50,11 +75,11 @@ export default function BusinessSidebar() {
             <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {mockBusinessProfile.name.charAt(0)}
+                        {displayName.charAt(0)}
                     </div>
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{mockBusinessProfile.name}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{mockBusinessProfile.category}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{displayName}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{categoryName}</p>
                     </div>
                 </div>
             </div>
@@ -119,14 +144,17 @@ export default function BusinessSidebar() {
                 ))}
             </nav>
 
-            {/* Season countdown */}
+            {/* Membership badge */}
             <Link
                 to="/b/membership"
                 className="mx-4 mb-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white p-4"
             >
-                <p className="text-[11px] text-white/80">{currentSeason.name}</p>
-                <p className="text-lg font-bold">{mockMembership.daysRemaining} days left</p>
-                <p className="text-[11px] text-white/80 mt-0.5">{mockMembership.plan} · renews {mockBusinessProfile.renewalDate}</p>
+                <p className="text-[11px] text-white/80">{tierName}</p>
+                <p className="text-lg font-bold">
+                    {membership?.expires_at
+                        ? `${Math.max(0, Math.ceil((new Date(membership.expires_at).getTime() - Date.now()) / 86400000))} days left`
+                        : 'Active'}
+                </p>
             </Link>
 
             <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-800">

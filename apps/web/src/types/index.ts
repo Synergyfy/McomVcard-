@@ -123,7 +123,9 @@ export interface Setting {
 
 export interface User {
   id: number
-  name: string
+  name?: string
+  first_name?: string
+  last_name?: string
   email: string
   contact?: string
   profile_image?: string

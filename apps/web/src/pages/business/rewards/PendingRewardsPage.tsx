@@ -1,11 +1,43 @@
+import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { mockRedeemHistory, mockCustomers } from '../../../services/businessDashboardStore'
+import { businessService, type RewardTransaction, type RewardBalance } from '../../../services/businessApi'
+
+function fmtDate(iso: string): string {
+    try {
+        return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    } catch {
+        return iso
+    }
+}
 
 export default function PendingRewardsPage() {
-    const pendingRedeems = mockRedeemHistory.filter(r => r.status === 'pending')
-    const pendingIssued = mockCustomers.flatMap((c) =>
-        c.rewards.filter(r => r.status === 'pending').map(r => ({ ...r, customer: c.name }))
-    )
+    const [balance, setBalance] = useState<RewardBalance | null>(null)
+    const [transactions, setTransactions] = useState<RewardTransaction[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+        const load = async () => {
+            setLoading(true)
+            try {
+                const [b, txs] = await Promise.all([
+                    businessService.getRewardBalance(),
+                    businessService.getRewardTransactions(),
+                ])
+                if (!cancelled) {
+                    setBalance(b)
+                    setTransactions(txs)
+                }
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+        load()
+        return () => { cancelled = true }
+    }, [])
+
+    // Pending = EARN transactions not yet redeemed/expired (shown as available balance)
+    const pendingEarns = transactions.filter((t) => t.type === 'EARN')
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -18,52 +50,43 @@ export default function PendingRewardsPage() {
 
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pending Rewards</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Rewards awaiting redemption by your customers.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Earned points awaiting redemption by your customers.</p>
             </div>
 
-            {pendingRedeems.length > 0 && (
-                <section>
-                    <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Pending redemptions</h2>
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
-                        {pendingRedeems.map((r) => (
-                            <div key={r.id} className="p-4 flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{r.item}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.customer} · {r.type} · {r.date}</p>
-                                </div>
-                                <span className="shrink-0 text-sm font-bold text-amber-600">{r.value}</span>
-                            </div>
-                        ))}
+            {loading ? (
+                <div className="p-8 text-center text-sm text-gray-400">Loading…</div>
+            ) : (
+                <>
+                    {/* Balance card */}
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-5 text-white shadow-md">
+                        <p className="text-xs font-semibold opacity-80">Current Balance</p>
+                        <p className="text-3xl font-bold mt-1">{balance?.balance ?? 0}</p>
+                        <p className="text-xs opacity-70 mt-1">{pendingEarns.length} earn transactions · status: {balance?.status ?? 'N/A'}</p>
                     </div>
-                </section>
-            )}
 
-            {pendingIssued.length > 0 && (
-                <section>
-                    <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Pending on customer cards</h2>
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
-                        {pendingIssued.map((r, i) => (
-                            <div key={i} className="p-4 flex items-center justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{r.label}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.customer} · {r.value}</p>
+                    {pendingEarns.length === 0 ? (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-8 text-center">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No pending rewards right now.</p>
+                        </div>
+                    ) : (
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-700">
+                            {pendingEarns.map((tx) => (
+                                <div key={tx.id} className="p-4 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{tx.description ?? 'Points earned'}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Balance after: {tx.balance_after} · {fmtDate(tx.created_at)}</p>
+                                    </div>
+                                    <span className="shrink-0 text-sm font-bold text-orange-600">+{tx.amount}</span>
                                 </div>
-                                <span className="shrink-0 text-sm font-bold text-amber-600">Pending</span>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+                            ))}
+                        </div>
+                    )}
 
-            {pendingRedeems.length === 0 && pendingIssued.length === 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-8 text-center">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Nothing pending right now.</p>
-                </div>
+                    <p className="text-xs text-gray-400">
+                        Earned points stay on the balance until the customer redeems or they expire.
+                    </p>
+                </>
             )}
-
-            <p className="text-xs text-gray-400">
-                Pending rewards are held on the customer's card by MCOM Rewards and surface here until redeemed.
-            </p>
         </div>
     )
 }
