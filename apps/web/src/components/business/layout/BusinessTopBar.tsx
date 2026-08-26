@@ -1,0 +1,139 @@
+import { useState, useRef, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import ThemeToggle from '../../common/ThemeToggle'
+import { useAuth } from '../../../contexts/AuthContext'
+import { businessService, type Business, type Membership } from '../../../services/businessApi'
+import Logo from '../../common/Logo'
+
+export default function BusinessTopBar() {
+    const { user, logout } = useAuth()
+    const navigate = useNavigate()
+    const [open, setOpen] = useState(false)
+    const [business, setBusiness] = useState<Business | null>(null)
+    const [membership, setMembership] = useState<Membership | null>(null)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const businesses = await businessService.getMyBusinesses()
+                if (businesses.length > 0) {
+                    const detailed = await businessService.getBusiness(businesses[0].id)
+                    setBusiness(detailed)
+                }
+                const memberships = await businessService.getMyMemberships()
+                const active = memberships.find(m => m.status === 'active')
+                if (active) setMembership(active)
+            } catch {
+                // stay with null — fallback initials will be used
+            }
+        }
+        load()
+    }, [])
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [])
+
+    const handleLogout = async () => {
+        await logout()
+        navigate('/login')
+    }
+
+    const displayName = business?.name || 'Your Business'
+    const userName = user?.name || user?.email || 'User'
+    const userEmail = user?.email || ''
+    const userInitial = userName.charAt(0).toUpperCase()
+    const tierName = membership?.tier?.name || 'Member'
+
+    return (
+        <header className="sticky top-0 z-30 h-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+                {/* Mobile logo */}
+                <div className="md:hidden shrink-0">
+                    <Logo />
+                </div>
+                {/* Dashboard role indicator */}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-bold uppercase tracking-wide shrink-0">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Business
+                </span>
+                {/* Page identity on larger screens */}
+                <p className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">{displayName}</p>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-4">
+                <ThemeToggle />
+
+                {/* Notifications */}
+                <button className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors tap-target" aria-label="Notifications">
+                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+                </button>
+
+                {/* Avatar Dropdown */}
+                <div className="relative" ref={ref}>
+                    <button
+                        onClick={() => setOpen(!open)}
+                        className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors tap-target"
+                        aria-label="Account menu"
+                    >
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                            {userInitial}
+                        </div>
+                        <div className="text-left hidden sm:block">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{userName}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{userEmail}</p>
+                        </div>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {open && (
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-xl py-2 z-50">
+                            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{userName}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{userEmail}</p>
+                                <Link
+                                    to="/b/membership"
+                                    onClick={() => setOpen(false)}
+                                    className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500/10 to-orange-600/5 dark:from-orange-500/20 dark:to-orange-600/10 border border-orange-200 dark:border-orange-800/40"
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                        {tierName}
+                                    </span>
+                                </Link>
+                            </div>
+                            <div className="py-1">
+                                <Link to="/b/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                    My Business
+                                </Link>
+                                <Link to="/b/settings" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    Settings
+                                </Link>
+                            </div>
+                            <div className="border-t border-gray-100 dark:border-gray-700 pt-1">
+                                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </header>
+    )
+}
