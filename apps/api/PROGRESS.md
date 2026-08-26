@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-24 (session: Frontend-Backend auth integration committed ✅ `361cab9`)
+> Last updated: 2026-08-26 (session: Plan CRUD for pricing system committed ✅ `3fdbe2c`)
 > Working branch: `logic`
-> Latest commits: `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
+> Latest commits: `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
 > Uncommitted: none
 
 ---
@@ -19,6 +19,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 4 — Core Cards | ✅ Complete |
 | 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
+| 6.5 — Plans (Pricing) | ✅ Complete (8 plans, 2 audiences, full config) |
 | 7 — Financial Ecosystem | ✅ Complete (Wallet, Rewards, Cashback) |
 | 8 — Relationships | ✅ Complete (Milestone A relationships, Milestone B child cards, Milestone C wishlists) |
 | 9 — Growth | ✅ Complete (Vouchers, Affiliates, Shares, QR Codes, Campaigns/Offers/Coupons) |
@@ -180,6 +181,25 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod).
 
 ### Remaining (Milestone D — Next Business Feature)
+
+---
+
+## Phase 6.5 — Plans (Pricing System) ✅
+
+**Plans Module (migration `1712000000029-CreatePlanTables`)**: Full pricing configuration backend matching the web's `membershipPricingStore`/`consumerPricingStore` localStorage structure. Platform-wide, not per-business.
+
+- `plans` table: UUID PK, unique `(level, audience)`, JSONB columns for `features[]`, `rules[]`, `tiers{Normal,Pro,Pro+}`, `sections`, `annualDiscount`, plus `level`, `audience`, `name`, `tagline`, `popular`, `sortOrder`, `currency`, `status`, timestamps.
+- **Endpoints** (`/api/plans`, Swagger-documented):
+  - `POST /plans` (Admin) — create plan with full config
+  - `GET /plans` (User) — list all, filter by `?audience=business|consumer`
+  - `GET /plans/seed` (Admin) — seed 8 default plans (Bronze/Silver/Gold/Platinum × business/consumer) with GBP pricing
+  - `GET /plans/:id` (User) — get by UUID
+  - `GET /plans/level/:level/audience/:audience` (User) — get by level & audience
+  - `PATCH /plans/:id` (Admin) — update
+  - `DELETE /plans/:id` (Admin) — delete
+- **DTOs**: `CreatePlanDto`/`UpdatePlanDto` with nested `PlanFeatureDto`, `PlanRuleDto`, `PlanTierPricingDto`, `PlanTiersDto`, `PricingSectionsDto`, `AnnualDiscountDto` — full class-validator + Swagger examples
+- **Service**: `seedDefaults()` creates all 8 plans with audience-specific taglines and base pricing (business: £49/149/449/1499; consumer: £9/19/29/49 monthly for Pro tier)
+- **Verified**: `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 7 paths + schemas at `/api/docs-json` (non-prod).
 
 ---
 
