@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setStoredUser = useCallback((u: User | null) => {
     // Map backend first_name/last_name to single name field if needed
-    if (u && !u.name && (u as any).first_name || (u as any).last_name) {
+    if (u && !u.name && ((u as any).first_name || (u as any).last_name)) {
       u.name = [(u as any).first_name, (u as any).last_name].filter(Boolean).join(' ') || u.email
     }
     setUser(u)

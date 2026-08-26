@@ -18,8 +18,8 @@ export default function IssueRewardPage() {
     const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
-        businessService.getCustomers().then((list) => {
-            setCustomers(list.map((c) => ({ name: c.name, email: c.email })))
+        businessService.getCustomers().then((res) => {
+            setCustomers(res.items.map((c: { name: string; email: string }) => ({ name: c.name, email: c.email })))
         })
     }, [])
 

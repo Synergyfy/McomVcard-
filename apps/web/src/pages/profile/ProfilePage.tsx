@@ -24,7 +24,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name, email: user.email, contact: user.contact || '' })
+      setForm({ name: user.name || '', email: user.email, contact: user.contact || '' })
     }
   }, [user])
 
