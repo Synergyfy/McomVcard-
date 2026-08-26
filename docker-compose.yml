@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:15
+    container_name: mcomvcard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mcomvcard
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    container_name: mcomvcard-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+# Notes:
+# - Data volume is at ./data/db relative to the repo root.
+# - Connect with psql: psql postgresql://postgres:postgres@localhost:5432/mcomvcard
