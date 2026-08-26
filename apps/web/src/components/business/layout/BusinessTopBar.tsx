@@ -47,7 +47,6 @@ export default function BusinessTopBar() {
     const displayName = business?.name || 'Your Business'
     const userName = user?.name || user?.email || 'User'
     const userEmail = user?.email || ''
-    const initial = displayName.charAt(0).toUpperCase()
     const userInitial = userName.charAt(0).toUpperCase()
     const tierName = membership?.tier?.name || 'Member'
 

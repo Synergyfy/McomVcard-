@@ -502,7 +502,7 @@ export default function BusinessHomePage() {
                                 <p className="text-sm font-medium text-gray-900 dark:text-white">{business.brands[0].name}</p>
                             </div>
                         )}
-                        {business?.hours?.length > 0 && (
+                        {business && business.hours.length > 0 && (
                             <div>
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Opening Hours</p>
                                 {business.hours.map(h => {
