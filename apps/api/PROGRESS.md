@@ -4,8 +4,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 
 > Last updated: 2026-08-28 (session: Frontend reconciliation ✅)
 > Working branch: `logic`
-> Latest commits: `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
-> Uncommitted: Frontend auth service & ProfilePage fixes for settings API response
+> Latest commits: `da5a5dc` (fix(frontend): reconcile auth service with backend settings API), `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
 
 ---
 
