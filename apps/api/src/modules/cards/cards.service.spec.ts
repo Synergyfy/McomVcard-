@@ -8,7 +8,10 @@ import { CardProfile } from './entities/card-profile.entity'
 import { CardCustomization } from './entities/card-customization.entity'
 import { SocialLink } from './entities/social-link.entity'
 import { CardAccess } from './entities/card-access.entity'
+import { CardSection } from './entities/card-section.entity'
+import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
+import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
 import { BusinessesService } from '../businesses/businesses.service'
 import { CreateCardDto } from './dto/create-card.dto'
 import { CreateCardProfileDto } from './dto/create-card-profile.dto'
@@ -122,7 +125,10 @@ describe('CardsService', () => {
   let customizationsRepo: MockRepo<CardCustomization>
   let socialLinksRepo: MockRepo<SocialLink>
   let accessRepo: MockRepo<CardAccess>
+  let sectionsRepo: MockRepo<CardSection>
+  let centreControlsRepo: MockRepo<CardCentreControl>
   let templatesRepo: MockRepo<Template>
+  let analyticsRepo: MockRepo<AnalyticsEvent>
   let businessesService: { findOwned: jest.Mock }
 
   beforeEach(async () => {
@@ -131,7 +137,10 @@ describe('CardsService', () => {
     customizationsRepo = createMockRepo<CardCustomization>()
     socialLinksRepo = createMockRepo<SocialLink>()
     accessRepo = createMockRepo<CardAccess>()
+    sectionsRepo = createMockRepo<CardSection>()
+    centreControlsRepo = createMockRepo<CardCentreControl>()
     templatesRepo = createMockRepo<Template>()
+    analyticsRepo = createMockRepo<AnalyticsEvent>()
     businessesService = { findOwned: jest.fn() }
 
     const module: TestingModule = await Test.createTestingModule({
@@ -142,7 +151,10 @@ describe('CardsService', () => {
         { provide: getRepositoryToken(CardCustomization), useValue: customizationsRepo },
         { provide: getRepositoryToken(SocialLink), useValue: socialLinksRepo },
         { provide: getRepositoryToken(CardAccess), useValue: accessRepo },
+        { provide: getRepositoryToken(CardSection), useValue: sectionsRepo },
+        { provide: getRepositoryToken(CardCentreControl), useValue: centreControlsRepo },
         { provide: getRepositoryToken(Template), useValue: templatesRepo },
+        { provide: getRepositoryToken(AnalyticsEvent), useValue: analyticsRepo },
         { provide: BusinessesService, useValue: businessesService },
       ],
     }).compile()

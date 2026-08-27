@@ -8,6 +8,9 @@ import { BusinessCategory } from './entities/business-category.entity'
 import { BusinessLocation } from './entities/business-location.entity'
 import { BusinessHour } from './entities/business-hour.entity'
 import { Brand } from './entities/brand.entity'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { Card } from '../cards/entities/card.entity'
 import { CreateBusinessDto } from './dto/create-business.dto'
 import { CreateLocationDto } from './dto/create-location.dto'
 import { CreateBusinessHourDto } from './dto/create-business-hour.dto'
@@ -99,6 +102,9 @@ describe('BusinessesService', () => {
   let locationsRepo: MockRepo<BusinessLocation>
   let hoursRepo: MockRepo<BusinessHour>
   let brandsRepo: MockRepo<Brand>
+  let membershipsRepo: MockRepo<Membership>
+  let membershipTiersRepo: MockRepo<MembershipTier>
+  let cardsRepo: MockRepo<Card>
 
   beforeEach(async () => {
     businessesRepo = createMockRepo<Business>()
@@ -106,6 +112,9 @@ describe('BusinessesService', () => {
     locationsRepo = createMockRepo<BusinessLocation>()
     hoursRepo = createMockRepo<BusinessHour>()
     brandsRepo = createMockRepo<Brand>()
+    membershipsRepo = createMockRepo<Membership>()
+    membershipTiersRepo = createMockRepo<MembershipTier>()
+    cardsRepo = createMockRepo<Card>()
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -115,6 +124,9 @@ describe('BusinessesService', () => {
         { provide: getRepositoryToken(BusinessLocation), useValue: locationsRepo },
         { provide: getRepositoryToken(BusinessHour), useValue: hoursRepo },
         { provide: getRepositoryToken(Brand), useValue: brandsRepo },
+        { provide: getRepositoryToken(Membership), useValue: membershipsRepo },
+        { provide: getRepositoryToken(MembershipTier), useValue: membershipTiersRepo },
+        { provide: getRepositoryToken(Card), useValue: cardsRepo },
       ],
     }).compile()
 

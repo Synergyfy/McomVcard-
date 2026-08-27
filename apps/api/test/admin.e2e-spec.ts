@@ -16,7 +16,7 @@ describe('Admin (e2e)', () => {
     // Login as admin
     const adminRes = await request(app.getHttpServer())
       .post('/api/login')
-      .send({ email: 'admin@example.com', password: 'secret123' });
+      .send({ email: 'admin@example.com', password: 'admin123' });
     adminToken = adminRes.body.data.token;
 
     // Register a regular user
