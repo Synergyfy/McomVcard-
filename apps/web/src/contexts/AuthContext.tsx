@@ -12,7 +12,7 @@ interface AuthContextValue {
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   updateUser: (user: User) => void
-  impersonate: (userId: number) => Promise<void>
+  impersonate: (userId: string) => Promise<void>
   stopImpersonating: () => Promise<void>
 }
 
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const impersonate = useCallback(
-    async (userId: number) => {
+    async (userId: string) => {
       const res = await authService.impersonate(userId)
       setStoredUser(res.user)
       setIsImpersonating(true)

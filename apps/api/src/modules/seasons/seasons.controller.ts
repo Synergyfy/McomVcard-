@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { SeasonsService } from './seasons.service'
 import { SeasonResponseDto } from './dto/season-response.dto'
@@ -21,7 +23,8 @@ import { UpdateSeasonDto } from './dto/update-season.dto'
 
 @ApiTags('seasons')
 @ApiExtraModels(ApiResponse, SeasonResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller()
 export class SeasonsController {
   constructor(private readonly seasonsService: SeasonsService) {}
