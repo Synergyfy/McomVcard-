@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-27 (session: Missing frontend endpoints added ✅)
+> Last updated: 2026-08-28 (session: Test fixes & DB migration ✅)
 > Working branch: `logic`
-> Latest commits: `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
-> Uncommitted: New admin controllers, Gift Cards, Cashback Programs, Auth endpoints
+> Latest commits: `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
+> Uncommitted: Test mocks updated for new service dependencies (CardsService, BusinessesService)
 
 ---
 
@@ -356,8 +356,8 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 
 ### Test Status
 - TypeScript compilation: ✅ Clean
-- Unit tests: Some failures due to new service dependencies not mocked in existing test files (CardsService needs CardSectionRepository, etc.)
-- E2E tests: Need updating for new endpoints
+- Unit tests: ✅ 155 tests passing (updated mocks for CardSectionRepository, CardCentreControlRepository, AnalyticsEventRepository, MembershipRepository, MembershipTierRepository, CardRepository in CardsService and BusinessesService)
+- E2E tests: ✅ 50 tests passing (fixed admin login password, DB migrated & seeded)
 - Existing functionality verified unaffected
 
 ---
