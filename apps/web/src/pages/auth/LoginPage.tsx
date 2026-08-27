@@ -36,7 +36,7 @@ export default function LoginPage() {
     if (!validate()) return
     setLoading(true)
     try {
-      await login(form)
+      await login({ email: form.email, password: form.password })
       const card = searchParams.get('card')
       if (card) {
         const business = searchParams.get('business') || undefined

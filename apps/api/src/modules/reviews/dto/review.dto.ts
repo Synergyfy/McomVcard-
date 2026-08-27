@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator'
+import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator'
 import { ReviewStatus } from '../entities/review.entity'
 
 export class CreateReviewDto {
@@ -37,6 +37,6 @@ export class UpdateReviewDto {
 
 export class ModerateReviewDto {
   @ApiProperty({ description: 'New moderation status', enum: ReviewStatus, example: ReviewStatus.APPROVED })
-  @IsOptional()
+  @IsEnum(ReviewStatus, { message: 'status must be a valid ReviewStatus' })
   status!: ReviewStatus
 }

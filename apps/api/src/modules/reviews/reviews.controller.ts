@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -101,7 +103,8 @@ export class ReviewsController {
   }
 
   @Patch(':id/moderate')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Moderate a review', description: 'Moderation (admin in a later phase): approve or reject a review. Rejected reviews are hidden from public listing.' })
   @ApiBody({ type: ModerateReviewDto, examples: { approve: { summary: 'Approve', value: { status: 'approved' } }, reject: { summary: 'Reject', value: { status: 'rejected' } } } })

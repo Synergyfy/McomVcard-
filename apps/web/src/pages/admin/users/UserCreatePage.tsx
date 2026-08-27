@@ -28,12 +28,13 @@ export default function UserCreatePage() {
     setLoading(true)
     try {
       await adminService.createUser({
-        name: `${form.first_name} ${form.last_name}`.trim(),
+        first_name: form.first_name || undefined,
+        last_name: form.last_name || undefined,
         email: form.email,
         password: form.password,
         password_confirmation: form.password_confirmation,
-        contact: form.contact || undefined,
-        is_active: form.is_active,
+        phone: form.contact || undefined,
+        status: form.is_active ? 'active' : 'inactive',
       })
       toast.success('User created successfully')
       navigate('/admin/users')

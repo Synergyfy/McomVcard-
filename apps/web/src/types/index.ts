@@ -122,24 +122,34 @@ export interface Setting {
 }
 
 export interface User {
-  id: number
-  name?: string
-  first_name?: string
-  last_name?: string
+  id: string
   email: string
-  contact?: string
-  profile_image?: string
-  theme_mode?: 'light' | 'dark'
-  language?: SupportedLanguage
-  is_active: boolean
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  status: string
   is_verified: boolean
-  referral_code?: string
   email_verified_at?: string | null
+  language?: string
+  theme_mode?: 'light' | 'dark'
+  created_at?: string
+  updated_at?: string
+  /** Computed display name — derived from first_name + last_name */
+  name?: string
+  /** @deprecated Use phone instead */
+  contact?: string
+  /** @deprecated No longer returned by API */
+  profile_image?: string
+  /** @deprecated No longer returned by API */
+  referral_code?: string
+  /** @deprecated Use status === 'active' */
+  is_active?: boolean
 }
 
 export interface AuthResponse {
-  user: User
   token: string
+  refresh_token: string
+  user: User
   message?: string
 }
 
@@ -150,12 +160,11 @@ export interface LoginData {
 }
 
 export interface RegisterData {
-  name: string
   email: string
   password: string
-  password_confirmation: string
+  firstName?: string
+  lastName?: string
   referral_code?: string
-  recaptcha_token?: string
 }
 
 export interface ForgotPasswordData {
@@ -170,11 +179,10 @@ export interface ResetPasswordData {
 }
 
 export interface ProfileData {
-  name?: string
+  first_name?: string
+  last_name?: string
+  phone?: string
   email?: string
-  contact?: string
-  profile_image?: File | null
-  remove_image?: boolean
 }
 
 export interface ChangePasswordData {
@@ -613,4 +621,47 @@ export interface AdminReport {
   type: string
   label: string
   data: Record<string, number | string>
+}
+
+// ── API response envelope & mapping helpers ──────────────────────────────────
+
+/** Raw shape returned by the NestJS API for user endpoints */
+export interface ApiUserResponse {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  status: string
+  is_verified: boolean
+  email_verified_at?: string | null
+  language?: string
+  theme_mode?: string
+  created_at?: string
+  updated_at?: string
+}
+
+/** Standard API envelope wrapping data in { success, data, message } */
+export interface ApiResponseEnvelope<T> {
+  success: boolean
+  data: T
+  message?: string
+}
+
+/**
+ * Map a raw API user object to the frontend User type.
+ * Adds computed `name`, `contact`, and `is_active` for backward compat.
+ */
+export function mapApiUser(api: ApiUserResponse): User {
+  const firstName = api.first_name ?? ''
+  const lastName = api.last_name ?? ''
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || api.email
+
+  return {
+    ...api,
+    name: fullName,
+    contact: api.phone ?? undefined,
+    is_active: api.status === 'active',
+    theme_mode: (api.theme_mode === 'light' || api.theme_mode === 'dark') ? api.theme_mode : undefined,
+  }
 }
