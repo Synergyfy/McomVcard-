@@ -47,4 +47,32 @@ export class RolesService {
 
     return this.rolesRepo.save(created)
   }
+
+  async getAllRoles(): Promise<Role[]> {
+    return this.rolesRepo.find({ order: { name: 'ASC' } })
+  }
+
+  async getRoleById(id: string): Promise<Role | null> {
+    return this.rolesRepo.findOne({ where: { id } })
+  }
+
+  async getRoleByName(name: string): Promise<Role | null> {
+    return this.rolesRepo.findOne({ where: { name } })
+  }
+
+  async createRole(name: string, description?: string): Promise<Role> {
+    const existing = await this.rolesRepo.findOne({ where: { name } })
+    if (existing) throw new BadRequestException('Role already exists')
+
+    const role = this.rolesRepo.create({ name, description: description ?? null })
+    return this.rolesRepo.save(role)
+  }
+
+  async updateRole(role: Role): Promise<Role> {
+    return this.rolesRepo.save(role)
+  }
+
+  async deleteRole(id: string): Promise<void> {
+    await this.rolesRepo.delete({ id })
+  }
 }

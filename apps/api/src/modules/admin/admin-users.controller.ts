@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
@@ -16,20 +17,29 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
+  ApiCreatedResponse,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
   ApiExtraModels,
   ApiProperty,
   ApiParam,
   ApiBody,
+  ApiNotFoundResponse,
+  ApiBadRequestResponse,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { User } from '../users/entities/user.entity'
-import { IsIn, IsString } from 'class-validator'
+import { IsIn, IsString, IsEmail, IsOptional, MinLength } from 'class-validator'
+import { ApiPropertyOptional } from '@nestjs/swagger'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { AdminPaginatedQueryDto } from './dto/admin-paginated-query.dto'
+import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
+import { RolesService } from '../roles/roles.service'
+import * as bcrypt from 'bcryptjs'
+import { JwtService } from '@nestjs/jwt'
+import { getSchemaPath } from '@nestjs/swagger'
 
 
 class UserListResponseDto {
@@ -49,16 +59,44 @@ class UpdateStatusBodyDto {
 }
 
 
+class CreateUserBodyDto {
+  @ApiProperty({ example: 'user@example.com', description: 'User email' })
+  @IsEmail()
+  email!: string
+
+  @ApiProperty({ example: 'secret123', description: 'User password (min 8 chars)' })
+  @IsString()
+  @MinLength(8)
+  password!: string
+
+  @ApiProperty({ example: 'secret123', description: 'Password confirmation' })
+  @IsString()
+  password_confirmation!: string
+
+  @ApiPropertyOptional({ example: 'John', description: 'First name' })
+  @IsOptional()
+  @IsString()
+  first_name?: string
+
+  @ApiPropertyOptional({ example: 'Doe', description: 'Last name' })
+  @IsOptional()
+  @IsString()
+  last_name?: string
+}
+
+
 @ApiTags('admin-users')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
-@ApiExtraModels(ApiResponse, UserListResponseDto)
+@ApiExtraModels(ApiResponse, UserListResponseDto, UserResponseDto)
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly rolesService: RolesService,
+    private readonly jwtService: JwtService,
   ) {}
 
 
@@ -257,5 +295,101 @@ export class AdminUsersController {
       'User deactivated',
       200,
     )
+  }
+
+
+  @Post()
+  @ApiOperation({
+    summary: 'Create a user (admin)',
+    description: 'Creates a new user with the specified email, password, and optional name. Requires ADMIN role.',
+  })
+  @ApiBody({ type: CreateUserBodyDto, examples: { default: { summary: 'Create user', value: { email: 'newuser@example.com', password: 'secret123', password_confirmation: 'secret123', first_name: 'John', last_name: 'Doe' } } } })
+  @ApiCreatedResponse({ description: 'User created', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { $ref: getSchemaPath(UserResponseDto) } } }] } })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiBadRequestResponse({ description: 'Email already in use or invalid input' })
+  async createUser(@Body() body: CreateUserBodyDto) {
+    if (body.password !== body.password_confirmation) {
+      return ApiResponse.message('Passwords do not match', 400)
+    }
+
+    const existing = await this.userRepo.findOne({ where: { email: body.email.toLowerCase() } })
+    if (existing) {
+      return ApiResponse.message('Email already in use', 400)
+    }
+
+    const hashed = await bcrypt.hash(body.password, 10)
+
+    const saved = await this.userRepo.save(
+      this.userRepo.create({
+        email: body.email.toLowerCase(),
+        passwordHash: hashed,
+        firstName: body.first_name ?? null,
+        lastName: body.last_name ?? null,
+        status: 'active',
+      }),
+    )
+
+    await this.rolesService.ensureDefaultRole()
+    await this.rolesService.assignDefaultRole(saved.id)
+
+    const roleNames = await this.rolesService.getRoleNamesForUser(saved.id)
+
+    const data = {
+      id: saved.id,
+      email: saved.email,
+      first_name: saved.firstName ?? null,
+      last_name: saved.lastName ?? null,
+      phone: saved.phone ?? null,
+      status: saved.status,
+      is_verified: saved.isVerified,
+      created_at: saved.createdAt,
+      roles: roleNames,
+    }
+
+    return ApiResponse.success(data, 'User created', 201)
+  }
+
+
+  @Post(':id/impersonate')
+  @ApiOperation({
+    summary: 'Impersonate a user (admin)',
+    description: 'Generates a token for the target user. Requires ADMIN role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID', type: String })
+  @ApiOkResponse({ description: 'Impersonation token generated' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  async impersonate(@Param('id', ParseUUIDPipe) id: string) {
+    const user = await this.userRepo.findOne({ where: { id } })
+
+    if (!user) {
+      return ApiResponse.message('User not found', 404)
+    }
+
+    if (user.status !== 'active') {
+      return ApiResponse.message('Account is deactivated', 400)
+    }
+
+    const roles = await this.rolesService.getRoleNamesForUser(user.id)
+    const token = this.jwtService.sign({ user_id: user.id, roles })
+
+    const data = {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        first_name: user.firstName ?? null,
+        last_name: user.lastName ?? null,
+        phone: user.phone ?? null,
+        status: user.status,
+        is_verified: user.isVerified,
+        created_at: user.createdAt,
+        roles,
+      },
+    }
+
+    return ApiResponse.success(data, 'Impersonation token generated', 200)
   }
 }

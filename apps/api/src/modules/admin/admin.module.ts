@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
 import { UsersModule } from '../users/users.module'
 import { RolesModule } from '../roles/roles.module'
+import { PlansModule } from '../plans/plans.module'
 import { AdminController } from './admin.controller'
 import { AdminUsersController } from './admin-users.controller'
 import { AdminBusinessesController } from './admin-businesses.controller'
@@ -12,6 +13,32 @@ import { AdminMembershipsController } from './admin-memberships.controller'
 import { AdminFinanceController } from './admin-finance.controller'
 import { AdminVouchersController } from './admin-vouchers.controller'
 import { AdminCampaignsController } from './admin-campaigns.controller'
+import { AdminImpersonationController } from './admin-impersonation.controller'
+import { AdminPlansController } from './admin-plans.controller'
+import { AdminRolesController } from './admin-roles.controller'
+import { AdminCurrenciesController } from './admin-currencies.controller'
+import { AdminTestimonialsController } from './admin-testimonials.controller'
+import { AdminFrontFeaturesController } from './admin-front-features.controller'
+import { AdminAboutUsController } from './admin-about-us.controller'
+import { AdminEnquiriesController } from './admin-enquiries.controller'
+import { AdminSubscribersController } from './admin-subscribers.controller'
+import { AdminSettingsController } from './admin-settings.controller'
+import { AdminAdminsController } from './admin-admins.controller'
+import { AdminSubscribedPlansController } from './admin-subscribed-plans.controller'
+import { AdminCashPaymentsController } from './admin-cash-payments.controller'
+import { AdminAffiliateUsersController } from './admin-affiliate-users.controller'
+import { AdminAffiliateTransactionsController } from './admin-affiliate-transactions.controller'
+import { AdminWithdrawTransactionsController } from './admin-withdraw-transactions.controller'
+import { AdminCountriesController } from './admin-countries.controller'
+import { AdminLanguagesController } from './admin-languages.controller'
+import { AdminCouponCodesController } from './admin-coupon-codes.controller'
+import { AdminFrontCMSController } from './admin-front-cms.controller'
+import { AdminFaqsController } from './admin-faqs.controller'
+import { AdminEmailTemplatesController } from './admin-email-templates.controller'
+import { AdminActivityLogsController } from './admin-activity-logs.controller'
+import { AdminNewsletterController } from './admin-newsletter.controller'
+import { AdminBookingsController } from './admin-bookings.controller'
+import { AdminSystemController } from './admin-system.controller'
 
 import { User } from '../users/entities/user.entity'
 import { Business } from '../businesses/entities/business.entity'
@@ -39,6 +66,7 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     AuthModule,
     UsersModule,
     RolesModule,
+    PlansModule,
     TypeOrmModule.forFeature([
       User,
       Business,
@@ -72,6 +100,32 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     AdminFinanceController,
     AdminVouchersController,
     AdminCampaignsController,
+    AdminImpersonationController,
+    AdminPlansController,
+    AdminRolesController,
+    AdminCurrenciesController,
+    AdminTestimonialsController,
+    AdminFrontFeaturesController,
+    AdminAboutUsController,
+    AdminEnquiriesController,
+    AdminSubscribersController,
+    AdminSettingsController,
+    AdminAdminsController,
+    AdminSubscribedPlansController,
+    AdminCashPaymentsController,
+    AdminAffiliateUsersController,
+    AdminAffiliateTransactionsController,
+    AdminWithdrawTransactionsController,
+    AdminCountriesController,
+    AdminLanguagesController,
+    AdminCouponCodesController,
+    AdminFrontCMSController,
+    AdminFaqsController,
+    AdminEmailTemplatesController,
+    AdminActivityLogsController,
+    AdminNewsletterController,
+    AdminBookingsController,
+    AdminSystemController,
   ],
 })
 export class AdminModule {}
