@@ -71,9 +71,9 @@ export default function ProfilePage() {
 
   const handleLanguageChange = async (lang: string) => {
     try {
-      await authService.updateLanguage(lang)
+      const updated = await authService.updateLanguage(lang, user!)
       i18n.changeLanguage(lang)
-      if (user) updateUser({ ...user, language: lang as any })
+      if (user) updateUser(updated)
     } catch {
       // silently fail
     }

@@ -2,10 +2,10 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-28 (session: Test fixes & DB migration ✅)
+> Last updated: 2026-08-28 (session: Frontend reconciliation ✅)
 > Working branch: `logic`
-> Latest commits: `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
-> Uncommitted: Test mocks updated for new service dependencies (CardsService, BusinessesService)
+> Latest commits: `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
+> Uncommitted: Frontend auth service & ProfilePage fixes for settings API response
 
 ---
 
@@ -86,12 +86,14 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **CORS fix**: `CORS_ORIGINS` (comma-separated, prod only) is now in the Joi schema and `.env.example` — previously read in `main.ts` but missing from validation, which could silently produce an empty origin list in prod.
 
 ### Remaining
-1. Phase 6 — Membership Ecosystem (tiers, memberships, benefits, seasons)
-2. Phase 7 — Financial Ecosystem (rewards, cashback, wallet, vouchers)
-3. Phase 8 — Relationships (user_relationships, child_cards, wishlists)
-4. Phase 9 — Growth (affiliates, shares, QR codes, campaigns, offers, coupons) — ✅ complete
-5. Phase 10 — Admin endpoints (`@Roles('ADMIN')`)
-6. Frontend reconciliation: point web `authService` at the new profile/settings/password routes and fix `User` type mismatches
+1. Phase 11 — Production Hardening (Not started)
+2. config/configuration.ts is dead code — AppModule reads `process.env` directly, needs to be fixed or wired up
+3. Phase 5 Milestone D — Next Business Feature (Options/Events/etc.)
+
+### Completed in this session
+- Fixed frontend auth service to properly handle settings response (only returns language/theme_mode, not full user object)
+- Updated ProfilePage and ThemeContext to pass current user to updateLanguage/updateTheme
+- Frontend build passes TypeScript check
 
 ---
 

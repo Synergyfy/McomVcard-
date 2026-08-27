@@ -85,17 +85,27 @@ export const authService = {
     return res.data
   },
 
-  async updateSettings(settings: { language?: string; theme_mode?: 'light' | 'dark' }): Promise<User> {
+  async updateSettings(
+    settings: { language?: string; theme_mode?: 'light' | 'dark' },
+    currentUser: User
+  ): Promise<User> {
     const res = await api.patch('/users/me/settings', settings)
-    return mapApiUser(res.data.data as ApiUserResponse)
+    const data = res.data.data as { language?: string; theme_mode?: string }
+    return {
+      ...currentUser,
+      language: data.language ?? currentUser.language,
+      theme_mode: (data.theme_mode === 'light' || data.theme_mode === 'dark')
+        ? data.theme_mode
+        : currentUser.theme_mode,
+    }
   },
 
-  async updateLanguage(language: string): Promise<User> {
-    return authService.updateSettings({ language })
+  async updateLanguage(language: string, currentUser: User): Promise<User> {
+    return authService.updateSettings({ language }, currentUser)
   },
 
-  async updateTheme(theme_mode: 'light' | 'dark'): Promise<User> {
-    return authService.updateSettings({ theme_mode })
+  async updateTheme(theme_mode: 'light' | 'dark', currentUser: User): Promise<User> {
+    return authService.updateSettings({ theme_mode }, currentUser)
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {
