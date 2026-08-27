@@ -32,6 +32,8 @@ import { ActivityModule } from './modules/activity/activity.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { CustomersModule } from './modules/customers/customers.module'
 import { PlansModule } from './modules/plans/plans.module'
+import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
+import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -78,6 +80,8 @@ import { APP_GUARD } from '@nestjs/core'
     AnalyticsModule,
     CustomersModule,
     PlansModule,
+    GiftCardsModule,
+    CashbackProgramsModule,
   ],
   controllers: [],
   providers: [

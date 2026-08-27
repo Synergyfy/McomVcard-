@@ -118,6 +118,24 @@ export class AuthService {
   }
 
 
+  async impersonate(userId: string, meta?: TokenMeta) {
+    const user = await this.usersService.findById(userId)
+    if (!user) throw new UnauthorizedException('User not found')
+
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Account is deactivated')
+    }
+
+    const auth = await this.issueTokens(user.id, meta)
+
+    return ApiResponse.success(
+      { token: auth.accessToken, refresh_token: auth.refreshToken, user: UserResponseDto.fromEntity(user) },
+      'Impersonation successful',
+      200,
+    )
+  }
+
+
   async refresh(refreshToken: string | undefined, meta?: TokenMeta) {
     if (!refreshToken) throw new UnauthorizedException('Refresh token is required')
 
