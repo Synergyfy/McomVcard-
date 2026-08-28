@@ -1,15 +1,36 @@
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet-async'
 import AuthLayout from '../../components/auth/AuthLayout'
 import ConsumerPathNote from '../../components/auth/ConsumerPathNote'
+import { useAuth } from '../../contexts/AuthContext'
 import { inviteQuery } from '../../utils/inviteContext'
 
 export default function RegisterPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { loginWithMcom } = useAuth()
   const ctx = inviteQuery(searchParams.get('card'), searchParams.get('business'))
+  const [mcomLoading, setMcomLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleMcomSignup = async () => {
+    setMcomLoading(true)
+    setError('')
+    try {
+      // MCOM Solutions is the identity provider: the same OAuth flow provisions
+      // new accounts (JIT) and signs in existing ones. The card/business invite
+      // context is carried through so the callback returns to the right place.
+      await loginWithMcom({
+        card: searchParams.get('card') || undefined,
+        business: searchParams.get('business') || undefined,
+      })
+    } catch (err: any) {
+      setError(err?.response?.data?.message || t('auth.errors.register_failed'))
+      setMcomLoading(false)
+    }
+  }
 
   return (
     <AuthLayout title={t('auth.register_title')} subtitle={t('auth.register_subtitle')}>
@@ -33,12 +54,16 @@ export default function RegisterPage() {
             </p>
           </div>
         </div>
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600 mb-4">{error}</div>
+        )}
         <button
           type="button"
-          onClick={() => navigate(`/onboarding/mcom-solutions${ctx}`)}
-          className="mt-4 w-full py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 transition-all shadow-md"
+          onClick={handleMcomSignup}
+          disabled={mcomLoading}
+          className="mt-4 w-full py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-md"
         >
-          Continue to MCOM Solutions
+          {mcomLoading ? t('common.loading') : 'Continue to MCOM Solutions'}
         </button>
         <p className="text-[10px] text-blue-200 mt-2 text-center">
           We'll take you to MCOM Solutions to verify your business identity.
