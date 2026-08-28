@@ -193,10 +193,11 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 **Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing, web build clean
 
 ### Remaining (Milestone D Continuation)
-1. Consumer Store Card full implementation (membership/season display, wallet summary)
-2. Template customization membership-gated editing in service layer
-3. Password protection granular section control
-4. Card type validation in service (audience/product mismatch checks)
+1. Fix frontend admin pages TypeScript errors (String/number ID conversions)
+2. Consumer Store Card full implementation (membership/season display, wallet summary)
+3. Template customization membership-gated editing in service layer
+4. Password protection granular section control
+5. Card type validation in service (audience/product mismatch checks)
 
 ---
 
@@ -456,6 +457,62 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - Card slug: user-supplied `slug` (validated lowercase-hyphen) or auto-generated random hex, uniqueness loop applied — no name-derived slug (cards have no name column; display name lives on the profile).
 - Email/password-reset delivery: `MailModule` works with an SMTP provider or a dev log fallback — real production provider (SMTP, Resend, etc.) still needs selection + `MAIL_*` env
 - `config/configuration.ts` is dead code (AppModule reads `process.env` directly) — **fix or wire up**
+
+---
+
+### Phase 5 Milestone D — Card Type System + Events + Template Customization ✅ (API Complete)
+
+**Migration**: `1712000000035-CardTypeSystemAndEvents.ts` applied
+
+**Card Type System** (4 experiences per original docs):
+- Extended `Card.type` enum: `BUSINESS_VCARD`, `BUSINESS_CARD`, `CONSUMER_VCARD`, `CONSUMER_STORE_CARD`, `EVENT`
+- Added `card_product` (VCARD/CARD) and `audience` (BUSINESS/CONSUMER) fields
+- Consumer Store Card: membership level, season, wallet balance display, rewards/redeem actions
+- Different QR destinations per card type
+
+**Events Module** (NEW - per PROGRESS.md "Options / Events"):
+- `events` table: business events with scheduling, capacity, virtual support
+- `event_tickets`: tiered pricing (Free/Paid/VIP), sales windows, capacity
+- `event_registrations`: public booking with status flow (pending/confirmed/cancelled/waitlisted/checked_in)
+- Public registration endpoint, owner-only management
+- Capacity limits, waitlist, cancellation policy
+- Integration ready: coupons, wallet, rewards, affiliate attribution
+
+**Template Customization Levels** (Foundation - per Parts 5, 6, 7, 9):
+- `templates`: added `required_membership_level`, `is_premium`
+- `template_fields`: added `editable_by_membership_level`
+- Membership-gated field editing (Standard/Pro/Pro+)
+
+**Password Protection & Access Layers** (Foundation - per Parts 25, 26):
+- `card_access`: added `public_sections`, `interactive_sections`, `protected_sections` JSONB
+- Per-card password protection with granular section-level control
+
+**Consumer Store Card** (Foundation - per Parts 10-13):
+- Membership level, season display
+- Wallet balance summary, rewards/redeem actions
+
+**Endpoints Added**:
+- Events: `POST/GET /businesses/:id/events`, `GET/POST /events`, `GET/PATCH/DELETE /events/:id`
+- Event Tickets: `POST/GET /events/:id/tickets`, `PATCH/DELETE /events/tickets/:id`
+- Registrations: `POST /events/:id/register`, `GET /events/:id/registrations`, `GET /my/registrations`, `PATCH /registrations/:id/status`, `POST /registrations/:id/cancel`
+- All with Swagger docs, ownership checks, validation
+
+**Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing (API)
+
+### Frontend Status (Partial)
+- Added CardType, CardProduct, CardAudience enums to types
+- Updated businessApi.ts createCard/updateCard to use new enums
+- Updated userService to use /cards endpoint instead of /user/vcards
+- Admin pages partially updated (String() conversions for ID params)
+- **Known Issue**: Web build has TypeScript errors in admin pages (String/number ID mismatches between mock data and admin service)
+- 55 admin pages partially updated, need String()/Number() conversions for IDs and comparisons
+
+### Remaining
+1. Fix frontend admin pages TypeScript errors (String/number ID conversions)
+2. Consumer Store Card full implementation (membership/season display, wallet summary)
+3. Template customization membership-gated editing in service layer
+4. Password protection granular section control
+5. Card type validation in service (audience/product mismatch checks)
 
 ---
 
