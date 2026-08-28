@@ -38,7 +38,7 @@ export default function CashPaymentsPage() {
   const handleStatus = async (id: number, status: 'approved' | 'rejected') => {
     if (!confirm(status === 'approved' ? t('admin.confirm_approve') : t('admin.confirm_reject'))) return
     try { await adminService.updateCashPayment(id, { status } as any) } catch {}
-    setPayments(payments.map((p) => p.id === id ? { ...p, status } : p))
+    setPayments(payments.map((p) => String(p.id) === id ? { ...p, status } : p))
     toast.success(`Payment ${status}`)
   }
 

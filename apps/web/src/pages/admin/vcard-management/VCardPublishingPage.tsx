@@ -286,7 +286,7 @@ export default function VCardPublishingPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { if (allSelected) setSelectedIds([]); else setSelectedIds(filtered.map(r => r.id)) }
-  const toggleOne = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   if (loading) {
     return (

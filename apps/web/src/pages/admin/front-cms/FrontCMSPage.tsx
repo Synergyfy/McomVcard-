@@ -50,11 +50,11 @@ export default function FrontCMSPage() {
   }
 
   const updateFaq = async (id: number, key: string, value: string) => {
-    setFaqs(faqs.map((f) => f.id === id ? { ...f, [key]: value } : f))
+    setFaqs(faqs.map((f) => String(f.id) === id ? { ...f, [key]: value } : f))
   }
 
-  const saveFaq = async (id: number) => {
-    const faq = faqs.find((f) => f.id === id)
+  const saveFaq = async (id: string) => {
+    const faq = faqs.find((f) => String(f.id) === id)
     if (!faq) return
     try {
       await adminService.updateFaq(id, faq)
@@ -64,11 +64,11 @@ export default function FrontCMSPage() {
     }
   }
 
-  const deleteFaq = async (id: number) => {
+  const deleteFaq = async (id: string) => {
     if (!confirm(t('common.confirm_delete'))) return
     try {
-      await adminService.deleteFaq(id)
-      setFaqs(faqs.filter((f) => f.id !== id))
+      await adminService.deleteFaq(String(id))
+      setFaqs(faqs.filter((f) => String(f.id) !== id))
       toast.success(t('common.deleted'))
     } catch {
       toast.error(t('common.error'))

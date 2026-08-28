@@ -55,15 +55,15 @@ export default function BookingListPage() {
   const updateStatus = async (id: number, status: AdminBooking['status']) => {
     try {
       await adminService.updateBookingStatus(id, status)
-      setData((prev) => prev.map((b) => b.id === id ? { ...b, status } : b))
+      setData((prev) => prev.map((b) => String(b.id) === id ? { ...b, status } : b))
       toast.success(`Booking #${id} ${status}`)
     } catch { toast.error('Failed to update booking') }
   }
 
-  const deleteBooking = async (id: number) => {
+  const deleteBooking = async (id: string) => {
     try {
-      await adminService.deleteBooking(id)
-      setData((prev) => prev.filter((b) => b.id !== id))
+      await adminService.deleteBooking(String(id))
+      setData((prev) => prev.filter((b) => String(b.id) !== id))
       toast.success('Booking deleted')
     } catch { toast.error('Failed to delete booking') }
   }

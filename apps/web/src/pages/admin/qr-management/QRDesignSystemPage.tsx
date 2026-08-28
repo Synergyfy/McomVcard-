@@ -90,7 +90,7 @@ export default function QRDesignSystemPage() {
     })
   }, [search, filterCat, filterStatus])
 
-  const tmpl = selectedId !== null ? TEMPLATES.find(x => x.id === selectedId)! : null
+  const tmpl = selectedId !== null ? TEMPLATES.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
   function toggleSelect(id: number) { setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next }) }

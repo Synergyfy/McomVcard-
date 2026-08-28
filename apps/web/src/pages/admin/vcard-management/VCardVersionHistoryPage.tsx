@@ -546,7 +546,7 @@ export default function VCardVersionHistoryPage() {
     return true
   })
 
-  const toggleId = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleId = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleAll = () => setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map(v => v.id))
 
   const bulkAction = (action: string) => {

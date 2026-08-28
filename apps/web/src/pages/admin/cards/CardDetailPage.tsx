@@ -9,14 +9,14 @@ const PAGE_SIZE = 8
 export default function CardDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === Number(id))
+  const design = mockCardDesigns.find((d) => d.id === String(id))
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
 
   const allBusinesses = useMemo(
-    () => mockCardBusinesses.filter((b) => b.cardDesignId === Number(id)),
+    () => mockCardBusinesses.filter((b) => b.cardDesignId === String(id)),
     [id],
   )
 

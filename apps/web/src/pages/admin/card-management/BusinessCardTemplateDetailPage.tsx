@@ -12,7 +12,7 @@ import { CardPreviewModal, buildMockFaces, LayoutFaceContent } from '../../../co
 import { MOCK, toRow, DetailRow, EditCardWarningModal, type CardRow } from './BusinessCardTemplatesPage'
 
 function useCardRow(id: number): CardRow | null {
-  const mock = MOCK.find(m => m.id === id) ?? null
+  const mock = MOCK.find(m => String(m.id) === id) ?? null
   if (mock) return mock
   const stored = getCardTemplate(id)
   return stored ? toRow(stored) : null
@@ -72,7 +72,7 @@ function CardFlipPreview({ faces, ff }: { faces: CardFaces; ff?: FriendsFamilyCo
 export default function BusinessCardTemplateDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const row = useCardRow(Number(id))
+  const row = useCardRow(String(id))
   const faces = row ? useCardFaces(row) : null
   const ff = row ? useCardFf(row) : undefined
 

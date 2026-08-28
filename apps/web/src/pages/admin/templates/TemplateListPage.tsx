@@ -32,9 +32,9 @@ export default function TemplateListPage() {
     return matchSearch && matchCat
   })
 
-  const toggleStatus = (id: number) => {
-    setData((prev) => prev.map((t) => t.id === id ? { ...t, status: t.status === 'published' ? 'archived' as const : 'published' as const } : t))
-    const t = data.find((x) => x.id === id)
+  const toggleStatus = (id: string) => {
+    setData((prev) => prev.map((t) => String(t.id) === id ? { ...t, status: t.status === 'published' ? 'archived' as const : 'published' as const } : t))
+    const t = data.find((x) => String(x.id) === id)
     toast.success(`"${t?.name}" ${t?.status === 'published' ? 'archived' : 'published'}`)
   }
 

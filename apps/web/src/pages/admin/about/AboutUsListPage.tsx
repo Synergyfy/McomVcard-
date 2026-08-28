@@ -30,7 +30,7 @@ export default function AboutUsListPage() {
     if (!editing) return
     setMessage('')
     try {
-      await adminService.updateAboutUs(editing.id, form)
+      await adminService.updateAboutUs(String(editing.id), form)
       setMessage(t('admin.saved'))
       cancelEdit()
       fetch()

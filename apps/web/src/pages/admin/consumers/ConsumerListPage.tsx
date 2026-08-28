@@ -92,7 +92,7 @@ export default function ConsumerListPage() {
     else { setSortKey(key); setSortDir('asc') }
   }
 
-  const toggleSelect = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleSelect = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleAll = () => setSelected(selected.length === paginated.length ? [] : paginated.map(c => c.id))
 
   const clearFilters = () => {

@@ -32,10 +32,10 @@ export default function CountryListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm_delete'))) return
-    try { await adminService.deleteCountry(id); setCountries(countries.filter((c) => c.id !== id)); toast.success(t('common.deleted')) }
-    catch { setCountries(countries.filter((c) => c.id !== id)); toast.success(t('common.deleted')) }
+    try { await adminService.deleteCountry(String(id)); setCountries(countries.filter((c) => String(c.id) !== id)); toast.success(t('common.deleted')) }
+    catch { setCountries(countries.filter((c) => String(c.id) !== id)); toast.success(t('common.deleted')) }
   }
 
   const filtered = countries.filter((c) => {

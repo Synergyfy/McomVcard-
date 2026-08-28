@@ -247,7 +247,7 @@ export default function BusinessProfilePage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
-  const biz = bizData.find(b => b.id === Number(id)) || bizData[0]
+  const biz = bizData.find(b => b.id === String(id)) || bizData[0]
   const [tab, setTab] = useState('Overview')
   const [subTab, setSubTab] = useState<'vcards' | 'cards'>('vcards')
   const [showSuspendModal, setShowSuspendModal] = useState(false)

@@ -32,10 +32,10 @@ export default function CouponListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm_delete'))) return
-    try { await adminService.deleteCouponCode(id); setCoupons(coupons.filter((c) => c.id !== id)); toast.success(t('common.deleted')) }
-    catch { setCoupons(coupons.filter((c) => c.id !== id)); toast.success(t('common.deleted')) }
+    try { await adminService.deleteCouponCode(String(id)); setCoupons(coupons.filter((c) => String(c.id) !== id)); toast.success(t('common.deleted')) }
+    catch { setCoupons(coupons.filter((c) => String(c.id) !== id)); toast.success(t('common.deleted')) }
   }
 
   const filtered = coupons.filter((c) => {

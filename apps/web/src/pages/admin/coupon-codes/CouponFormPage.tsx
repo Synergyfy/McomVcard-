@@ -21,7 +21,7 @@ export default function CouponFormPage() {
   useEffect(() => {
     adminService.getPlans().then((res) => setPlans(res.data))
     if (!id) return
-    adminService.getCouponCode(Number(id)).then((data) => {
+    adminService.getCouponCode(String(id)).then((data) => {
       setForm({
         code: data.code, discount_type: data.discount_type, discount_value: data.discount_value,
         max_uses: data.max_uses, plan_id: data.plan_id || 0, min_amount: data.min_amount || 0,
@@ -36,7 +36,7 @@ export default function CouponFormPage() {
     try {
       const payload = { ...form, plan_id: form.plan_id || undefined, min_amount: form.min_amount || undefined }
       if (isEdit) {
-        await adminService.updateCouponCode(Number(id), payload)
+        await adminService.updateCouponCode(String(id), payload)
         toast.success(t('common.updated'))
       } else {
         await adminService.createCouponCode(payload)

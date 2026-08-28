@@ -28,9 +28,9 @@ export default function VCardListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteVcard(id); setVcards(vcards.filter((v) => v.id !== id)) } catch { setVcards(vcards.filter((v) => v.id !== id)) }
+    try { await adminService.deleteVcard(String(id)); setVcards(vcards.filter((v) => String(v.id) !== id)) } catch { setVcards(vcards.filter((v) => String(v.id) !== id)) }
   }
 
   const filtered = vcards.filter((v) => {

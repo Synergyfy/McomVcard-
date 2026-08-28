@@ -93,7 +93,7 @@ export default function ConsumerProfilePage() {
   const [activityFilter, setActivityFilter] = useState('all')
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false)
 
-  const c = mockConsumers.find(x => x.id === Number(id))
+  const c = mockConsumers.find(x => x.id === String(id))
   if (!c) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">

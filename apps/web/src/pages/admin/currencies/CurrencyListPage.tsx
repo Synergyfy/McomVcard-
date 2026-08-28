@@ -33,9 +33,9 @@ export default function CurrencyListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteCurrency(id); setCurrencies(currencies.filter((c) => c.id !== id)) } catch { setCurrencies(currencies.filter((c) => c.id !== id)) }
+    try { await adminService.deleteCurrency(String(id)); setCurrencies(currencies.filter((c) => String(c.id) !== id)) } catch { setCurrencies(currencies.filter((c) => String(c.id) !== id)) }
   }
 
   const filtered = currencies.filter((c) => {

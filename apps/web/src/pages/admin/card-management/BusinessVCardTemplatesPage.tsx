@@ -85,7 +85,7 @@ export default function BusinessVCardTemplatesPage() {
     return <BusinessVCardWorkspace template={workspaceTemplate} onBack={() => setWorkspaceTemplate(null)} />
   }
 
-  const isStored = (id: number) => allStored.some(s => s.id === id)
+  const isStored = (id: string) => allStored.some(s => String(s.id) === id)
 
   const filtered = all.filter(t => {
     if (statusFilter !== 'all' && t.status.toLowerCase() !== statusFilter) return false
@@ -115,7 +115,7 @@ export default function BusinessVCardTemplatesPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { setSelectedIds(allSelected ? [] : filtered.map(t => t.id)) }
-  const toggleOne = (id: number) => { setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
+  const toggleOne = (id: string) => { setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
 
   const handleBulkAction = (action: string) => {
     if (selectedIds.length === 0) { toast.error('Select templates first'); return }

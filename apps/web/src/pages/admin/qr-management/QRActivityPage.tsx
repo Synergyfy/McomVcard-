@@ -129,7 +129,7 @@ export default function QRActivityPage() {
     })
   }, [search, filterCategory, filterResult, filterActor, filterDate, filterQrType, sortedEvents])
 
-  const event = selectedId !== null ? ACTIVITY.find(x => x.id === selectedId)! : null
+  const event = selectedId !== null ? ACTIVITY.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
 

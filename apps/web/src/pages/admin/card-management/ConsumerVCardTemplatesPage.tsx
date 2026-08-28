@@ -34,7 +34,7 @@ export default function ConsumerVCardTemplatesPage() {
 
   const refresh = () => setStored(loadUserTemplatesByType('consumer'))
 
-  const isStored = (id: number) => stored.some(s => s.id === id)
+  const isStored = (id: string) => stored.some(s => String(s.id) === id)
   const all = combineConTemplates(stored)
 
   /* Ensure a template exists as a stored (localStorage) template so every

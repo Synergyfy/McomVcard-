@@ -130,7 +130,7 @@ export function BuilderWorkspace({ vcard, onClose }: { vcard: BusinessVCard | nu
   if (!vcard) return null
 
   const toggleSection = (id: string) => {
-    setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s))
+    setSections(prev => prev.map(s => String(s.id) === id ? { ...s, enabled: !s.enabled } : s))
   }
 
   const moveUp = (index: number) => {
@@ -305,7 +305,7 @@ export default function BusinessVCardsPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { if (allSelected) setSelectedIds([]); else setSelectedIds(filtered.map(v => v.id)) }
-  const toggleOne = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   if (loading) {
     return (

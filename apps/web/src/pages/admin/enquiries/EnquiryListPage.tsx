@@ -29,9 +29,9 @@ export default function EnquiryListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteEnquiry(id); setItems(items.filter((e) => e.id !== id)); if (selected?.id === id) setSelected(null) } catch { setItems(items.filter((e) => e.id !== id)); if (selected?.id === id) setSelected(null) }
+    try { await adminService.deleteEnquiry(String(id)); setItems(items.filter((e) => String(e.id) !== id)); if (selected?.id === id) setSelected(null) } catch { setItems(items.filter((e) => String(e.id) !== id)); if (selected?.id === id) setSelected(null) }
   }
 
   const filtered = items.filter((e) => {
