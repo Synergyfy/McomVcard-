@@ -84,22 +84,25 @@ export interface Notification {
 // ── Wallet ──
 
 export interface Wallet {
-  id: string
+  id: string | null
   user_id: string
   balance: number
+  available_balance?: number
   currency: string
   status: string
-  created_at: string
-  updated_at?: string
+  created_at: string | null
+  updated_at?: string | null
 }
 
 export interface WalletTransaction {
   id: string
-  wallet_id: string
+  wallet_id: string | null
   type: string
   amount: number
   balance_after: number
   description: string | null
+  reference?: string | null
+  category?: string | null
   created_at: string
 }
 
@@ -543,7 +546,7 @@ export const businessService = {
   async getWallet(): Promise<Wallet | null> {
     try {
       const res = await api.get('/wallet')
-      return res.data.data
+      return res.data
     } catch {
       return null
     }
@@ -552,7 +555,7 @@ export const businessService = {
   async getWalletTransactions(): Promise<WalletTransaction[]> {
     try {
       const res = await api.get('/wallet/transactions')
-      return res.data.data
+      return res.data
     } catch {
       return []
     }
