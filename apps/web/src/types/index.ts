@@ -351,6 +351,22 @@ export interface Subscription {
   plan?: Plan
 }
 
+export interface Membership {
+  id: string
+  user_id: string
+  membership_tier_id: string
+  tier: {
+    id: string
+    name: string
+    discount_type: string
+    discount_value: number
+  }
+  status: string
+  started_at: string
+  expires_at: string | null
+  created_at: string
+}
+
 export interface AnalyticsData {
   total_views: number
   total_contacts: number
