@@ -665,3 +665,29 @@ export function mapApiUser(api: ApiUserResponse): User {
     theme_mode: (api.theme_mode === 'light' || api.theme_mode === 'dark') ? api.theme_mode : undefined,
   }
 }
+
+// ── Card Type Constants (matches backend CardType enum) ──────────────────────
+
+export const CardType = {
+  BUSINESS_VCARD: 'BUSINESS_VCARD',
+  BUSINESS_CARD: 'BUSINESS_CARD',
+  CONSUMER_VCARD: 'CONSUMER_VCARD',
+  CONSUMER_STORE_CARD: 'CONSUMER_STORE_CARD',
+  EVENT: 'EVENT',
+} as const
+
+export type CardType = typeof CardType[keyof typeof CardType]
+
+export const CardProduct = {
+  VCARD: 'VCARD',
+  CARD: 'CARD',
+} as const
+
+export type CardProduct = typeof CardProduct[keyof typeof CardProduct]
+
+export const CardAudience = {
+  BUSINESS: 'BUSINESS',
+  CONSUMER: 'CONSUMER',
+} as const
+
+export type CardAudience = typeof CardAudience[keyof typeof CardAudience]

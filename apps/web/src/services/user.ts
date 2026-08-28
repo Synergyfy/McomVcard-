@@ -25,36 +25,36 @@ export const userService = {
 
   // vCards
   async getVcards(): Promise<VCard[]> {
-    const res = await api.get('/user/vcards')
-    return res.data
+    const res = await api.get('/users/me/cards')
+    return res.data.data ?? res.data
   },
 
-  async getVcard(id: number): Promise<VCard> {
-    const res = await api.get(`/user/vcards/${id}`)
-    return res.data
+  async getVcard(id: string): Promise<VCard> {
+    const res = await api.get(`/cards/${id}`)
+    return res.data.data ?? res.data
   },
 
   async createVcard(data: FormData | Partial<VCard>): Promise<VCard> {
     if (data instanceof FormData) {
-      const res = await api.post('/user/vcards', data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.post('/cards', data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.post('/user/vcards', data)
-    return res.data
+    const res = await api.post('/cards', data)
+    return res.data.data ?? res.data
   },
 
-  async updateVcard(id: number, data: FormData | Partial<VCard>): Promise<VCard> {
+  async updateVcard(id: string, data: FormData | Partial<VCard>): Promise<VCard> {
     if (data instanceof FormData) {
       data.append('_method', 'PUT')
-      const res = await api.post(`/user/vcards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.post(`/cards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.put(`/user/vcards/${id}`, data)
-    return res.data
+    const res = await api.patch(`/cards/${id}`, data)
+    return res.data.data ?? res.data
   },
 
-  async deleteVcard(id: number): Promise<void> {
-    await api.delete(`/user/vcards/${id}`)
+  async deleteVcard(id: string): Promise<void> {
+    await api.delete(`/cards/${id}`)
   },
 
   // Templates
