@@ -19,7 +19,7 @@ import { slugify } from '../../lib/utils/slug.util'
 import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto } from './dto/business-response.dto'
 import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
-import { Card } from '../cards/entities/card.entity'
+import { Card, CardType } from '../cards/entities/card.entity'
 
 /* Plan levels + per-tier limits, mirroring the default pricing catalogue
    (membershipPricingStore defaults on the frontend). null = Unlimited. */
@@ -143,7 +143,7 @@ export class BusinessesService {
 
     const allocatedVcards = await this.cardsRepo.count({ where: { ownerId: userId } })
     const allocatedBusinessCards = business
-      ? await this.cardsRepo.count({ where: { businessId: business.id, type: 'BUSINESS' } })
+      ? await this.cardsRepo.count({ where: { businessId: business.id, type: CardType.BUSINESS_CARD } })
       : 0
 
     const remaining = (limit: number | null, used: number) => (limit === null ? null : Math.max(0, limit - used))
