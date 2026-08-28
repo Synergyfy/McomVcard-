@@ -41,10 +41,10 @@ export default function SubscribedPlansPage() {
   const handleStatusChange = async (id: number, status: string) => {
     try {
       await adminService.updateSubscribedUserPlan(id, { status } as any)
-      setPlans(plans.map((p) => p.id === id ? { ...p, status } : p))
+      setPlans(plans.map((p) => String(p.id) === id ? { ...p, status } : p))
       toast.success(`Subscription ${status}`)
     } catch {
-      setPlans(plans.map((p) => p.id === id ? { ...p, status } : p))
+      setPlans(plans.map((p) => String(p.id) === id ? { ...p, status } : p))
       toast.success(`Subscription ${status}`)
     }
   }

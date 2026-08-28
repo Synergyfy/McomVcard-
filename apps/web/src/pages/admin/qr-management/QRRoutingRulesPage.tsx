@@ -75,7 +75,7 @@ export default function QRRoutingRulesPage() {
     })
   }, [search, filterType, filterQRType, filterStatus, filterDate])
 
-  const rule = selectedId !== null ? RULES.find(x => x.id === selectedId)! : null
+  const rule = selectedId !== null ? RULES.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
 

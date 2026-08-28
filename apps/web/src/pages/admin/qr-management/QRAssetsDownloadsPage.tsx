@@ -147,7 +147,7 @@ export default function QRAssetsDownloadsPage() {
     })
   }, [search, filterType, filterOwner, filterFormat, filterStatus])
 
-  const asset = selectedId !== null ? ASSETS.find(x => x.id === selectedId)! : null
+  const asset = selectedId !== null ? ASSETS.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
   function toggleSelect(id: number) { setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]) }

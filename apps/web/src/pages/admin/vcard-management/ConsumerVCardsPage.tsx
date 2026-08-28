@@ -129,7 +129,7 @@ export function BuilderWorkspace({ vcard, onClose }: { vcard: ConsumerVCard | nu
 
   if (!vcard) return null
 
-  const toggleSection = (id: string) => setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s))
+  const toggleSection = (id: string) => setSections(prev => prev.map(s => String(s.id) === id ? { ...s, enabled: !s.enabled } : s))
   const moveUp = (i: number) => { if (i === 0) return; const u = [...sections]; [u[i - 1], u[i]] = [u[i], u[i - 1]]; setSections(u) }
   const moveDown = (i: number) => { if (i === sections.length - 1) return; const u = [...sections]; [u[i], u[i + 1]] = [u[i + 1], u[i]]; setSections(u) }
 
@@ -353,7 +353,7 @@ export default function ConsumerVCardsPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { if (allSelected) setSelectedIds([]); else setSelectedIds(filtered.map(v => v.id)) }
-  const toggleOne = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   const totalViews = CONSUMER_VCARDS.reduce((s, v) => s + v.views, 0)
   const totalShares = CONSUMER_VCARDS.reduce((s, v) => s + v.shares, 0)

@@ -176,7 +176,7 @@ export default function ConsumerMembershipsPage() {
     return true
   })
 
-  const toggleSelect = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleSelectAll = () => setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(c => c.id))
   const handleBulkAction = (action: string) => {
     if (selectedIds.length === 0) { toast.error('No consumers selected'); return }

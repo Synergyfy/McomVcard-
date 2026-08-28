@@ -31,9 +31,9 @@ export default function SubscriberListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteSubscriber(id); setItems(items.filter((s) => s.id !== id)) } catch { setItems(items.filter((s) => s.id !== id)) }
+    try { await adminService.deleteSubscriber(String(id)); setItems(items.filter((s) => String(s.id) !== id)) } catch { setItems(items.filter((s) => String(s.id) !== id)) }
   }
 
   const filtered = items.filter((s) => {

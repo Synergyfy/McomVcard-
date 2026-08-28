@@ -72,7 +72,7 @@ export default function PlanEditPage() {
   useEffect(() => {
     adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies(mockCurrencies))
     if (!id) return
-    adminService.getPlan(Number(id))
+    adminService.getPlan(String(id))
       .then((p) => {
         setForm({
           name: p.name, currency_id: p.currency_id, price: p.price,
@@ -94,7 +94,7 @@ export default function PlanEditPage() {
     setServerError('')
     setLoading(true)
     try {
-      await adminService.updatePlan(Number(id), {
+      await adminService.updatePlan(String(id), {
         ...form,
         currency_id: Number(form.currency_id),
         plan_feature: Object.fromEntries(

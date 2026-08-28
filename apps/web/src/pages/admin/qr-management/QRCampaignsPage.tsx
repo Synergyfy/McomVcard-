@@ -96,7 +96,7 @@ export default function QRCampaignsPage() {
     })
   }, [search, filterType, filterStatus, filterDate])
 
-  const camp = selectedId !== null ? CAMPAIGNS.find(x => x.id === selectedId)! : null
+  const camp = selectedId !== null ? CAMPAIGNS.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
 

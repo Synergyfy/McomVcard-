@@ -37,7 +37,7 @@ export default function WithdrawTransactionsPage() {
   const handleStatus = async (id: number, status: 'approved' | 'rejected') => {
     if (!confirm(status === 'approved' ? 'Approve this withdrawal?' : 'Reject this withdrawal?')) return
     try { await adminService.updateWithdrawTransaction(id, { status } as any) } catch {}
-    setTxns(txns.map((t) => t.id === id ? { ...t, status } : t))
+    setTxns(txns.map((t) => String(t.id) === id ? { ...t, status } : t))
     toast.success(`Withdrawal ${status}`)
   }
 

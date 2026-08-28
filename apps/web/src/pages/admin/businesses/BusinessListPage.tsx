@@ -250,7 +250,7 @@ export default function BusinessListPage() {
     else { setSortKey(key); setSortDir(key === 'joined' ? 'desc' : 'asc') }
   }
 
-  const toggleSelect = (id: number) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleSelect = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleAll = () => setSelected(selected.length === paginated.length ? [] : paginated.map(b => b.id))
 
   const handleKpiClick = (label: string | null) => {

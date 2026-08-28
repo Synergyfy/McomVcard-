@@ -281,7 +281,7 @@ export default function PromotionsPage() {
     })
   }, [search, filterStatus, filterType, filterPlan, filterDate])
 
-  const p = selectedId !== null ? PROMOTIONS.find(x => x.id === selectedId)! : null
+  const p = selectedId !== null ? PROMOTIONS.find(x => String(x.id) === selectedId)! : null
 
   function handleAction(msg: string) { toast.success(msg) }
 

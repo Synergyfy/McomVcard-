@@ -33,10 +33,10 @@ export default function LanguageListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm_delete'))) return
-    try { await adminService.deleteLanguage(id); setLanguages(languages.filter((l) => l.id !== id)); toast.success(t('common.deleted')) }
-    catch { setLanguages(languages.filter((l) => l.id !== id)); toast.success(t('common.deleted')) }
+    try { await adminService.deleteLanguage(String(id)); setLanguages(languages.filter((l) => String(l.id) !== id)); toast.success(t('common.deleted')) }
+    catch { setLanguages(languages.filter((l) => String(l.id) !== id)); toast.success(t('common.deleted')) }
   }
 
   const filtered = languages.filter((l) => {

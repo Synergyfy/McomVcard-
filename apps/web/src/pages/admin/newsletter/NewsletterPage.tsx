@@ -44,9 +44,9 @@ export default function NewsletterPage() {
     } finally { setSending(false) }
   }
 
-  const handleSend = async (id: number) => {
+  const handleSend = async (id: string) => {
     if (!confirm('Send this newsletter now?')) return
-    try { await adminService.sendNewsletter(id); toast.success('Newsletter sent!'); adminService.getNewsletterCampaigns().then((res) => setCampaigns(res.data)).catch(() => {}) }
+    try { await adminService.sendNewsletter(String(id)); toast.success('Newsletter sent!'); adminService.getNewsletterCampaigns().then((res) => setCampaigns(res.data)).catch(() => {}) }
     catch { toast.error('Error sending') }
   }
 
