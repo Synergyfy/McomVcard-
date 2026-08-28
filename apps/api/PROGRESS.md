@@ -113,7 +113,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 
 ### Remaining
 
-## Phase 5 — Business Features 🔄 (Milestones A–C ✅)
+## Phase 5 — Business Features 🔄 (Milestones A–C ✅, Milestone D In Progress)
 
 **Milestone A — Services (migration `1712000000008-CreateServicesTables`)**: new `ServicesModule` (`modules/services/`). `Service` entity (`services` table, Business **1:N** Services): `business_id` FK (ON DELETE CASCADE), `name`, `description` (text), `price` (numeric(10,2) with a TypeORM transformer → number in API, null-safe), `currency` (ISO 4217, default `GBP` — matches the web frontend default), `duration` (minutes), `image` (URL), `status` (internal-only, default `active`, not settable via API). `Business` entity gains a `services` OneToMany relation.
 
@@ -153,7 +153,50 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 74-check e2e)**: booking rules defaults + create + duplicate 400 + update + snake_case keys, availability CRUD + validation 400s (bad day, bad time, end-before-start), booking validation 400s (past date, outside advance window, no availability for weekday, bad email/date/time format, disabled booking, end past midnight), booking success (status `pending`, end = start+60 default, service duration overrides to +45 with nested `service`), conflict 400, reschedule 200 + applied + conflict 400, status flow, unknown business 404, service-from-another-business 400, ownership (other user reads 200, all modifications 403), auth 401 ×3, business delete cascades appointments/availability/booking_rules (DB-verified). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects all 8 new paths + 10 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses).
 - **Bugs caught + fixed during e2e**: (1) optional `service_id`/`customer_phone`/`notes` in `CreateAppointmentDto` lacked `@IsOptional()` → global whitelist+forbidNonWhitelisted rejected them (400) — added `@IsOptional()`; (2) `assertWithinAvailability` was async but called without `await` in `book()`/`reschedule()` → unhandled rejection crashed the prod server — added `await`; (3) Postgres `TIME` columns returned `HH:MM:SS` in responses — response DTOs now normalize to `HH:MM`; (4) default booking-rules response leaked camelCase entity keys — service returns a snake_case default object.
 
-### Remaining (Milestone D — Next Business Feature)
+### Milestone D — Card Type System + Events + Template Customization (In Progress)
+
+**Migration**: `1712000000035-CardTypeSystemAndEvents.ts` applied
+
+**Card Type System** (4 experiences per original docs):
+- Extended `Card.type` enum: `BUSINESS_VCARD`, `BUSINESS_CARD`, `CONSUMER_VCARD`, `CONSUMER_STORE_CARD`, `EVENT`
+- Added `card_product` (VCARD/CARD) and `audience` (BUSINESS/CONSUMER) fields
+- Consumer Store Card: membership level, season, wallet balance display, rewards/redeem actions
+- Different QR destinations per card type
+
+**Events Module** (NEW - per PROGRESS.md "Options / Events"):
+- `events` table: business events (workshops, pop-ups, classes, webinars) with scheduling, capacity, virtual support
+- `event_tickets`: ticket tiers (Free/Paid/VIP) with pricing, capacity, sales windows
+- `event_registrations`: attendee bookings with status flow (pending/confirmed/cancelled/waitlisted/checked_in)
+- Public registration endpoint, owner-only management
+- Capacity limits, waitlist, cancellation policy
+- Integration ready: coupons, wallet, rewards, affiliate attribution
+
+**Template Customization Levels** (Foundation - per Parts 5, 6, 7, 9):
+- `templates`: added `required_membership_level`, `is_premium`
+- `template_fields`: added `editable_by_membership_level`
+- Membership-gated field editing (Standard/Pro/Pro+)
+
+**Password Protection & Access Layers** (Foundation - per Parts 25, 26):
+- `card_access`: added `public_sections`, `interactive_sections`, `protected_sections` JSONB
+- Per-card password protection with granular section-level control
+
+**Consumer Store Card** (Foundation - per Parts 10-13):
+- Membership level, season display
+- Wallet balance summary, rewards/redeem actions
+
+**Endpoints Added**:
+- Events: `POST/GET /businesses/:id/events`, `GET/POST /events`, `GET/PATCH/DELETE /events/:id`
+- Event Tickets: `POST/GET /events/:id/tickets`, `PATCH/DELETE /events/tickets/:id`
+- Registrations: `POST /events/:id/register`, `GET /events/:id/registrations`, `GET /my/registrations`, `PATCH /registrations/:id/status`, `POST /registrations/:id/cancel`
+- All with Swagger docs, ownership checks, validation
+
+**Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing, web build clean
+
+### Remaining (Milestone D Continuation)
+1. Consumer Store Card full implementation (membership/season display, wallet summary)
+2. Template customization membership-gated editing in service layer
+3. Password protection granular section control
+4. Card type validation in service (audience/product mismatch checks)
 
 ---
 
@@ -179,9 +222,52 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **Endpoints** (`/api`, Swagger-documented, `JwtAuthGuard`): `POST/GET /memberships`, `GET/PATCH/DELETE /memberships/:id` — **per-user scoped** (a user only reads/manages their own memberships; foreign ids → 404).
 - **DTOs**: `CreateMembershipDto` (membership_tier_id UUID, optional started_at/expires_at ISO8601), `UpdateMembershipDto` (PartialType + status IsIn active/cancelled/expired, expires_at nullable to clear), `MembershipResponseDto` (snake_case, nests `tier` summary `{ id, name, discount_type, discount_value }`).
 - **Rules**: only `active` tiers assignable (400 otherwise); `expires_at` must be after `started_at` (create + update); deleting a tier with memberships blocked 400 (RESTRICT guard); `status` internal-only (whitelist-rejected).
-- **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod).
+- **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 tiers/memberships).
 
-### Remaining (Milestone D — Next Business Feature)
+### Milestone D — Card Type System + Events + Template Customization (In Progress)
+
+**Migration**: `1712000000035-CardTypeSystemAndEvents.ts` applied
+
+**Card Type System** (4 experiences per original docs):
+- Extended `Card.type` enum: `BUSINESS_VCARD`, `BUSINESS_CARD`, `CONSUMER_VCARD`, `CONSUMER_STORE_CARD`, `EVENT`
+- Added `card_product` (VCARD/CARD) and `audience` (BUSINESS/CONSUMER) fields
+- Consumer Store Card: membership level, season, wallet balance display, rewards/redeem actions
+- Different QR destinations per card type
+
+**Events Module** (NEW - per PROGRESS.md "Options / Events"):
+- `events` table: business events (workshops, pop-ups, classes, webinars) with scheduling, capacity, virtual support
+- `event_tickets`: ticket tiers (Free/Paid/VIP) with pricing, capacity, sales windows
+- `event_registrations`: attendee bookings with status flow (pending/confirmed/cancelled/waitlisted/checked_in)
+- Public registration endpoint, owner-only management
+- Capacity limits, waitlist, cancellation policy
+- Integration ready: coupons, wallet, rewards, affiliate attribution
+
+**Template Customization Levels** (Foundation - per Parts 5, 6, 7, 9):
+- `templates`: added `required_membership_level`, `is_premium`
+- `template_fields`: added `editable_by_membership_level`
+- Membership-gated field editing (Standard/Pro/Pro+)
+
+**Password Protection & Access Layers** (Foundation - per Parts 25, 26):
+- `card_access`: added `public_sections`, `interactive_sections`, `protected_sections` JSONB
+- Per-card password protection with granular section-level control
+
+**Consumer Store Card** (Foundation - per Parts 10-13):
+- Membership level, season display
+- Wallet balance summary, rewards/redeem actions
+
+**Endpoints Added**:
+- Events: `POST/GET /businesses/:id/events`, `GET/POST /events`, `GET/PATCH/DELETE /events/:id`
+- Event Tickets: `POST/GET /events/:id/tickets`, `PATCH/DELETE /events/tickets/:id`
+- Registrations: `POST /events/:id/register`, `GET /events/:id/registrations`, `GET /my/registrations`, `PATCH /registrations/:id/status`, `POST /registrations/:id/cancel`
+- All with Swagger docs, ownership checks, validation
+
+**Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing, web build clean
+
+### Remaining (Milestone D Continuation)
+1. Consumer Store Card full implementation (membership/season display, wallet summary)
+2. Template customization membership-gated editing in service layer
+3. Password protection granular section control
+4. Card type validation in service (audience/product mismatch checks)
 
 ---
 

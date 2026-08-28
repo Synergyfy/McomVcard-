@@ -1,5 +1,6 @@
 import { Matches, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
+import { CardType, CardProduct, CardAudience } from '../entities/card.entity'
 
 export class CreateCardDto {
   @ApiPropertyOptional({ example: 'jane-doe', description: 'Public URL slug for the card. Auto-generated if omitted.' })
@@ -11,10 +12,20 @@ export class CreateCardDto {
   })
   slug?: string
 
-  @ApiPropertyOptional({ example: 'PERSONAL', description: 'Card type', default: 'PERSONAL' })
+  @ApiPropertyOptional({ example: CardType.CONSUMER_VCARD, description: 'Card type', enum: CardType })
   @IsOptional()
-  @IsIn(['PERSONAL', 'BUSINESS'])
-  type?: string
+  @IsIn(Object.values(CardType))
+  type?: CardType
+
+  @ApiPropertyOptional({ example: CardProduct.VCARD, description: 'Card product (long-form VCard or short-form Card)', enum: CardProduct })
+  @IsOptional()
+  @IsIn(Object.values(CardProduct))
+  card_product?: CardProduct
+
+  @ApiPropertyOptional({ example: CardAudience.CONSUMER, description: 'Target audience', enum: CardAudience })
+  @IsOptional()
+  @IsIn(Object.values(CardAudience))
+  audience?: CardAudience
 
   @ApiPropertyOptional({ example: 'b3f2c1d4-...-uuid', description: 'Optional template UUID' })
   @IsOptional()

@@ -84,7 +84,7 @@ describe('Businesses (e2e)', () => {
       return request(app.getHttpServer())
         .post('/api/cards')
         .set('Authorization', `Bearer ${token}`)
-        .send({ slug: `e2e-card-${Date.now()}`, type: 'BUSINESS', business_id: businessId })
+        .send({ slug: `e2e-card-${Date.now()}`, type: 'BUSINESS_VCARD', card_product: 'VCARD', audience: 'BUSINESS', business_id: businessId })
         .expect(201)
         .expect((res) => {
           cardId = res.body.data.id;

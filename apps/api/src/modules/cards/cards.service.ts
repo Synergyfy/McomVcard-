@@ -4,7 +4,7 @@ import { Repository } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { BusinessesService } from '../businesses/businesses.service'
-import { Card } from './entities/card.entity'
+import { Card, CardType, CardProduct, CardAudience } from './entities/card.entity'
 import { CardProfile } from './entities/card-profile.entity'
 import { CardCustomization } from './entities/card-customization.entity'
 import { SocialLink } from './entities/social-link.entity'
@@ -73,7 +73,9 @@ export class CardsService {
       this.cardsRepo.create({
         ownerId,
         slug,
-        type: dto.type ?? 'PERSONAL',
+        type: dto.type ?? CardType.CONSUMER_VCARD,
+        cardProduct: dto.card_product ?? CardProduct.VCARD,
+        audience: dto.audience ?? CardAudience.CONSUMER,
         templateId: dto.template_id ?? null,
         businessId: dto.business_id ?? null,
         status: 'active',
@@ -155,7 +157,9 @@ export class CardsService {
         businessId,
         templateId,
         slug,
-        type: 'BUSINESS',
+        type: CardType.BUSINESS_VCARD,
+        cardProduct: CardProduct.VCARD,
+        audience: CardAudience.BUSINESS,
         name: template.name,
         category: template.category,
         status: 'active',
