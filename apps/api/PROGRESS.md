@@ -499,13 +499,29 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 
 **Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing (API)
 
-### Frontend Status (Partial)
+### Frontend Status (Partial - Core Services Updated)
 - Added CardType, CardProduct, CardAudience enums to types
-- Updated businessApi.ts createCard/updateCard to use new enums
-- Updated userService to use /cards endpoint instead of /user/vcards
-- Admin pages partially updated (String() conversions for ID params)
-- **Known Issue**: Web build has TypeScript errors in admin pages (String/number ID mismatches between mock data and admin service)
-- 55 admin pages partially updated, need String()/Number() conversions for IDs and comparisons
+- Updated businessApi.ts createCard/updateCard with new enums
+- Updated userService to use correct API endpoints:
+  - /user/dashboard → /dashboard/stats
+  - /user/templates → /templates
+  - /user/vcards/* → /cards/:id/* (social-links, customization, stats)
+  - /user/vcards/*/services → /businesses/:id/services
+  - /user/vcards/*/gallery → /businesses/:id/products & /products/:id/images
+  - /user/vcards/*/testimonials → /reviews/businesses/:id
+  - /user/appointments → /businesses/:id/appointments
+  - /user/subscriptions → /memberships
+  - /user/vcards/*/customization → /cards/:id/customization
+  - /user/vcards/*/analytics → /cards/:id/stats
+  - /user/vcards/*/seo → placeholder (not implemented)
+  - /user/vcards/*/blog → placeholder (not implemented)
+- Added Membership interface to types
+- Fixed TypeScript errors in user.ts
+- Fixed TypeScript errors in types/index.ts
+
+### Frontend Status (Partial - Admin Pages Need Fixes)
+- 55 admin pages partially updated (String() conversions for ID params)
+- Web build has TypeScript errors from mock data numeric IDs vs UUID strings
 
 ### Remaining
 1. Fix frontend admin pages TypeScript errors (String/number ID conversions)
