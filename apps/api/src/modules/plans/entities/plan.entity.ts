@@ -55,6 +55,16 @@ export interface AnnualDiscount {
   value: number
 }
 
+/**
+ * MCOM Solutions connector-facing configuration. Mirrors the mall's Tier
+ * `configuration` payload consumed by the Generic Connector: per-plan quotas
+ * (e.g. maxVCards, maxTeamMembers) and boolean feature flags.
+ */
+export interface PlanConfiguration {
+  quotas?: Record<string, number | boolean>
+  featureFlags?: Record<string, boolean>
+}
+
 @Entity({ name: 'plans' })
 @Unique(['level', 'audience'])
 @Index(['audience', 'sortOrder'])
@@ -100,6 +110,31 @@ export class Plan {
 
   @Column({ default: 'active' })
   status!: string
+
+  // ── MCOM SOLUTIONS CONNECTOR FIELDS (additive — safe migration) ──────────
+  @Column({ name: 'configuration', type: 'jsonb', nullable: true })
+  configuration!: PlanConfiguration | null
+
+  @Column({ name: 'is_default', default: false })
+  isDefault!: boolean
+
+  @Column({ name: 'stripe_monthly_price_id', type: 'varchar', nullable: true })
+  stripeMonthlyPriceId!: string | null
+
+  @Column({ name: 'stripe_quarterly_price_id', type: 'varchar', nullable: true })
+  stripeQuarterlyPriceId!: string | null
+
+  @Column({ name: 'stripe_annual_price_id', type: 'varchar', nullable: true })
+  stripeAnnualPriceId!: string | null
+
+  @Column({ name: 'paypal_monthly_plan_id', type: 'varchar', nullable: true })
+  paypalMonthlyPlanId!: string | null
+
+  @Column({ name: 'paypal_quarterly_plan_id', type: 'varchar', nullable: true })
+  paypalQuarterlyPlanId!: string | null
+
+  @Column({ name: 'paypal_annual_plan_id', type: 'varchar', nullable: true })
+  paypalAnnualPlanId!: string | null
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date

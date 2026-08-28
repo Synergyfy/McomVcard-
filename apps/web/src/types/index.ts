@@ -144,6 +144,12 @@ export interface User {
   referral_code?: string
   /** @deprecated Use status === 'active' */
   is_active?: boolean
+  /** Dynamic platform access permissions synchronized from MCOM Solutions */
+  permissions?: { can_access_vcard?: boolean } | null
+  /** MCOM membership level (Central) or null for local accounts */
+  membership_level?: string | null
+  /** MCOM membership status (Central) or null for local accounts */
+  membership_status?: string | null
 }
 
 export interface AuthResponse {
@@ -639,6 +645,9 @@ export interface ApiUserResponse {
   theme_mode?: string
   created_at?: string
   updated_at?: string
+  permissions?: { can_access_vcard?: boolean } | null
+  membership_level?: string | null
+  membership_status?: string | null
 }
 
 /** Standard API envelope wrapping data in { success, data, message } */

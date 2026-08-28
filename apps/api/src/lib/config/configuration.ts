@@ -13,4 +13,12 @@ export default () => ({
     password: process.env.DB_PASS || 'postgres',
     database: process.env.DB_NAME || 'mcomvcard',
   },
+  mcom: {
+    solutionsUrl: (process.env.MCOM_SOLUTIONS_URL || 'http://localhost:3010').replace(/\/+$/, ''),
+    clientId: process.env.MCOM_CLIENT_ID || '',
+    clientSecret: process.env.MCOM_CLIENT_SECRET || '',
+    hmacSecret: process.env.MCOM_HMAC_SECRET || '',
+    platformSlug: process.env.MCOM_PLATFORM_SLUG || 'vcard',
+    walletEnabled: process.env.MCOM_WALLET_ENABLED === 'true',
+  },
 })

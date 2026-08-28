@@ -27,9 +27,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = exception instanceof HttpException ? exception.getStatus() : 500
 
     // Error category derived from the HTTP status (e.g. "Bad Request", "Unauthorized")
-    const error = STATUS_CODES[status] ?? 'Error'
+    let error = STATUS_CODES[status] ?? 'Error'
 
     let message = FALLBACK_MESSAGES[status] ?? 'Internal server error'
+
+    // Extra fields on the exception body (e.g. wallet topUpUrl) are passed through
+    // to the response so clients can act on them.
+    let extra: Record<string, unknown> = {}
 
     if (exception instanceof HttpException) {
       const res = exception.getResponse()
@@ -37,8 +41,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (typeof res === 'string') {
         message = res
       } else if (res && typeof res === 'object') {
-        const body = res as { message?: string | string[] }
+        const body = res as { message?: string | string[]; error?: string; statusCode?: number }
         message = Array.isArray(body.message) ? body.message.join(', ') : (body.message ?? exception.message)
+        // A custom machine-readable error code (e.g. WALLET_INSUFFICIENT_FUNDS)
+        // takes precedence over the generic HTTP status category.
+        if (typeof body.error === 'string' && body.error) {
+          error = body.error
+        }
+        const { message: _message, error: _error, statusCode: _statusCode, ...rest } = body as Record<string, unknown>
+        extra = rest
       } else {
         message = exception.message
       }
@@ -62,6 +73,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: status,
       message,
       error,
+      ...extra,
       path: request.url,
       timestamp: new Date().toISOString(),
     })

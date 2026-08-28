@@ -456,3 +456,32 @@ Frontend:
 - **Backend tsc clean**; **migration 034 applied**.
 
 **Why:** The "Available campaigns" section in CampaignsPage was hardcoded mock data with no backend. This creates the `campaign_templates` table and endpoints so templates are admin-managed in the DB and the frontend fetches them in real time.
+
+---
+
+## 21. [BACKEND + FRONTEND] MCOM Solutions SSO + Billing Integration
+
+**Date:** 2026-08-27
+**Files changed:**
+- `apps/api/.env` / `.env.example` — `MCOM_SOLUTIONS_URL`, `MCOM_CLIENT_ID/SECRET`, `MCOM_HMAC_SECRET`, `MCOM_API_KEY`, `MCOM_WEBHOOK_SECRET`, `MCOM_PLATFORM_SLUG`, `MCOM_REDIRECT_URI`, `MCOM_SCOPES`, `MCOM_MEMBERSHIP_URL`
+- `apps/api/src/lib/config/validation.ts` — Joi schema for the new MCOM vars
+- `apps/api/src/migrations/1712000000035-AddMcomSsoFields.ts` (new) — applied; adds `mcom_*` columns to `users` (user id, membership level/status, `can_access_vcard`, encrypted access/refresh tokens)
+- `apps/api/src/modules/users/entities/user.entity.ts` — mirrored `mcom_*` columns
+- `apps/api/src/modules/mcom/` (new module) — `mcom.service.ts`, `mcom.controller.ts`, `mcom.module.ts`, `dto/sso-callback.dto.ts`
+- `apps/api/src/lib/utils/mcom-crypto.util.ts` (new) — AES-256-GCM envelope for Central tokens at rest
+- `apps/api/src/lib/utils/oauth-state-cookie.util.ts` (new) — CSRF `state` + post-login return-context cookies
+- `apps/api/src/lib/utils/dto/user-response.dto.ts` — exposes `permissions.can_access_vcard`, `membership_level`, `membership_status`
+- `apps/api/src/modules/auth/auth.service.ts` — JIT provisioning (`mcomProvisionAndIssue`), `syncMcomSession`, public `issueTokens`
+- `apps/api/src/app.module.ts` — registered `McomModule`
+- `apps/web/src/services/mcom.ts` (new) — SSO start/complete/refresh/status/config
+- `apps/web/src/contexts/AuthContext.tsx` — `loginWithMcom`, `completeMcomCallback`, `refreshMcomStatus`
+- `apps/web/src/pages/auth/LoginPage.tsx` — "Login with MCOM" button (card/business invite context preserved)
+- `apps/web/src/pages/auth/AuthCallbackPage.tsx` (new) + `/auth/callback` route
+- `apps/web/src/components/auth/RequireVcardAccess.tsx` (new) — gates `/b/*`, `/c/*`, `/user/*` behind `can_access_vcard`
+- `apps/web/src/types/index.ts` — `permissions`, `membership_level`, `membership_status` on `User`/`ApiUserResponse`
+- `apps/web/src/i18n/locales/en.json` — `auth.login_with_mcom`, `auth.or`
+
+**What:** OAuth 2.0 authorization-code SSO against MCOM Solutions Central (`http://localhost:3010/api/v1`). Backend `GET /auth/sso/login` issues a 32-byte CSRF `state` cookie + authorize URL; `POST /auth/sso/callback` validates state, exchanges the code (Basic-auth client credentials — Central's DTO forbids `client_secret` in the body), fetches `/auth/sso/userinfo` for dynamic permissions, JIT-provisions/upserts the local user by email, and issues a local JWT + refresh cookie. Also added `/auth/sso/refresh`, `/auth/sso/status?sync=1`, secret-free `/auth/sso/config`, and an HMAC-signed `/auth/sso/data/permissions` call to the Central data-sharing API. Central tokens are stored AES-256-GCM-encrypted. The frontend gates all business/consumer/user dashboards on `can_access_vcard === true` with an upgrade/access-denied screen.
+- **Verified**: migration 035 applied; API boots; authorize URL + state cookie correct; HMAC-signed request accepted by Central (404 = auth passed); web `tsc`+build clean; **no secrets in the client bundle** (`.env` is gitignored).
+
+**Why:** vCards authentication/billing is handled centrally at MCOM Solutions. This integrates the app into the Central SSO + billing ecosystem so access to the platform is controlled by the user's active MCOM package (`canAccess_vcard`), with server-side secrets and CSRF-safe OAuth state.

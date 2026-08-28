@@ -13,12 +13,28 @@ export const validationSchema = Joi.object({
   REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'),
   API_PUBLIC_URL: Joi.string().default('http://localhost:3001/api'),
   WEB_PUBLIC_URL: Joi.string().default('http://localhost:3000'),
-  MAIL_HOST: Joi.string().optional(),
-  MAIL_PORT: Joi.number().optional(),
-  MAIL_USER: Joi.string().optional(),
-  MAIL_PASS: Joi.string().optional(),
-  MAIL_FROM: Joi.string().optional(),
-  MAIL_SECURE: Joi.string().valid('true', 'false').optional(),
+  MAIL_HOST: Joi.string().optional().empty(''),
+  MAIL_PORT: Joi.number().optional().empty(''),
+  MAIL_USER: Joi.string().optional().empty(''),
+  MAIL_PASS: Joi.string().optional().empty(''),
+  MAIL_FROM: Joi.string().optional().empty(''),
+  MAIL_SECURE: Joi.string().valid('true', 'false').optional().empty(''),
   // Comma-separated list of allowed CORS origins in production (e.g. "https://app.example.com,https://www.example.com").
-  CORS_ORIGINS: Joi.string().optional(),
+  CORS_ORIGINS: Joi.string().optional().empty(''),
+  // MCOM Solutions Central Hub (SSO + billing). Secrets are server-only and
+  // must never leak into client bundles.
+  MCOM_SOLUTIONS_URL: Joi.string().uri().default('http://localhost:3010'),
+  MCOM_CLIENT_ID: Joi.string().optional().empty('').default(''),
+  MCOM_CLIENT_SECRET: Joi.string().optional().empty('').default(''),
+  MCOM_API_KEY: Joi.string().optional().empty('').default(''),
+  MCOM_HMAC_SECRET: Joi.string().optional().empty('').default(''),
+  MCOM_WEBHOOK_SECRET: Joi.string().optional().empty('').default(''),
+  MCOM_PLATFORM_SLUG: Joi.string().default('vcard'),
+  MCOM_REDIRECT_URI: Joi.string().uri().default('http://localhost:8000/auth/callback'),
+  MCOM_SCOPES: Joi.string().default('profile email business membership packages'),
+  MCOM_MEMBERSHIP_URL: Joi.string().uri().allow('').default(''),
+  // Centralized MCOM Wallet partner integration. When enabled, wallet balance,
+  // transactions and writes are proxied to MCOM Solutions (/wallet/partner);
+  // when disabled the app falls back to the local Postgres wallet tables.
+  MCOM_WALLET_ENABLED: Joi.string().valid('true', 'false').default('false'),
 })

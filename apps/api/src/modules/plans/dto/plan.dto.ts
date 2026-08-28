@@ -149,6 +149,24 @@ export class AnnualDiscountDto {
   value!: number
 }
 
+export class PlanConfigurationDto {
+  @ApiPropertyOptional({
+    example: { maxVCards: 50, maxTeamMembers: 5 },
+    description: 'Per-plan quota limits (numeric or boolean toggles)',
+  })
+  @IsOptional()
+  @IsObject()
+  quotas?: Record<string, number | boolean>
+
+  @ApiPropertyOptional({
+    example: { customDomains: true, advancedAnalytics: false },
+    description: 'Per-plan boolean feature flags',
+  })
+  @IsOptional()
+  @IsObject()
+  featureFlags?: Record<string, boolean>
+}
+
 export class CreatePlanDto {
   @ApiProperty({ enum: ['Bronze', 'Silver', 'Gold', 'Platinum'], example: 'Gold' })
   @IsIn(['Bronze', 'Silver', 'Gold', 'Platinum'])
@@ -213,6 +231,47 @@ export class CreatePlanDto {
   @IsOptional()
   @IsString()
   currency?: string
+
+  @ApiPropertyOptional({ type: PlanConfigurationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlanConfigurationDto)
+  configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({ example: false, description: 'Marks this as the default/free tier' })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean
+
+  @ApiPropertyOptional({ example: 'price_123', description: 'Stripe monthly price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeMonthlyPriceId?: string
+
+  @ApiPropertyOptional({ example: 'price_456', description: 'Stripe quarterly price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeQuarterlyPriceId?: string
+
+  @ApiPropertyOptional({ example: 'price_789', description: 'Stripe annual price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeAnnualPriceId?: string
+
+  @ApiPropertyOptional({ example: 'P-123', description: 'PayPal monthly plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalMonthlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-456', description: 'PayPal quarterly plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalQuarterlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-789', description: 'PayPal annual plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalAnnualPlanId?: string
 }
 
 export class UpdatePlanDto {
@@ -271,6 +330,47 @@ export class UpdatePlanDto {
   @IsOptional()
   @IsString()
   currency?: string
+
+  @ApiPropertyOptional({ type: PlanConfigurationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlanConfigurationDto)
+  configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({ example: false, description: 'Marks this as the default/free tier' })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean
+
+  @ApiPropertyOptional({ example: 'price_123', description: 'Stripe monthly price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeMonthlyPriceId?: string
+
+  @ApiPropertyOptional({ example: 'price_456', description: 'Stripe quarterly price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeQuarterlyPriceId?: string
+
+  @ApiPropertyOptional({ example: 'price_789', description: 'Stripe annual price ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  stripeAnnualPriceId?: string
+
+  @ApiPropertyOptional({ example: 'P-123', description: 'PayPal monthly plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalMonthlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-456', description: 'PayPal quarterly plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalQuarterlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-789', description: 'PayPal annual plan ID (set by MCOM Solutions)' })
+  @IsOptional()
+  @IsString()
+  paypalAnnualPlanId?: string
 
   @ApiPropertyOptional({ example: 'active' })
   @IsOptional()
