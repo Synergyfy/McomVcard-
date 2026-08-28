@@ -32,6 +32,8 @@ import { ActivityModule } from './modules/activity/activity.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { CustomersModule } from './modules/customers/customers.module'
 import { PlansModule } from './modules/plans/plans.module'
+import { SystemPlansModule } from './modules/system-plans/system-plans.module'
+import { McomModule } from './modules/mcom/mcom.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -78,6 +80,8 @@ import { APP_GUARD } from '@nestjs/core'
     AnalyticsModule,
     CustomersModule,
     PlansModule,
+    SystemPlansModule,
+    McomModule,
   ],
   controllers: [],
   providers: [
