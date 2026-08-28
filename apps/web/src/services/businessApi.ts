@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { tokenStore } from './tokenStore'
+import { CardType, CardProduct, CardAudience } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -737,7 +738,7 @@ export const businessService = {
     }
   },
 
-  async updateCard(cardId: string, dto: { slug?: string; type?: string; template_id?: string | null; business_id?: string | null; name?: string; description?: string; category?: string; status?: string }): Promise<VCard | null> {
+  async updateCard(cardId: string, dto: { slug?: string; type?: CardType; template_id?: string | null; business_id?: string | null; name?: string; description?: string; category?: string; status?: string }): Promise<VCard | null> {
     try {
       const res = await api.patch(`/cards/${cardId}`, dto)
       return res.data.data ?? res.data
@@ -775,6 +776,15 @@ export const businessService = {
   async getBusinessPermissions(): Promise<BusinessPermissions | null> {
     try {
       const res = await api.get('/users/me/business-permissions')
+      return res.data.data ?? res.data
+    } catch {
+      return null
+    }
+  },
+
+  async createCard(dto: { slug?: string; type?: CardType; card_product?: CardProduct; audience?: CardAudience; template_id?: string; business_id?: string }): Promise<VCard | null> {
+    try {
+      const res = await api.post('/cards', dto)
       return res.data.data ?? res.data
     } catch {
       return null
