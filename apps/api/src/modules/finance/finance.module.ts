@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
+import { McomModule } from '../mcom/mcom.module'
+import { UsersModule } from '../users/users.module'
 import { WalletController } from './wallet.controller'
 import { WalletService } from './wallet.service'
 import { Wallet } from './entities/wallet.entity'
@@ -23,6 +25,8 @@ import { Business } from '../businesses/entities/business.entity'
 @Module({
   imports: [
     AuthModule,
+    McomModule,
+    UsersModule,
     TypeOrmModule.forFeature([Wallet, WalletTransaction, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business]),
   ],
   controllers: [WalletController, RewardsController, CashbackController, CatalogController],

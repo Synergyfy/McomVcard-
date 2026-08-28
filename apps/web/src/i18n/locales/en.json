@@ -173,6 +173,8 @@
     "has_account": "Already have an account?",
     "sign_up": "Sign Up",
     "login": "Sign In",
+    "login_with_mcom": "Login with MCOM",
+    "or": "or",
     "accept_terms": "I agree to the",
     "terms_of_service": "Terms of Service",
     "privacy_policy": "Privacy Policy",

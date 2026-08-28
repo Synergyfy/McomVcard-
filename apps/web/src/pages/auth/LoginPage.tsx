@@ -13,7 +13,7 @@ export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login } = useAuth()
+  const { login, loginWithMcom } = useAuth()
   const ctx = inviteQuery(searchParams.get('card'), searchParams.get('business'))
 
   const [form, setForm] = useState({ email: '', password: '', remember: false })
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mcomLoading, setMcomLoading] = useState(false)
 
   const validate = () => {
     const errs: Record<string, string> = {}
@@ -58,11 +59,49 @@ export default function LoginPage() {
     }
   }
 
+  const handleMcomLogin = async () => {
+    setMcomLoading(true)
+    setServerError('')
+    try {
+      await loginWithMcom({
+        card: searchParams.get('card') || undefined,
+        business: searchParams.get('business') || undefined,
+      })
+      // loginWithMcom triggers a full-page redirect to MCOM Solutions.
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || t('auth.errors.login_failed')
+      setServerError(msg)
+      setMcomLoading(false)
+    }
+  }
+
   return (
     <AuthLayout title={t('auth.login_title')} subtitle={t('auth.login_subtitle')}>
       <Helmet>
         <title>{t('auth.login_title')} - Mobile VCard Link</title>
       </Helmet>
+
+      {/* ── MCOM Solutions SSO ── */}
+      <button
+        type="button"
+        onClick={handleMcomLogin}
+        disabled={mcomLoading}
+        className="w-full flex items-center justify-center gap-3 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-bold rounded-lg hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-md hover:shadow-blue-200"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        {mcomLoading ? t('common.loading') : t('auth.login_with_mcom')}
+      </button>
+
+      <div className="relative my-5">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-white px-4 text-gray-400">{t('auth.or')}</span>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <ConsumerPathNote />
