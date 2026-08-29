@@ -123,7 +123,7 @@ export default function PlanEditPage() {
     )
   }
 
-  const currencyIcon = currencies.find((c) => c.id === form.currency_id)?.currency_icon || '\u00a3'
+  const currencyIcon = currencies.find((c) => c.id === String(form.currency_id))?.currency_icon || '\u00a3'
   const enabledCount = Object.values(features).filter(Boolean).length
 
   return (

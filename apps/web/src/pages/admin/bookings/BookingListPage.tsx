@@ -52,7 +52,7 @@ export default function BookingListPage() {
   const safePage = Math.min(page, totalPages)
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  const updateStatus = async (id: number, status: AdminBooking['status']) => {
+  const updateStatus = async (id: string, status: AdminBooking['status']) => {
     try {
       await adminService.updateBookingStatus(id, status)
       setData((prev) => prev.map((b) => String(b.id) === id ? { ...b, status } : b))

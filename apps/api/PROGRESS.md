@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-28 (session: Frontend reconciliation ✅)
+> Last updated: 2026-08-29 (session: Frontend TypeScript alignment — 454→0 errors, web build passes)
 > Working branch: `logic`
 > Latest commits: `da5a5dc` (fix(frontend): reconcile auth service with backend settings API), `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
 
@@ -16,7 +16,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
-| 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments) |
+| 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments; Milestone D ✅ Card Type System + Events) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
 | 6.5 — Plans (Pricing) | ✅ Complete (8 plans, 2 audiences, full config) |
 | 7 — Financial Ecosystem | ✅ Complete (Wallet, Rewards, Cashback, **Gift Cards, Cashback Programs**) |
@@ -538,6 +538,22 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - Frontend alignment pending: web `authService` still expects the old envelope + `name` field and calls `/theme`/`/language`/`/profile` — tracked as Remaining item 3 above
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
+
+---
+
+## Frontend TypeScript Alignment (2026-08-29)
+
+- **Scope:** Fixed 454 TypeScript errors across 60+ frontend files to align with API string-based UUIDs
+- **Root cause:** Mock data IDs globally converted from `number` to `string` but type definitions, component state, and inline mock data were not updated
+- **Changes:**
+  - `types/index.ts`: Changed `id: number` → `id: string` on 37 entity interfaces (Feature, Plan, Currency, Template, VCard, AdminBooking, etc.)
+  - `mockData.ts`: Converted all mock data `id` values from numeric to string (454→0 errors in this file alone)
+  - `PreviewModal.tsx`, `BusinessCardPreview.tsx`: Updated `PreviewCardData.id` and `CardDesignData.id` to string
+  - 55+ admin pages: Fixed local mock data IDs, function parameter types, state types (`number | null` → `string | null`), and comparison operators
+  - Consumer/user pages: Fixed `openMenuId`, `menuOpen`, `overrideCardId` state types, `parseInt()` for arithmetic on string IDs
+  - Services: Fixed `participatingBusinessService.getById` param type, `membershipResources` comparisons
+- **Verification:** `pnpm exec tsc --noEmit` → 0 errors; `pnpm run build` → builds successfully (1.83s)
+- **Next:** Ready to commit
 
 ---
 

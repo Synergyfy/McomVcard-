@@ -25,9 +25,9 @@ export default function PlanListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deletePlan(id); setPlans(plans.filter((p) => p.id !== id)) } catch { setPlans(plans.filter((p) => p.id !== id)) }
+    try { await adminService.deletePlan(String(id)); setPlans(plans.filter((p) => String(p.id) !== id)) } catch { setPlans(plans.filter((p) => String(p.id) !== id)) }
   }
 
   const handleDuplicate = async (plan: Plan) => {

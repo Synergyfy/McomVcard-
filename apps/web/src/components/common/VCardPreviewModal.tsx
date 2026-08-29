@@ -18,7 +18,7 @@ export default function VCardPreviewModal({ vcard, onClose }: Props) {
 
   if (!vcard) return null
 
-  const template = mockTemplates.find((t) => t.id === vcard.template_id)
+  const template = mockTemplates.find((t) => t.id === String(vcard.template_id))
   const primaryColor = template?.primary_color || '#FF5C00'
   const secondaryColor = template?.secondary_color || '#FF8A50'
 

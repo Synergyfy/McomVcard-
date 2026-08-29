@@ -175,7 +175,7 @@ export default function ConsumerVCardTemplatesPage() {
                   <td className="px-2 py-1.5 text-right text-gray-700 dark:text-gray-300">{t.usage.toLocaleString()}</td>
                   <td className="px-2 py-1.5 text-right">
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 text-[9px] font-semibold">
-                      {isStored(t.id) ? 0 : claimedConsumerCount(t.id)} claimed
+                      {isStored(String(t.id)) ? 0 : claimedConsumerCount(t.id)} claimed
                     </span>
                   </td>
                   <td className="px-2 py-1.5"><span className="px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 text-[9px] font-medium">{t.levels}</span></td>
@@ -186,7 +186,7 @@ export default function ConsumerVCardTemplatesPage() {
                       {
                         label: 'Preview', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zm-12.542 0C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z',
                         onClick: () => {
-                          if (isStored(t.id)) {
+                           if (isStored(String(t.id))) {
                             const s = stored.find(x => x.id === t.id)!
                             setPreviewTemplate({ name: t.name, templateId: t.templateId, sections: s.builder.sections })
                           } else {

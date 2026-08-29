@@ -21,9 +21,9 @@ export default function ConsumerListPage() {
   const [perPage, setPerPage] = useState<number>(25)
   const [sortKey, setSortKey] = useState<SortKey>('consumer')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
-  const [selected, setSelected] = useState<number[]>([])
+  const [selected, setSelected] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
-  const [menuOpen, setMenuOpen] = useState<number | null>(null)
+  const [menuOpen, setMenuOpen] = useState<string | null>(null)
 
   // Filter state
   const [filters, setFilters] = useState({

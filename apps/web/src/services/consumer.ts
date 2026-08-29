@@ -10,7 +10,7 @@ import {
   type ConsumerNotification,
 } from './mockData'
 
-const CONSUMER_ID = 1
+const CONSUMER_ID = '1'
 
 const ACTIVE_CONSUMER_KEY = 'mcom.consumer.active'
 
@@ -20,18 +20,17 @@ function api<T>(data: T): Promise<T> {
   return delay().then(() => Promise.resolve(data))
 }
 
-function getActiveConsumerId(): number | null {
+function getActiveConsumerId(): string | null {
   try {
-    const raw = localStorage.getItem(ACTIVE_CONSUMER_KEY)
-    return raw ? Number(raw) : null
+    return localStorage.getItem(ACTIVE_CONSUMER_KEY)
   } catch {
     return null
   }
 }
 
-function setActiveConsumerId(id: number) {
+function setActiveConsumerId(id: string) {
   try {
-    localStorage.setItem(ACTIVE_CONSUMER_KEY, String(id))
+    localStorage.setItem(ACTIVE_CONSUMER_KEY, id)
   } catch {
     /* ignore quota errors */
   }
@@ -56,7 +55,7 @@ export const consumerService = {
   /** Creates a brand-new consumer profile (first-time setup) and makes it the active one. */
   async createProfile(data: { name: string; email: string; phone?: string; location?: string }): Promise<MockConsumer> {
     return delay().then(() => {
-      const id = Math.max(0, ...mockConsumers.map((c) => c.id)) + 1
+      const id = String(mockConsumers.length + 1)
       const consumer: MockConsumer = {
         id,
         name: data.name,
@@ -182,7 +181,7 @@ export const consumerService = {
   async associateCard(cardId: string, business?: string): Promise<MockConsumer> {
     return delay().then(() => {
       const c = getConsumer()
-      const id = Math.max(0, ...(c.savedCards || []).map((s) => s.id)) + 1
+      const id = String((c.savedCards || []).length + 1)
       c.savedCards = [
         { id, name: business || cardId, business: business || 'Business', type: 'Membership', source: 'Card Link', editable: true },
         ...(c.savedCards || []),

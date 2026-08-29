@@ -99,7 +99,7 @@ export default function PlanCreatePage() {
     }
   }
 
-  const currencyIcon = currencies.find((c) => c.id === form.currency_id)?.currency_icon || '£'
+  const currencyIcon = currencies.find((c) => c.id === String(form.currency_id))?.currency_icon || '£'
   const enabledCount = Object.values(features).filter(Boolean).length
 
   return (

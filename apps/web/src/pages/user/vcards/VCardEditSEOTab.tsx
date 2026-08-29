@@ -4,7 +4,7 @@ import { userService } from '../../../services/user'
 import InputField from '../../../components/auth/InputField'
 import type { VCardSEO } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditSEOTab({ vcardId }: Props) {
   const { t } = useTranslation()

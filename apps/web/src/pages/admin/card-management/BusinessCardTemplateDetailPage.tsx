@@ -11,16 +11,16 @@ import { TemplateActivityModal, TemplateVersionsModal } from '../../../component
 import { CardPreviewModal, buildMockFaces, LayoutFaceContent } from '../../../components/admin/CardPreview'
 import { MOCK, toRow, DetailRow, EditCardWarningModal, type CardRow } from './BusinessCardTemplatesPage'
 
-function useCardRow(id: number): CardRow | null {
-  const mock = MOCK.find(m => String(m.id) === id) ?? null
+function useCardRow(id: string): CardRow | null {
+  const mock = MOCK.find(m => m.id === id) ?? null
   if (mock) return mock
-  const stored = getCardTemplate(id)
+  const stored = getCardTemplate(Number(id))
   return stored ? toRow(stored) : null
 }
 
 function useCardFaces(row: CardRow): CardFaces {
   if (row.isStored) {
-    const stored = getCardTemplate(row.id)
+    const stored = getCardTemplate(Number(row.id))
     if (stored) return stored.builder.faces
   }
   return buildMockFaces({
@@ -39,7 +39,7 @@ function useCardFaces(row: CardRow): CardFaces {
 
 function useCardFf(row: CardRow) {
   if (row.isStored) {
-    const stored = getCardTemplate(row.id)
+    const stored = getCardTemplate(Number(row.id))
     if (stored) return stored.builder.friendsFamily
   }
   return undefined

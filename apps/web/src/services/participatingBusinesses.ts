@@ -18,7 +18,7 @@ import { parseMembership } from './consumerMembership'
 export type MembershipTier = 'Standard' | 'Pro' | 'Pro+'
 
 export interface ParticipatingBusiness {
-  id: number
+  id: string
   name: string
   industry: string
   address: string
@@ -47,7 +47,7 @@ export const PARTICIPATING_LEVELS: PlanLevel[] = ['Bronze', 'Silver', 'Gold', 'P
 export const PARTICIPATING_TIERS: MembershipTier[] = ['Standard', 'Pro', 'Pro+']
 
 /** Business ids hand-picked to surface on the home page "featured" row. */
-const DEFAULT_FEATURED_IDS = [1, 2, 4, 6, 7, 10]
+const DEFAULT_FEATURED_IDS = ['1', '2', '4', '6', '7', '10']
 
 const FEATURED_KEY = 'mcom_featured_businesses'
 
@@ -58,31 +58,30 @@ const FEATURED_KEY = 'mcom_featured_businesses'
 /*  defaults are always merged in so older saved states stay valid.    */
 /* ------------------------------------------------------------------ */
 
-function loadFeaturedIds(): Set<number> {
-  const ids = new Set<number>(DEFAULT_FEATURED_IDS)
+function loadFeaturedIds(): Set<string> {
+  const ids = new Set<string>(DEFAULT_FEATURED_IDS)
   try {
     const raw = localStorage.getItem(FEATURED_KEY)
     if (!raw) return ids
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) {
-      parsed.forEach((n) => { if (typeof n === 'number') ids.add(n) })
+      parsed.forEach((n: unknown) => { if (typeof n === 'string') ids.add(n) })
     }
   } catch { /* ignore corrupt storage */ }
   return ids
 }
 
-function saveFeaturedIds(ids: Set<number>): void {
+function saveFeaturedIds(ids: Set<string>): void {
   try {
     localStorage.setItem(FEATURED_KEY, JSON.stringify(Array.from(ids)))
   } catch { /* ignore quota */ }
 }
 
-export function getFeaturedIds(): Set<number> {
+export function getFeaturedIds(): Set<string> {
   return loadFeaturedIds()
 }
 
-/** Toggle the featured flag for a business id. Returns the new state. */
-export function toggleFeatured(id: number): boolean {
+export function toggleFeatured(id: string): boolean {
   const next = loadFeaturedIds()
   const on = !next.has(id)
   if (on) next.add(id)
@@ -160,7 +159,7 @@ export const participatingBusinessService = {
   async getAll(): Promise<ParticipatingBusiness[]> {
     return delay().then(() => PARTICIPATING_BUSINESSES.map(withFeatured))
   },
-  async getById(id: number): Promise<ParticipatingBusiness | undefined> {
+  async getById(id: string): Promise<ParticipatingBusiness | undefined> {
     return delay().then(() => {
       const b = PARTICIPATING_BUSINESSES.find((x) => x.id === id)
       return b ? withFeatured(b) : undefined

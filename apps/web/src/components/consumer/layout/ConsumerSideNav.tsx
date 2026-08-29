@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { mockConsumers } from '../../../services/mockData'
 
-const CONSUMER_ID = 1
+const CONSUMER_ID = '1'
 const profile = mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
 
 interface NavItem {

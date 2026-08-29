@@ -15,7 +15,7 @@ export default function AppointmentsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [bookings, setBookings] = useState<AdminBooking[]>(allBookingsInit)
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const types = [...new Set(bookings.map((b) => b.type))]
 
@@ -35,7 +35,7 @@ export default function AppointmentsPage() {
     revenue: bookings.reduce((a, b) => a + (b.amount || 0), 0),
   }
 
-  const updateBooking = (id: number, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
+  const updateBooking = (id: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
     setBookings(bookings.map((b) => b.id === id ? { ...b, status: newStatus } : b))
     setOpenMenuId(null)
   }

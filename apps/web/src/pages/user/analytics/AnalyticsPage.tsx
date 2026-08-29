@@ -7,13 +7,13 @@ import type { AnalyticsData } from '../../../types'
 
 export default function AnalyticsPage() {
   const { t } = useTranslation()
-  const [vcards, setVcards] = useState<{ id: number; name: string }[]>([])
-  const [selectedVcard, setSelectedVcard] = useState<number>(0)
+  const [vcards, setVcards] = useState<{ id: string; name: string }[]>([])
+  const [selectedVcard, setSelectedVcard] = useState<string>('')
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    userService.getVcards().then((v) => setVcards(v.map((x: any) => ({ id: x.id, name: x.name })))).catch(() => {})
+    userService.getVcards().then((v) => setVcards(v.map((x: any) => ({ id: String(x.id), name: x.name })))).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -28,8 +28,8 @@ export default function AnalyticsPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('user.analytics')}</h1>
 
       <div className="mb-6 max-w-xs">
-        <select value={selectedVcard} onChange={(e) => setSelectedVcard(Number(e.target.value))} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-          <option value={0}>{t('user.select_vcard')}</option>
+        <select value={selectedVcard} onChange={(e) => setSelectedVcard(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          <option value="">{t('user.select_vcard')}</option>
           {vcards.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
         </select>
       </div>

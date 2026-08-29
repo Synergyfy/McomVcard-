@@ -4,10 +4,10 @@ import { consumerService } from '../../services/consumer'
 import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerSavedCardsPage() {
-  const [cards, setCards] = useState<Array<{ id: number; name: string; business: string; type: string }>>([])
+  const [cards, setCards] = useState<Array<{ id: string; name: string; business: string; type: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -33,7 +33,7 @@ export default function ConsumerSavedCardsPage() {
     loadCards()
   }, [])
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm('Remove this card?')) setCards(cards.filter((c) => c.id !== id))
   }
 

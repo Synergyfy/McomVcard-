@@ -85,7 +85,7 @@ export default function ConsumerProfilePage() {
   const [showChangeTemplate, setShowChangeTemplate] = useState(false)
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false)
   const [showOverrideModal, setShowOverrideModal] = useState(false)
-  const [overrideCardId, setOverrideCardId] = useState<number | null>(null)
+  const [overrideCardId, setOverrideCardId] = useState<string | null>(null)
   const [cPreviewMode, setCPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
   const [showChangeMembership, setShowChangeMembership] = useState(false)
   const [selectedNewPlan, setSelectedNewPlan] = useState('')
@@ -640,8 +640,8 @@ export default function ConsumerProfilePage() {
                           <tbody>
                             {[
                               { business: c.primaryIssuingBusiness, rel: 'Rewarded Customer', level: c.membership, status: 'Active' },
-                              { business: c.businessCount > 1 ? ['GreenLeaf Coffee', 'TechVision Inc', 'FitLife Studio', 'Coastal Realty'][c.id % 4] : null, rel: 'Loyalty Customer', level: ['Silver', 'Bronze', 'Gold'][c.id % 3], status: 'Active' },
-                              { business: c.businessCount > 2 ? ['Downtown BID', 'Bloom Beauty', 'Hotel Splendido'][c.id % 3] : null, rel: 'Campaign Participant', level: ['Bronze Pro', 'Silver Pro', 'Gold Pro'][c.id % 3], status: 'Active' },
+                              { business: c.businessCount > 1 ? ['GreenLeaf Coffee', 'TechVision Inc', 'FitLife Studio', 'Coastal Realty'][parseInt(c.id) % 4] : null, rel: 'Loyalty Customer', level: ['Silver', 'Bronze', 'Gold'][parseInt(c.id) % 3], status: 'Active' },
+                              { business: c.businessCount > 2 ? ['Downtown BID', 'Bloom Beauty', 'Hotel Splendido'][parseInt(c.id) % 3] : null, rel: 'Campaign Participant', level: ['Bronze Pro', 'Silver Pro', 'Gold Pro'][parseInt(c.id) % 3], status: 'Active' },
                             ].filter(b => b.business).map((b, i) => (
                               <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30" onClick={() => toast.success(`Navigating to ${b.business} business details`)}>
                                 <td className="px-2 py-1.5 text-orange-600 font-medium hover:underline">{b.business}</td>
@@ -1417,7 +1417,7 @@ export default function ConsumerProfilePage() {
                       <div className="flex justify-between text-[10px]"><span className="text-gray-400">Plan</span><span className="font-medium text-gray-700 dark:text-gray-300">{c.membership.split(' ').slice(1).join(' ') || 'Standard'}</span></div>
                       <div className="flex justify-between text-[10px]"><span className="text-gray-400">Status</span><span className={`font-medium ${c.membershipStatus === 'Active' ? 'text-green-600' : 'text-red-600'}`}>{c.membershipStatus}</span></div>
                       <div className="flex justify-between text-[10px]"><span className="text-gray-400">Started</span><span className="font-medium text-gray-700 dark:text-gray-300">{c.joined}</span></div>
-                      <div className="flex justify-between text-[10px]"><span className="text-gray-400">Renewal</span><span className="font-medium text-gray-700 dark:text-gray-300">{['Jan 2027', 'Mar 2027', 'Jun 2027', 'Dec 2026'][c.id % 4]}</span></div>
+                      <div className="flex justify-between text-[10px]"><span className="text-gray-400">Renewal</span><span className="font-medium text-gray-700 dark:text-gray-300">{['Jan 2027', 'Mar 2027', 'Jun 2027', 'Dec 2026'][Number(c.id) % 4]}</span></div>
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">

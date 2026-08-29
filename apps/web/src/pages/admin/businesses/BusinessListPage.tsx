@@ -132,8 +132,8 @@ export default function BusinessListPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(25)
-  const [selected, setSelected] = useState<number[]>([])
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+  const [selected, setSelected] = useState<string[]>([])
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [suspendTarget, setSuspendTarget] = useState<typeof bizData[0] | null>(null)
   const [reactivateTarget, setReactivateTarget] = useState<typeof bizData[0] | null>(null)
@@ -143,7 +143,7 @@ export default function BusinessListPage() {
   const [showConnectModal, setShowConnectModal] = useState(false)
   const [connectSearch, setConnectSearch] = useState('')
   const [kpiFilter, setKpiFilter] = useState<string | null>(null)
-  const [featuredIds, setFeaturedIds] = useState<Set<number>>(() => getFeaturedIds())
+  const [featuredIds, setFeaturedIds] = useState<Set<string>>(() => getFeaturedIds())
   const [featuredFilter, setFeaturedFilter] = useState('All')
 
   useEffect(() => {

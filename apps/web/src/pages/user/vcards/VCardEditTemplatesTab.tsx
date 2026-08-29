@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom'
 import { mockTemplates, mockClaimedTemplates } from '../../../services/mockData'
 import type { VCard } from '../../../types'
 
-const BUSINESS_ID = 1
+const BUSINESS_ID = '1'
 
 interface Props { vcard: VCard; onUpdate: (v: VCard) => void }
 
 export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
-  const [selectedId, setSelectedId] = useState<number>(vcard.template_id || 0)
+  const [selectedId, setSelectedId] = useState<string>(String(vcard.template_id || 0))
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
-  const claimedIds = mockClaimedTemplates.filter((c) => c.business_id === BUSINESS_ID).map((c) => c.template_id)
-  const claimedTemplates = mockTemplates.filter((t) => claimedIds.includes(t.id))
+  const claimedIds = mockClaimedTemplates.filter((c) => c.business_id === BUSINESS_ID).map((c) => String(c.template_id))
+  const claimedTemplates = mockTemplates.filter((t) => claimedIds.includes(String(t.id)))
   const allPublished = mockTemplates.filter((t) => t.status === 'published')
   const categories = [...new Set(allPublished.map((t) => t.category))]
 
@@ -23,9 +23,9 @@ export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
     return matchSearch && matchCategory
   })
 
-  const handleSelect = (id: number) => {
+  const handleSelect = (id: string) => {
     setSelectedId(id)
-    onUpdate({ ...vcard, template_id: id })
+    onUpdate({ ...vcard, template_id: Number(id) })
   }
 
   return (
@@ -48,9 +48,9 @@ export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
       {/* Template Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {filtered.map((t) => {
-          const isSelected = selectedId === t.id
+          const isSelected = selectedId === String(t.id)
           return (
-            <button key={t.id} onClick={() => handleSelect(t.id)}
+            <button key={t.id} onClick={() => handleSelect(String(t.id))}
               className={`group text-left rounded-xl border-2 overflow-hidden transition-all ${isSelected ? 'border-orange-500 shadow-md ring-2 ring-orange-500/20' : 'border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md'}`}>
               <div className="relative aspect-[3/4] bg-gray-100 dark:bg-gray-700 overflow-hidden">
                 <img src={t.template_url} alt={t.name} className="w-full h-full object-cover group-hover:translate-y-[-52%] transition-transform duration-[8000ms] ease-linear"

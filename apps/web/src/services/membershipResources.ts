@@ -23,10 +23,10 @@ export interface SystemResource {
 }
 
 /** Business mock ID used consistently across the business pages. */
-const BUSINESS_ID = 1
+const BUSINESS_ID = '1'
 
-/** Consumer mock ID used consistently across the consumer pages. */
-const CONSUMER_ID = 0
+/** Consumer mock index — used as array index, not ID. */
+const CONSUMER_IDX = 0
 
 export const SYSTEM_RESOURCES: SystemResource[] = [
   {
@@ -38,7 +38,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
       { label: 'Admin · VCard templates', href: '/admin/vcard-management/business-vcard-templates' },
     ],
     usage: {
-      used: mockVcards.filter(v => v.user_id === BUSINESS_ID).length,
+      used: mockVcards.filter(v => String(v.user_id) === BUSINESS_ID).length,
       unit: 'vCards',
     },
   },
@@ -63,7 +63,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
       { label: 'Business Cards', href: '/user/cards' },
     ],
     usage: {
-      used: mockClaimedCards.filter(c => c.business_id === BUSINESS_ID).length,
+      used: mockClaimedCards.filter(c => String(c.business_id) === BUSINESS_ID).length,
       unit: 'cards',
     },
   },
@@ -75,7 +75,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
       { label: 'Consumer Cards', href: '/c/cards' },
     ],
     usage: {
-      used: mockConsumers[CONSUMER_ID]?.savedCards?.length ?? 0,
+      used: mockConsumers[CONSUMER_IDX]?.savedCards?.length ?? 0,
       unit: 'cards',
     },
   },
@@ -87,7 +87,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
       { label: 'Friends & Family config', href: '/admin/card-management/card-template-builder/friends-family' },
     ],
     usage: {
-      used: (mockConsumers[CONSUMER_ID]?.familyAllocations ?? 0) + (mockConsumers[CONSUMER_ID]?.friendAllocations ?? 0),
+      used: (mockConsumers[CONSUMER_IDX]?.familyAllocations ?? 0) + (mockConsumers[CONSUMER_IDX]?.friendAllocations ?? 0),
       unit: 'allocations',
     },
   },
@@ -101,7 +101,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
     ],
     usage: {
       used: 0,
-      display: mockConsumers[CONSUMER_ID]?.eCardFaceValue ?? '£0.00',
+      display: mockConsumers[CONSUMER_IDX]?.eCardFaceValue ?? '£0.00',
       unit: 'face value',
     },
   },
@@ -126,7 +126,7 @@ export const SYSTEM_RESOURCES: SystemResource[] = [
       { label: 'Friends & Family config', href: '/admin/card-management/card-template-builder/friends-family' },
     ],
     usage: {
-      used: mockConsumers[CONSUMER_ID]?.allocatedAdditionalCards ?? 0,
+      used: mockConsumers[CONSUMER_IDX]?.allocatedAdditionalCards ?? 0,
       unit: 'cards',
     },
   },

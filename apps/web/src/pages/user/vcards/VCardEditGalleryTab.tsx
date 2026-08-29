@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 import type { Gallery } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditGalleryTab({ vcardId }: Props) {
   const { t } = useTranslation()
@@ -27,7 +27,7 @@ export default function VCardEditGalleryTab({ vcardId }: Props) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('user.confirm_delete'))) return
     try { await userService.deleteGalleryImage(vcardId, id); fetch() } catch {}
   }

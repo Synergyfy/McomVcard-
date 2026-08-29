@@ -16,7 +16,7 @@ export default function CardDetailPage() {
   const [page, setPage] = useState(1)
 
   const allBusinesses = useMemo(
-    () => mockCardBusinesses.filter((b) => b.cardDesignId === String(id)),
+    () => mockCardBusinesses.filter((b) => String(b.cardDesignId) === String(id)),
     [id],
   )
 

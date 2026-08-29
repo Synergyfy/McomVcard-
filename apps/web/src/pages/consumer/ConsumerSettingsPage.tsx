@@ -5,7 +5,7 @@ import { mockConsumers } from '../../services/mockData'
 import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
 import { useAuth } from '../../contexts/AuthContext'
 
-const CONSUMER_ID = 1
+const CONSUMER_ID = '1'
 
 export default function ConsumerSettingsPage() {
   const profile = mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
