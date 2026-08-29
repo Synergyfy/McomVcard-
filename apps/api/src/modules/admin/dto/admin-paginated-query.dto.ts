@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import { IsIn, IsOptional, IsString, MaxLength, Min } from 'class-validator'
+import { IsIn, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class AdminPaginatedQueryDto {
@@ -9,10 +9,11 @@ export class AdminPaginatedQueryDto {
   @Min(1)
   page?: number = 1
 
-  @ApiPropertyOptional({ description: 'Items per page', default: 20, example: 20 })
+  @ApiPropertyOptional({ description: 'Items per page (max 100)', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
   @Min(1)
+  @Max(100)
   limit?: number = 20
 
   @ApiPropertyOptional({ description: 'Search term (matches name, email, slug, etc.)', example: 'bloom' })

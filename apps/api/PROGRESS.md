@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-29 (session: Phase 5 Milestone D completion — consumer store card, template gating, card type validation)
+> Last updated: 2026-08-29 (session: Phase 11 — Production Hardening: compression, graceful shutdown, Dockerfile, CI/CD, strictNullChecks)
 > Working branch: `logic`
 > Latest commits: `da5a5dc` (fix(frontend): reconcile auth service with backend settings API), `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
 
@@ -23,7 +23,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 8 — Relationships | ✅ Complete (Milestone A relationships, Milestone B child cards, Milestone C wishlists) |
 | 9 — Growth | ✅ Complete (Vouchers, Affiliates, Shares, QR Codes, Campaigns/Offers/Coupons) |
 | 10 — Admin | ✅ **Complete (30 controllers, 150+ endpoints)** |
-| 11 — Production Hardening | ⬜ Not started |
+| 11 — Production Hardening | ✅ Complete (compression, graceful shutdown, Dockerfile, CI/CD, strictNullChecks, .env.example, pagination cap) |
 | 12–15 | ✅ Complete (ahead of plan — see phases below) |
 | 16 — Reviews, Notifications, Media | ✅ Complete (Reviews §43, Notifications §44, Media §45) |
 | 17 — Admin | ✅ Complete (30 controllers, 150+ endpoints, e2e verified) |
@@ -549,6 +549,39 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - Frontend alignment pending: web `authService` still expects the old envelope + `name` field and calls `/theme`/`/language`/`/profile` — tracked as Remaining item 3 above
 - `tsconfig.tsbuildinfo` is untracked (gitignored build artifact)
 - `user_roles` table uses Postgres-style snake_case FKs (`user_id`, `role_id`) while `users`/`roles` use camelCase — intentional (new-schema guidance), revisit when entities are built
+
+---
+
+## Phase 11 — Production Hardening ✅
+
+**Compression:** Installed `compression` + `@types/compression`. Added `app.use(compression())` in `main.ts` before route handlers. All JSON responses are now gzip-compressed.
+
+**Graceful Shutdown:** Added `app.enableShutdownHooks()` in `main.ts`. NestJS will now handle `SIGTERM`/`SIGINT` signals and drain in-flight requests before closing the DB pool.
+
+**Process Error Handlers:** Added `process.on('unhandledRejection')` and `process.on('uncaughtException')` handlers at the bottom of `main.ts`. Uncaught exceptions log the error and exit with code 1; unhandled rejections are logged for visibility.
+
+**`.env.example`:** Created `apps/api/.env.example` documenting all 16 environment variables from the Joi validation schema with descriptions and safe defaults.
+
+**Pagination Cap:** Added `@Max(100)` to `AdminPaginatedQueryDto.limit`. Clients can no longer request `limit=999999` and pull entire tables. Swagger docs updated to show "max 100".
+
+**Dockerfile:** Created `apps/api/Dockerfile` with multi-stage build (builder → runner), non-root `mcom` user, production-only deps, `CMD ["node", "dist/main.js"]`.
+
+**`.dockerignore`:** Created `apps/api/.dockerignore` excluding `node_modules`, `dist`, `.env`, `uploads`, `data`, `.git`, `.github`.
+
+**CI/CD:** Updated `.github/workflows/api-ci.yml`:
+- Added `logic` branch to push/PR triggers
+- Added Postgres service container for integration tests
+- Added steps: install → TypeScript check → build → unit tests → migrations
+- Uses `corepack` for pnpm, `--frozen-lockfile` for reproducibility
+
+**TypeScript `strictNullChecks`:** Enabled `strictNullChecks: true` in `tsconfig.json`. Fixed 39 errors across the codebase:
+- 21 TypeORM `Partial<Entity>` → `_QueryDeepPartialEntity` casts (8 service files)
+- 4 `result.data` possibly undefined (auth + admin controllers)
+- 7 DTO `string | null` type mismatches (campaigns + notifications)
+- 4 spec file generic type errors (MockRepo type parameter)
+- 3 null checks in appointments service
+
+**Verified:** `tsc --noEmit` clean with `strictNullChecks: true`, 155 unit tests passing, prod build clean.
 
 ---
 

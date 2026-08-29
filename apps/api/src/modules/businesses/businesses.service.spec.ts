@@ -16,9 +16,9 @@ import { CreateLocationDto } from './dto/create-location.dto'
 import { CreateBusinessHourDto } from './dto/create-business-hour.dto'
 import { CreateBrandDto } from './dto/create-brand.dto'
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>
+type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
-function createMockRepo<T = any>(): MockRepo<T> {
+function createMockRepo(): MockRepo {
   return {
     findOne: jest.fn(),
     findOneBy: jest.fn(),
@@ -97,24 +97,24 @@ function makeBrand(overrides: Partial<Brand> = {}): Brand {
 
 describe('BusinessesService', () => {
   let service: BusinessesService
-  let businessesRepo: MockRepo<Business>
-  let categoriesRepo: MockRepo<BusinessCategory>
-  let locationsRepo: MockRepo<BusinessLocation>
-  let hoursRepo: MockRepo<BusinessHour>
-  let brandsRepo: MockRepo<Brand>
-  let membershipsRepo: MockRepo<Membership>
-  let membershipTiersRepo: MockRepo<MembershipTier>
-  let cardsRepo: MockRepo<Card>
+  let businessesRepo: MockRepo
+  let categoriesRepo: MockRepo
+  let locationsRepo: MockRepo
+  let hoursRepo: MockRepo
+  let brandsRepo: MockRepo
+  let membershipsRepo: MockRepo
+  let membershipTiersRepo: MockRepo
+  let cardsRepo: MockRepo
 
   beforeEach(async () => {
-    businessesRepo = createMockRepo<Business>()
-    categoriesRepo = createMockRepo<BusinessCategory>()
-    locationsRepo = createMockRepo<BusinessLocation>()
-    hoursRepo = createMockRepo<BusinessHour>()
-    brandsRepo = createMockRepo<Brand>()
-    membershipsRepo = createMockRepo<Membership>()
-    membershipTiersRepo = createMockRepo<MembershipTier>()
-    cardsRepo = createMockRepo<Card>()
+    businessesRepo = createMockRepo()
+    categoriesRepo = createMockRepo()
+    locationsRepo = createMockRepo()
+    hoursRepo = createMockRepo()
+    brandsRepo = createMockRepo()
+    membershipsRepo = createMockRepo()
+    membershipTiersRepo = createMockRepo()
+    cardsRepo = createMockRepo()
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

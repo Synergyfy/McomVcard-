@@ -149,7 +149,7 @@ export class EventsService {
       throw new BadRequestException('Ends at must be after starts at')
     }
 
-    await this.eventsRepo.update({ id }, patch)
+    await this.eventsRepo.update({ id }, patch as any)
     return ApiResponse.success(EventResponseDto.fromEntity(await this.findOne(id)), 'Event updated', 200)
   }
 
@@ -210,7 +210,7 @@ export class EventsService {
     if (dto.is_active !== undefined) patch.isActive = dto.is_active
     if (dto.sort_order !== undefined) patch.sortOrder = dto.sort_order
 
-    await this.ticketsRepo.update({ id: ticketId }, patch)
+    await this.ticketsRepo.update({ id: ticketId }, patch as any)
     const updated = await this.ticketsRepo.findOneBy({ id: ticketId })
     return ApiResponse.success(EventTicketResponseDto.fromEntity(updated!), 'Ticket updated', 200)
   }

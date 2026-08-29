@@ -158,7 +158,7 @@ export class CardsService {
     const finalAudience = dto.audience ?? existing.audience
     this.validateCardTypeConsistency(finalType, finalProduct, finalAudience)
 
-    await this.cardsRepo.update({ id }, patch)
+    await this.cardsRepo.update({ id }, patch as any)
     return ApiResponse.success(CardResponseDto.fromEntity(await this.findOne(id)), 'Card updated', 200)
   }
 
@@ -462,7 +462,7 @@ export class CardsService {
     if (dto.cover_image !== undefined) patch.coverImage = dto.cover_image
     if (dto.location !== undefined) patch.location = dto.location
     if (dto.website !== undefined) patch.website = dto.website
-    await this.profilesRepo.update({ id: profileId }, patch)
+    await this.profilesRepo.update({ id: profileId }, patch as any)
     const updated = await this.profilesRepo.findOneBy({ id: profileId })
     if (!updated) throw new NotFoundException('Card profile not found')
     return ApiResponse.success(CardProfileResponseDto.fromEntity(updated), 'Card profile updated', 200)
@@ -512,7 +512,7 @@ export class CardsService {
     if (dto.font !== undefined) patch.font = dto.font
     if (dto.layout !== undefined) patch.layout = dto.layout
     if (dto.configuration !== undefined) patch.configuration = dto.configuration
-    await this.customizationsRepo.update({ id: customizationId }, patch)
+    await this.customizationsRepo.update({ id: customizationId }, patch as any)
     const updated = await this.customizationsRepo.findOneBy({ id: customizationId })
     if (!updated) throw new NotFoundException('Card customization not found')
     return ApiResponse.success(CardCustomizationResponseDto.fromEntity(updated), 'Card customization updated', 200)
@@ -552,7 +552,7 @@ export class CardsService {
     if (dto.url !== undefined) patch.url = dto.url
     if (dto.display_order !== undefined) patch.displayOrder = dto.display_order
     if (dto.is_active !== undefined) patch.isActive = dto.is_active
-    await this.socialLinksRepo.update({ id: linkId }, patch)
+    await this.socialLinksRepo.update({ id: linkId }, patch as any)
     const updated = await this.socialLinksRepo.findOneBy({ id: linkId })
     if (!updated) throw new NotFoundException('Social link not found')
     return ApiResponse.success(SocialLinkResponseDto.fromEntity(updated), 'Social link updated', 200)
@@ -609,7 +609,7 @@ export class CardsService {
     if (dto.interactive_sections !== undefined) patch.interactiveSections = dto.interactive_sections
     if (dto.access_expiry !== undefined) patch.accessExpiry = dto.access_expiry
     if (dto.expires_at !== undefined) patch.expiresAt = this.resolveExpiresAt(dto.access_expiry ?? 'never', dto.expires_at)
-    await this.accessRepo.update({ id: accessId }, patch)
+    await this.accessRepo.update({ id: accessId }, patch as any)
     const updated = await this.accessRepo.findOneBy({ id: accessId })
     if (!updated) throw new NotFoundException('Card access not found')
     return ApiResponse.success(CardAccessResponseDto.fromEntity(updated), 'Card access updated', 200)
@@ -641,7 +641,7 @@ export class CardsService {
         if (dto.enabled !== undefined) patch.enabled = dto.enabled
         if (dto.sort_order !== undefined) patch.sortOrder = dto.sort_order
         if (dto.content !== undefined) patch.content = dto.content
-        await this.sectionsRepo.update({ id: existing.id }, patch)
+        await this.sectionsRepo.update({ id: existing.id }, patch as any)
         results.push(await this.sectionsRepo.findOneBy({ id: existing.id }) as CardSection)
       } else {
         const saved = await this.sectionsRepo.save(
@@ -688,7 +688,7 @@ export class CardsService {
         if (dto.enabled !== undefined) patch.enabled = dto.enabled
         if (dto.edit_allowed !== undefined) patch.editAllowed = dto.edit_allowed
         if (dto.settings !== undefined) patch.settings = dto.settings
-        await this.centreControlsRepo.update({ id: existing.id }, patch)
+        await this.centreControlsRepo.update({ id: existing.id }, patch as any)
         results.push(await this.centreControlsRepo.findOneBy({ id: existing.id }) as CardCentreControl)
       } else {
         const saved = await this.centreControlsRepo.save(

@@ -77,7 +77,7 @@ export class MembershipsService {
     if (dto.discount_value !== undefined) patch.discountValue = dto.discount_value
     if (dto.sort_order !== undefined) patch.sortOrder = dto.sort_order
 
-    await this.tiersRepo.update({ id }, patch)
+    await this.tiersRepo.update({ id }, patch as any)
 
     return ApiResponse.success(MembershipTierResponseDto.fromEntity(await this.findOneTier(id)), 'Membership tier updated', 200)
   }
@@ -138,7 +138,7 @@ export class MembershipsService {
     if (dto.description !== undefined) patch.description = dto.description
     if (dto.benefit_type !== undefined) patch.benefitType = dto.benefit_type
 
-    await this.benefitsRepo.update({ id }, patch)
+    await this.benefitsRepo.update({ id }, patch as any)
 
     return ApiResponse.success(BenefitResponseDto.fromEntity(await this.findOneBenefit(id)), 'Benefit updated', 200)
   }
@@ -272,7 +272,7 @@ export class MembershipsService {
 
     if (expiresAt && expiresAt <= startedAt) throw new BadRequestException('expires_at must be after started_at')
 
-    await this.membershipsRepo.update({ id }, patch)
+    await this.membershipsRepo.update({ id }, patch as any)
 
     return ApiResponse.success(MembershipResponseDto.fromEntity(await this.findOneMembership(userId, id)), 'Membership updated', 200)
   }

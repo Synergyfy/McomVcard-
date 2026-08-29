@@ -208,7 +208,7 @@ export class BusinessesService {
     if (dto.phone !== undefined) patch.phone = dto.phone
     if (dto.website !== undefined) patch.website = dto.website
 
-    await this.businessesRepo.update({ id }, patch)
+    await this.businessesRepo.update({ id }, patch as any)
 
     return ApiResponse.success(BusinessResponseDto.fromEntity(await this.findOne(id)), 'Business updated', 200)
   }
@@ -264,7 +264,7 @@ export class BusinessesService {
     if (dto.latitude !== undefined) patch.latitude = dto.latitude
     if (dto.longitude !== undefined) patch.longitude = dto.longitude
 
-    await this.locationsRepo.update({ id: locationId }, patch)
+    await this.locationsRepo.update({ id: locationId }, patch as any)
 
     const updated = await this.locationsRepo.findOneBy({ id: locationId })
     if (!updated) throw new NotFoundException('Location not found')
@@ -343,7 +343,7 @@ export class BusinessesService {
     if (dto.closes_at !== undefined) patch.closesAt = dto.closes_at
     if (dto.is_closed !== undefined) patch.isClosed = dto.is_closed
 
-    await this.hoursRepo.update({ id: hourId }, patch)
+    await this.hoursRepo.update({ id: hourId }, patch as any)
 
     const updated = await this.hoursRepo.findOneBy({ id: hourId })
     if (!updated) throw new NotFoundException('Business hours not found')
@@ -414,7 +414,7 @@ export class BusinessesService {
     if (dto.description !== undefined) patch.description = dto.description
     if (dto.logo_url !== undefined) patch.logoUrl = dto.logo_url
 
-    await this.brandsRepo.update({ id: brandId }, patch)
+    await this.brandsRepo.update({ id: brandId }, patch as any)
 
     const updated = await this.brandsRepo.findOneBy({ id: brandId })
     if (!updated) throw new NotFoundException('Brand not found')

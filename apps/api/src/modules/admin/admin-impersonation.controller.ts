@@ -76,7 +76,7 @@ export class AdminImpersonationController {
     const meta = { userAgent: 'admin-impersonation', ip: 'admin' }
     const auth = await this.authService.impersonate(userId, meta)
 
-    setRefreshTokenCookie(res, auth.data.refresh_token, this.authService.refreshTokenTtl())
+    setRefreshTokenCookie(res, auth.data!.refresh_token, this.authService.refreshTokenTtl())
 
     return auth
   }
