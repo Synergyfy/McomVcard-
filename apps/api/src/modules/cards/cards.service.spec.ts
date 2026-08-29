@@ -12,6 +12,13 @@ import { CardSection } from './entities/card-section.entity'
 import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { MembershipBenefit } from '../memberships/entities/membership-benefit.entity'
+import { Benefit } from '../memberships/entities/benefit.entity'
+import { Season } from '../seasons/entities/season.entity'
+import { Wallet } from '../finance/entities/wallet.entity'
+import { RewardBalance } from '../finance/entities/reward-balance.entity'
 import { BusinessesService } from '../businesses/businesses.service'
 import { CreateCardDto } from './dto/create-card.dto'
 import { CreateCardProfileDto } from './dto/create-card-profile.dto'
@@ -155,6 +162,13 @@ describe('CardsService', () => {
         { provide: getRepositoryToken(CardCentreControl), useValue: centreControlsRepo },
         { provide: getRepositoryToken(Template), useValue: templatesRepo },
         { provide: getRepositoryToken(AnalyticsEvent), useValue: analyticsRepo },
+        { provide: getRepositoryToken(Membership), useValue: createMockRepo<Membership>() },
+        { provide: getRepositoryToken(MembershipTier), useValue: createMockRepo<MembershipTier>() },
+        { provide: getRepositoryToken(MembershipBenefit), useValue: createMockRepo<MembershipBenefit>() },
+        { provide: getRepositoryToken(Benefit), useValue: createMockRepo<Benefit>() },
+        { provide: getRepositoryToken(Season), useValue: createMockRepo<Season>() },
+        { provide: getRepositoryToken(Wallet), useValue: createMockRepo<Wallet>() },
+        { provide: getRepositoryToken(RewardBalance), useValue: createMockRepo<RewardBalance>() },
         { provide: BusinessesService, useValue: businessesService },
       ],
     }).compile()

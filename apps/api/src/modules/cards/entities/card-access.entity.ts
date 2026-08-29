@@ -28,6 +28,12 @@ export class CardAccess {
   @Column({ name: 'protected_section_ids', type: 'jsonb', nullable: true })
   protectedSectionIds!: string[] | null
 
+  @Column({ name: 'public_sections', type: 'jsonb', default: [] })
+  publicSections!: string[]
+
+  @Column({ name: 'interactive_sections', type: 'jsonb', default: [] })
+  interactiveSections!: string[]
+
   @Column({ name: 'access_expiry', default: 'never' })
   accessExpiry!: string
 
