@@ -760,4 +760,36 @@ export class CardsController {
   async upsertCentreControls(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: UpsertCentreControlDto[]) {
     return this.cardsService.upsertCentreControls(id, user.id, body)
   }
+
+  // ---- Consumer Store Card ----
+
+  @Get('cards/:id/store-data')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get consumer store card data',
+    description: 'Returns the composite store data for a consumer store card, including the card owner\'s membership tier/benefits, wallet balance, reward balance, and the current active season.',
+  })
+  @ApiOkResponse({ description: 'Store data retrieved' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  @ApiBadRequestResponse({ description: 'Card is not a consumer store card' })
+  async getStoreData(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.getStoreData(id)
+  }
+
+  // ---- Template membership gating ----
+
+  @Get('templates/:id/access')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Check template membership access',
+    description: 'Checks whether the authenticated user\'s membership tier satisfies the template\'s required membership level. Returns allowed/denied with details.',
+  })
+  @ApiOkResponse({ description: 'Template access checked' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Template not found' })
+  @ApiForbiddenResponse({ description: 'Insufficient membership tier' })
+  async checkTemplateAccess(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.checkTemplateAccess(id, user.id)
+  }
 }

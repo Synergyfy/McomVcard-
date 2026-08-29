@@ -52,6 +52,12 @@ export class Template {
   @Column({ type: 'jsonb', nullable: true })
   sections!: Record<string, boolean> | null
 
+  @Column({ name: 'required_membership_level', type: 'varchar', length: 50, nullable: true })
+  requiredMembershipLevel!: string | null
+
+  @Column({ name: 'is_premium', default: false })
+  isPremium!: boolean
+
   @Column({ default: 0 })
   usage!: number
 

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { BusinessesService } from '../businesses/businesses.service'
@@ -13,6 +13,13 @@ import { CardSection } from './entities/card-section.entity'
 import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { MembershipBenefit } from '../memberships/entities/membership-benefit.entity'
+import { Benefit } from '../memberships/entities/benefit.entity'
+import { Season } from '../seasons/entities/season.entity'
+import { Wallet } from '../finance/entities/wallet.entity'
+import { RewardBalance } from '../finance/entities/reward-balance.entity'
 import { CreateCardDto } from './dto/create-card.dto'
 import { UpdateCardDto } from './dto/update-card.dto'
 import { CreateCardProfileDto } from './dto/create-card-profile.dto'
@@ -59,6 +66,13 @@ export class CardsService {
     @InjectRepository(CardCentreControl) private centreControlsRepo: Repository<CardCentreControl>,
     @InjectRepository(Template) private templatesRepo: Repository<Template>,
     @InjectRepository(AnalyticsEvent) private analyticsRepo: Repository<AnalyticsEvent>,
+    @InjectRepository(Membership) private membershipsRepo: Repository<Membership>,
+    @InjectRepository(MembershipTier) private tiersRepo: Repository<MembershipTier>,
+    @InjectRepository(MembershipBenefit) private membershipBenefitsRepo: Repository<MembershipBenefit>,
+    @InjectRepository(Benefit) private benefitsRepo: Repository<Benefit>,
+    @InjectRepository(Season) private seasonsRepo: Repository<Season>,
+    @InjectRepository(Wallet) private walletsRepo: Repository<Wallet>,
+    @InjectRepository(RewardBalance) private rewardBalancesRepo: Repository<RewardBalance>,
     private readonly businessesService: BusinessesService,
   ) {}
 
@@ -68,14 +82,24 @@ export class CardsService {
     if (dto.template_id) await this.assertTemplateExists(dto.template_id)
     if (dto.business_id) await this.businessesService.findOwned(dto.business_id, ownerId)
 
+    const type = dto.type ?? CardType.CONSUMER_VCARD
+    const cardProduct = dto.card_product ?? CardProduct.VCARD
+    const audience = dto.audience ?? CardAudience.CONSUMER
+
+    this.validateCardTypeConsistency(type, cardProduct, audience)
+
+    if (type === CardType.CONSUMER_STORE_CARD && !dto.business_id) {
+      throw new BadRequestException('Consumer store cards must be linked to a business')
+    }
+
     const slug = await this.generateUniqueSlug(dto.slug)
     const saved = await this.cardsRepo.save(
       this.cardsRepo.create({
         ownerId,
         slug,
-        type: dto.type ?? CardType.CONSUMER_VCARD,
-        cardProduct: dto.card_product ?? CardProduct.VCARD,
-        audience: dto.audience ?? CardAudience.CONSUMER,
+        type,
+        cardProduct,
+        audience,
         templateId: dto.template_id ?? null,
         businessId: dto.business_id ?? null,
         status: 'active',
@@ -115,7 +139,7 @@ export class CardsService {
   }
 
   async update(id: string, ownerId: string, dto: UpdateCardDto) {
-    await this.findOwned(id, ownerId)
+    const existing = await this.findOwned(id, ownerId)
     if (dto.template_id) await this.assertTemplateExists(dto.template_id)
     if (dto.business_id) await this.businessesService.findOwned(dto.business_id, ownerId)
 
@@ -128,6 +152,11 @@ export class CardsService {
     if (dto.description !== undefined) patch.description = dto.description
     if (dto.category !== undefined) patch.category = dto.category
     if (dto.status !== undefined) patch.status = dto.status
+
+    const finalType = patch.type ?? existing.type
+    const finalProduct = dto.card_product ?? existing.cardProduct
+    const finalAudience = dto.audience ?? existing.audience
+    this.validateCardTypeConsistency(finalType, finalProduct, finalAudience)
 
     await this.cardsRepo.update({ id }, patch)
     return ApiResponse.success(CardResponseDto.fromEntity(await this.findOne(id)), 'Card updated', 200)
@@ -553,6 +582,8 @@ export class CardsService {
         hint: dto.hint ?? null,
         protectedSections: dto.protected_sections ?? null,
         protectedSectionIds: dto.protected_section_ids ?? null,
+        publicSections: dto.public_sections ?? [],
+        interactiveSections: dto.interactive_sections ?? [],
         accessExpiry: dto.access_expiry ?? 'never',
         expiresAt,
       }),
@@ -574,6 +605,8 @@ export class CardsService {
     if (dto.hint !== undefined) patch.hint = dto.hint
     if (dto.protected_sections !== undefined) patch.protectedSections = dto.protected_sections
     if (dto.protected_section_ids !== undefined) patch.protectedSectionIds = dto.protected_section_ids
+    if (dto.public_sections !== undefined) patch.publicSections = dto.public_sections
+    if (dto.interactive_sections !== undefined) patch.interactiveSections = dto.interactive_sections
     if (dto.access_expiry !== undefined) patch.accessExpiry = dto.access_expiry
     if (dto.expires_at !== undefined) patch.expiresAt = this.resolveExpiresAt(dto.access_expiry ?? 'never', dto.expires_at)
     await this.accessRepo.update({ id: accessId }, patch)
@@ -687,6 +720,111 @@ export class CardsService {
     return ApiResponse.success(TemplateResponseDto.fromEntity(template), 'Template retrieved', 200)
   }
 
+  // --- Consumer Store Card ---
+
+  async getStoreData(cardId: string) {
+    const card = await this.findOne(cardId)
+
+    if (card.type !== CardType.CONSUMER_STORE_CARD) {
+      throw new BadRequestException('This endpoint is only available for consumer store cards')
+    }
+
+    const ownerId = card.ownerId
+    const now = new Date()
+
+    const [membership, wallet, rewardBalance, activeSeason] = await Promise.all([
+      this.membershipsRepo.findOne({
+        where: { userId: ownerId, status: 'active' },
+        relations: { tier: { benefits: { benefit: true } } },
+        order: { startedAt: 'DESC' },
+      }),
+      this.walletsRepo.findOne({ where: { userId: ownerId } }),
+      this.rewardBalancesRepo.findOne({ where: { userId: ownerId } }),
+      this.seasonsRepo.findOne({
+        where: { status: 'active', startsAt: LessThanOrEqual(now), endsAt: MoreThanOrEqual(now) },
+        order: { startsAt: 'DESC' },
+      }),
+    ])
+
+    const tier = membership?.tier ?? null
+    const benefits = tier?.benefits?.map((mb: MembershipBenefit & { benefit: Benefit }) => ({
+      id: mb.benefit.id,
+      name: mb.benefit.name,
+      description: mb.benefit.description,
+      benefit_type: mb.benefit.benefitType,
+    })) ?? []
+
+    return ApiResponse.success({
+      card: CardResponseDto.fromEntity(card),
+      membership: membership ? {
+        id: membership.id,
+        status: membership.status,
+        started_at: membership.startedAt,
+        expires_at: membership.expiresAt,
+        tier: tier ? {
+          id: tier.id,
+          name: tier.name,
+          description: tier.description,
+          discount_type: tier.discountType,
+          discount_value: Number(tier.discountValue),
+        } : null,
+        benefits,
+      } : null,
+      wallet: wallet ? {
+        id: wallet.id,
+        balance: Number(wallet.balance),
+        currency: wallet.currency,
+        status: wallet.status,
+      } : null,
+      rewards: rewardBalance ? {
+        id: rewardBalance.id,
+        balance: Number(rewardBalance.balance),
+        status: rewardBalance.status,
+      } : null,
+      season: activeSeason ? {
+        id: activeSeason.id,
+        name: activeSeason.name,
+        starts_at: activeSeason.startsAt,
+        ends_at: activeSeason.endsAt,
+      } : null,
+    }, 'Store data retrieved', 200)
+  }
+
+  // --- Template membership gating ---
+
+  async checkTemplateAccess(templateId: string, userId: string) {
+    const template = await this.templatesRepo.findOne({ where: { id: templateId } })
+    if (!template) throw new NotFoundException('Template not found')
+
+    if (!template.requiredMembershipLevel) {
+      return ApiResponse.success({ allowed: true, reason: 'no_membership_required' }, 'Template access checked', 200)
+    }
+
+    const membership = await this.membershipsRepo.findOne({
+      where: { userId, status: 'active' },
+      relations: ['tier'],
+    })
+
+    if (!membership || !membership.tier) {
+      throw new ForbiddenException(`This template requires a ${template.requiredMembershipLevel} membership`)
+    }
+
+    const tierHierarchy = ['standard', 'pro', 'pro_plus']
+    const userTierIndex = tierHierarchy.indexOf(membership.tier.name.toLowerCase())
+    const requiredTierIndex = tierHierarchy.indexOf(template.requiredMembershipLevel.toLowerCase())
+
+    if (userTierIndex < requiredTierIndex) {
+      throw new ForbiddenException(`This template requires ${template.requiredMembershipLevel} membership or higher. Your current tier: ${membership.tier.name}`)
+    }
+
+    return ApiResponse.success({
+      allowed: true,
+      reason: 'membership_sufficient',
+      user_tier: membership.tier.name,
+      required_tier: template.requiredMembershipLevel,
+    }, 'Template access checked', 200)
+  }
+
   // --- Helpers ---
 
   private async generateUniqueSlug(slug: string | undefined, excludeId?: string): Promise<string> {
@@ -743,5 +881,24 @@ export class CardsService {
     if (!access) throw new NotFoundException('Card access not found')
     await this.findOwned(access.cardId, ownerId)
     return access
+  }
+
+  private validateCardTypeConsistency(type: CardType, cardProduct: CardProduct, audience: CardAudience) {
+    if (type === CardType.BUSINESS_VCARD || type === CardType.BUSINESS_CARD) {
+      if (audience !== CardAudience.BUSINESS) {
+        throw new BadRequestException(`Card type ${type} requires audience BUSINESS`)
+      }
+    }
+    if (type === CardType.CONSUMER_VCARD || type === CardType.CONSUMER_STORE_CARD) {
+      if (audience !== CardAudience.CONSUMER) {
+        throw new BadRequestException(`Card type ${type} requires audience CONSUMER`)
+      }
+    }
+    if (type === CardType.CONSUMER_STORE_CARD && cardProduct !== CardProduct.CARD) {
+      throw new BadRequestException('Consumer store cards must use card_product CARD')
+    }
+    if (type === CardType.EVENT && audience !== CardAudience.BUSINESS) {
+      throw new BadRequestException('Event cards require audience BUSINESS')
+    }
   }
 }

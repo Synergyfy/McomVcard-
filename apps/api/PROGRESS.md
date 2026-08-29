@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-29 (session: Frontend TypeScript alignment — 454→0 errors, web build passes)
+> Last updated: 2026-08-29 (session: Phase 5 Milestone D completion — consumer store card, template gating, card type validation)
 > Working branch: `logic`
 > Latest commits: `da5a5dc` (fix(frontend): reconcile auth service with backend settings API), `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
 
@@ -16,7 +16,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 | 2 — Authentication & Identity (incl. Roles/RBAC) | ✅ Complete |
 | 3 — Businesses | ✅ Complete |
 | 4 — Core Cards | ✅ Complete |
-| 5 — Business Features | 🔄 In progress (Milestones A–C ✅ Services/Products/Appointments; Milestone D ✅ Card Type System + Events) |
+| 5 — Business Features | ✅ Complete (Milestones A–D: Services/Products/Appointments, Card Type System + Events, Consumer Store Card + Template Gating + Validation) |
 | 6 — Membership Ecosystem | ✅ Complete (Seasons, Tiers & Benefits, Memberships) |
 | 6.5 — Plans (Pricing) | ✅ Complete (8 plans, 2 audiences, full config) |
 | 7 — Financial Ecosystem | ✅ Complete (Wallet, Rewards, Cashback, **Gift Cards, Cashback Programs**) |
@@ -113,7 +113,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 
 ### Remaining
 
-## Phase 5 — Business Features 🔄 (Milestones A–C ✅, Milestone D In Progress)
+## Phase 5 — Business Features ✅ (Milestones A–D)
 
 **Milestone A — Services (migration `1712000000008-CreateServicesTables`)**: new `ServicesModule` (`modules/services/`). `Service` entity (`services` table, Business **1:N** Services): `business_id` FK (ON DELETE CASCADE), `name`, `description` (text), `price` (numeric(10,2) with a TypeORM transformer → number in API, null-safe), `currency` (ISO 4217, default `GBP` — matches the web frontend default), `duration` (minutes), `image` (URL), `status` (internal-only, default `active`, not settable via API). `Business` entity gains a `services` OneToMany relation.
 
@@ -153,7 +153,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **Verified live (prod build + `NODE_ENV=production`, 74-check e2e)**: booking rules defaults + create + duplicate 400 + update + snake_case keys, availability CRUD + validation 400s (bad day, bad time, end-before-start), booking validation 400s (past date, outside advance window, no availability for weekday, bad email/date/time format, disabled booking, end past midnight), booking success (status `pending`, end = start+60 default, service duration overrides to +45 with nested `service`), conflict 400, reschedule 200 + applied + conflict 400, status flow, unknown business 404, service-from-another-business 400, ownership (other user reads 200, all modifications 403), auth 401 ×3, business delete cascades appointments/availability/booking_rules (DB-verified). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects all 8 new paths + 10 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 businesses).
 - **Bugs caught + fixed during e2e**: (1) optional `service_id`/`customer_phone`/`notes` in `CreateAppointmentDto` lacked `@IsOptional()` → global whitelist+forbidNonWhitelisted rejected them (400) — added `@IsOptional()`; (2) `assertWithinAvailability` was async but called without `await` in `book()`/`reschedule()` → unhandled rejection crashed the prod server — added `await`; (3) Postgres `TIME` columns returned `HH:MM:SS` in responses — response DTOs now normalize to `HH:MM`; (4) default booking-rules response leaked camelCase entity keys — service returns a snake_case default object.
 
-### Milestone D — Card Type System + Events + Template Customization (In Progress)
+### Milestone D — Card Type System + Events + Template Customization ✅
 
 **Migration**: `1712000000035-CardTypeSystemAndEvents.ts` applied
 
@@ -192,12 +192,23 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 
 **Verified**: `tsc --noEmit` clean, 155 unit tests + 50 e2e tests passing, web build clean
 
-### Remaining (Milestone D Continuation)
-1. Fix frontend admin pages TypeScript errors (String/number ID conversions)
-2. Consumer Store Card full implementation (membership/season display, wallet summary)
-3. Template customization membership-gated editing in service layer
-4. Password protection granular section control
-5. Card type validation in service (audience/product mismatch checks)
+**Milestone D Completion — Consumer Store Card + Template Gating + Validation:**
+
+- **Card Access Entity Desync Fixed**: Added `public_sections` (jsonb, default `[]`) and `interactive_sections` (jsonb, default `[]`) columns to `CardAccess` entity — matching the migration `1712000000035` that already created these DB columns. DTOs (`CreateCardAccessDto`, `CardAccessResponseDto`) updated to expose these fields.
+
+- **Template Membership Gating**: Added `required_membership_level` (varchar, nullable) and `is_premium` (boolean, default false) to `Template` entity. Added `editable_by_membership_level` (varchar, nullable) to `TemplateField` entity. Response DTOs updated. New endpoint: `GET /templates/:id/access` — checks the authenticated user's membership tier against the template's required level using a standard tier hierarchy (`standard` < `pro` < `pro_plus`). Returns 403 if insufficient.
+
+- **Consumer Store Card Endpoint**: New `GET /cards/:id/store-data` — composite endpoint that returns the card data alongside the owner's membership (with tier and benefits), wallet balance, reward balance, and current active season. Only works for cards with `type = CONSUMER_STORE_CARD`. Imports membership/wallet/reward/season repos into `CardsModule`.
+
+- **Card Type Validation**: `validateCardTypeConsistency()` helper enforces audience/product alignment:
+  - `BUSINESS_VCARD`/`BUSINESS_CARD` require `audience = BUSINESS`
+  - `CONSUMER_VCARD`/`CONSUMER_STORE_CARD` require `audience = CONSUMER`
+  - `CONSUMER_STORE_CARD` requires `card_product = CARD`
+  - `EVENT` requires `audience = BUSINESS`
+  - `CONSUMER_STORE_CARD` requires a `business_id`
+  - Validation runs on both `create()` and `update()`.
+
+- **Verified**: `tsc --noEmit` clean, 155 unit tests passing (7 new mocks for membership/wallet/reward/season repos), prod build clean. All remaining Milestone D items complete.
 
 ---
 
@@ -225,7 +236,7 @@ Tracked per the backend plan (Phases 1–18). Keep this file updated after every
 - **Rules**: only `active` tiers assignable (400 otherwise); `expires_at` must be after `started_at` (create + update); deleting a tier with memberships blocked 400 (RESTRICT guard); `status` internal-only (whitelist-rejected).
 - **Verified live (prod build + `NODE_ENV=production`, 53-check e2e)**: create (dated + open-ended with defaults), snake_case response + nested tier, list newest-first, get, update status/expiry/clear-null, validation 400s (missing/bad tier, unknown tier 404, inactive tier, expires-before-start, bad status, bad date), per-user isolation (cross-user read/update/delete → 404), auth 401s, tier-in-use delete 400, cascade cleanup (DB back to 0 tiers/memberships). `tsc --noEmit` clean, prod build clean, migration applied. Swagger reflects 2 paths + 4 schemas at `/api/docs-json` (non-prod). Test data cleaned after (DB back to admin-only, 0 tiers/memberships).
 
-### Milestone D — Card Type System + Events + Template Customization (In Progress)
+### Milestone D — Card Type System + Events + Template Customization ✅
 
 **Migration**: `1712000000035-CardTypeSystemAndEvents.ts` applied
 
