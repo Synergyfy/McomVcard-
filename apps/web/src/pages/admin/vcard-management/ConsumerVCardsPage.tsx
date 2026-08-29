@@ -333,7 +333,7 @@ export default function ConsumerVCardsPage() {
   const [qrStatusFilter, setQrStatusFilter] = useState('')
   const [publishFilter, setPublishFilter] = useState('')
   const [sortBy, setSortBy] = useState('Newest')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [previewVCard, setPreviewVCard] = useState<ConsumerVCard | null>(null)
   const [builderVCard, setBuilderVCard] = useState<ConsumerVCard | null>(null)
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 export interface PreviewCardData {
-  id: number
+  id: string
   name: string
   type: 'Business' | 'Consumer' | 'Template'
   style?: string

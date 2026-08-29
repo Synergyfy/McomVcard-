@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 export interface CardDesignData {
-  id?: number
+  id?: string
   name?: string
   style?: string
   primaryColor: string

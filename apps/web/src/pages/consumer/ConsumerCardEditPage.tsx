@@ -70,7 +70,7 @@ interface CustomField {
 
 export default function ConsumerCardEditPage() {
   const { designId } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === Number(designId))
+  const design = mockCardDesigns.find((d) => d.id === designId)
   const navigate = useNavigate()
 
   const [name, setName] = useState('Your Name')

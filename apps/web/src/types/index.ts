@@ -1,26 +1,26 @@
 export interface Feature {
-  id: number
+  id: string
   name: string
   description: string
   profile_image: string
 }
 
 export interface FrontTestimonial {
-  id: number
+  id: string
   name: string
   description: string
   testimonial_url: string
 }
 
 export interface AboutUs {
-  id: number
+  id: string
   title: string
   description: string
   about_url: string
 }
 
 export interface Plan {
-  id: number
+  id: string
   name: string
   currency_id: number
   price: number
@@ -34,14 +34,14 @@ export interface Plan {
 }
 
 export interface Currency {
-  id: number
+  id: string
   currency_name: string
   currency_icon: string
   currency_code: string
 }
 
 export interface PlanFeature {
-  id: number
+  id: string
   plan_id: number
   products_services: number
   testimonials: number
@@ -63,7 +63,7 @@ export interface PlanFeature {
 }
 
 export interface Template {
-  id: number
+  id: string
   name: string
   path: string
   template_url: string
@@ -80,7 +80,7 @@ export interface Template {
 }
 
 export interface AdminTemplate {
-  id: number
+  id: string
   name: string
   path: string
   template_url: string
@@ -215,7 +215,7 @@ export interface UserDashboardStats {
 }
 
 export interface VCard {
-  id: number
+  id: string
   user_id: number
   name: string
   url_slug: string
@@ -238,7 +238,7 @@ export interface VCard {
 }
 
 export interface VCardSection {
-  id: number
+  id: string
   vcard_id: number
 }
 
@@ -284,7 +284,7 @@ export interface BlogPost extends VCardSection {
 }
 
 export interface AppointmentSlot {
-  id: number
+  id: string
   vcard_id: number
   day_of_week: number
   start_time: string
@@ -292,7 +292,7 @@ export interface AppointmentSlot {
 }
 
 export interface Appointment {
-  id: number
+  id: string
   vcard_id: number
   name: string
   email: string
@@ -304,7 +304,7 @@ export interface Appointment {
 }
 
 export interface AdminBooking {
-  id: number
+  id: string
   customer_name: string
   customer_email: string
   customer_phone?: string
@@ -322,7 +322,7 @@ export interface AdminBooking {
 }
 
 export interface VCardSEO {
-  id: number
+  id: string
   vcard_id: number
   meta_keyword?: string
   meta_description?: string
@@ -332,7 +332,7 @@ export interface VCardSEO {
 }
 
 export interface VCardCustomization {
-  id: number
+  id: string
   vcard_id: number
   custom_css?: string
   custom_js?: string
@@ -341,7 +341,7 @@ export interface VCardCustomization {
 }
 
 export interface Subscription {
-  id: number
+  id: string
   user_id: number
   plan_id: number
   plan_name?: string
@@ -353,8 +353,8 @@ export interface Subscription {
 
 export interface Membership {
   id: string
-  user_id: string
-  membership_tier_id: string
+  user_id: number
+  membership_tier_id: number
   tier: {
     id: string
     name: string
@@ -379,7 +379,7 @@ export interface AnalyticsData {
 }
 
 export interface Enquiry {
-  id: number
+  id: string
   vcard_id?: number
   name: string
   email: string
@@ -390,13 +390,13 @@ export interface Enquiry {
 }
 
 export interface Subscriber {
-  id: number
+  id: string
   email: string
   created_at: string
 }
 
 export interface Role {
-  id: number
+  id: string
   name: string
   display_name?: string
   description?: string
@@ -405,7 +405,7 @@ export interface Role {
 }
 
 export interface Permission {
-  id: number
+  id: string
   name: string
   display_name?: string
   description?: string
@@ -455,7 +455,7 @@ export const SUPPORTED_LANGUAGES: { code: SupportedLanguage; name: string; nativ
 ]
 
 export interface AdminUser {
-  id: number
+  id: string
   first_name: string
   last_name: string
   email: string
@@ -467,7 +467,7 @@ export interface AdminUser {
 }
 
 export interface SubscribedUserPlan {
-  id: number
+  id: string
   user_id: number
   plan_id: number
   plan_name?: string
@@ -482,7 +482,7 @@ export interface SubscribedUserPlan {
 }
 
 export interface CashPayment {
-  id: number
+  id: string
   user_id: number
   plan_id: number
   user_name?: string
@@ -498,7 +498,7 @@ export interface CashPayment {
 }
 
 export interface AffiliateUser {
-  id: number
+  id: string
   user_id: number
   referral_code: string
   commission_rate: number
@@ -513,7 +513,7 @@ export interface AffiliateUser {
 }
 
 export interface AffiliateTransaction {
-  id: number
+  id: string
   affiliate_user_id: number
   referred_user_id: number
   referred_user_name?: string
@@ -524,7 +524,7 @@ export interface AffiliateTransaction {
 }
 
 export interface WithdrawTransaction {
-  id: number
+  id: string
   affiliate_user_id: number
   user_name?: string
   amount: number
@@ -537,7 +537,7 @@ export interface WithdrawTransaction {
 }
 
 export interface Country {
-  id: number
+  id: string
   name: string
   code: string
   phone_code: string
@@ -547,7 +547,7 @@ export interface Country {
 }
 
 export interface Language {
-  id: number
+  id: string
   name: string
   code: string
   native_name?: string
@@ -557,7 +557,7 @@ export interface Language {
 }
 
 export interface TranslationEntry {
-  id: number
+  id: string
   language_id: number
   group: string
   key: string
@@ -565,7 +565,7 @@ export interface TranslationEntry {
 }
 
 export interface CouponCode {
-  id: number
+  id: string
   code: string
   discount_type: 'percentage' | 'fixed'
   discount_value: number
@@ -598,14 +598,14 @@ export interface FrontCMS {
 }
 
 export interface FaqItem {
-  id: number
+  id: string
   question: string
   answer: string
   order: number
 }
 
 export interface EmailTemplate {
-  id: number
+  id: string
   name: string
   subject: string
   body: string
@@ -614,7 +614,7 @@ export interface EmailTemplate {
 }
 
 export interface ActivityLog {
-  id: number
+  id: string
   admin_id: number
   admin_name?: string
   action: string
@@ -625,7 +625,7 @@ export interface ActivityLog {
 }
 
 export interface NewsletterCampaign {
-  id: number
+  id: string
   subject: string
   content: string
   sent_count: number

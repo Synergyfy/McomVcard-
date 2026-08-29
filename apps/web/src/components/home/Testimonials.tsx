@@ -10,9 +10,9 @@ export default function Testimonials({ testimonials = [] }: TestimonialsProps) {
 
   if (testimonials.length === 0) {
     testimonials = [
-      { id: 1, name: 'Sarah Johnson', description: 'This platform completely changed how I share my contact information. My clients love the digital card!', testimonial_url: '' },
-      { id: 2, name: 'Michael Chen', description: 'The appointment scheduling feature alone is worth it. So easy to use and professional looking.', testimonial_url: '' },
-      { id: 3, name: 'Emily Rodriguez', description: 'I switched from paper cards to Mobile VCard Link and I am never going back. The analytics are incredibly useful.', testimonial_url: '' },
+      { id: '1', name: 'Sarah Johnson', description: 'This platform completely changed how I share my contact information. My clients love the digital card!', testimonial_url: '' },
+      { id: '2', name: 'Michael Chen', description: 'The appointment scheduling feature alone is worth it. So easy to use and professional looking.', testimonial_url: '' },
+      { id: '3', name: 'Emily Rodriguez', description: 'I switched from paper cards to Mobile VCard Link and I am never going back. The analytics are incredibly useful.', testimonial_url: '' },
     ]
   }
 

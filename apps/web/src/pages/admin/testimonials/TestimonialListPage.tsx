@@ -39,9 +39,9 @@ export default function TestimonialListPage() {
     } catch {}
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteTestimonial(id); setItems(items.filter((i) => i.id !== id)) } catch { setItems(items.filter((i) => i.id !== id)) }
+    try { await adminService.deleteTestimonial(String(id)); setItems(items.filter((i) => String(i.id) !== id)) } catch { setItems(items.filter((i) => String(i.id) !== id)) }
   }
 
   const filtered = items.filter((i) => {

@@ -6,7 +6,7 @@ import { MembershipLimitCard } from '../../components/membership/MembershipLimit
 import { loadMembershipPricing } from '../../services/membershipPricingStore'
 import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
 
-const MOCK_CLAIMED_TEMPLATE_IDS = [1, 4, 9, 13]
+const MOCK_CLAIMED_TEMPLATE_IDS = ['1', '4', '9', '13']
 const CONSUMER_PLAN: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Bronze'
 
 export default function ConsumerVCardTemplatesPage() {

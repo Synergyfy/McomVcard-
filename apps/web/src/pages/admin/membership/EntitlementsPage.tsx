@@ -325,7 +325,7 @@ function ToggleRow({ label, checked, comingSoon }: { label: string; checked: boo
 export default function EntitlementsPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'dashboard' | 'simulation' | 'versioning'>('dashboard')
-  const [selectedRules, setSelectedRules] = useState<number[]>([])
+  const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [simTier, setSimTier] = useState('Gold')
   const [simAction, setSimAction] = useState('Issue Consumer Cards')
   const [simQuantity, setSimQuantity] = useState(25)

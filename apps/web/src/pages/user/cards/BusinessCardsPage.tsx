@@ -10,7 +10,7 @@ import { CardPreviewModal, buildMockFaces } from '../../../components/admin/Card
 import { MOCK, toRow, type CardRow } from '../../admin/card-management/BusinessCardTemplatesPage'
 import { loadCardTemplatesByType } from '../../../services/cardTemplateStore'
 
-const BUSINESS_ID = 1
+const BUSINESS_ID = '1'
 
 export default function BusinessCardsPage() {
   const [tab, setTab] = useState<'claimed' | 'available'>('claimed')
@@ -31,7 +31,7 @@ export default function BusinessCardsPage() {
 
   /* The business's own cards — the ones Admin has assigned to it. */
   const claimedCards = mockClaimedCards.filter((c) => c.business_id === BUSINESS_ID)
-  const cardName = (designId: number) => allRows.find((r) => r.id === designId)?.name ?? `Business Card #${designId}`
+  const cardName = (designId: string) => allRows.find((r) => r.id === designId)?.name ?? `Business Card #${designId}`
   const filteredAvailable = availableRows.filter((r) => {
     const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase())
     const matchType = typeFilter === 'all' || r.category === typeFilter
@@ -44,7 +44,7 @@ export default function BusinessCardsPage() {
   const totalScans = claimedCards.reduce((a, c) => a + c.scans, 0)
 
   const openPreview = (row: CardRow) => {
-    const stored = storedCards.find(s => s.id === row.id)
+    const stored = storedCards.find(s => String(s.id) === row.id)
     setPreviewFor({
       row,
       faces: stored
@@ -141,8 +141,8 @@ export default function BusinessCardsPage() {
                   <div className="w-full h-full p-4 flex flex-col justify-between relative bg-gradient-to-br from-orange-500 to-orange-600">
                     <div className="absolute top-3 right-3 opacity-20 text-white text-3xl font-black">MCOM</div>
                     <div className="z-10">
-                      <p className="text-[9px] text-white/60 uppercase tracking-wider mb-1">{allRows.find((r) => r.id === c.card_design_id)?.category ?? 'Business Card'}</p>
-                      <p className="text-sm font-bold text-white">{cardName(c.card_design_id)}</p>
+                      <p className="text-[9px] text-white/60 uppercase tracking-wider mb-1">{allRows.find((r) => r.id === String(c.card_design_id))?.category ?? 'Business Card'}</p>
+                      <p className="text-sm font-bold text-white">{cardName(String(c.card_design_id))}</p>
                     </div>
                     <div className="z-10 flex items-end justify-between">
                       <span className="text-[10px] text-white/70">Claimed {new Date(c.claimed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
@@ -154,7 +154,7 @@ export default function BusinessCardsPage() {
                 </div>
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-900 dark:text-white">{cardName(c.card_design_id)}</span>
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">{cardName(String(c.card_design_id))}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${c.active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{c.active ? 'Active' : 'Inactive'}</span>

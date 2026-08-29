@@ -10,7 +10,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default function ConsumerRewardsPage() {
-  const [rewards, setRewards] = useState<Array<{ id: number; reward: string; points: number; date: string; status: string }>>([])
+  const [rewards, setRewards] = useState<Array<{ id: string; reward: string; points: number; date: string; status: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [filter, setFilter] = useState<string>('all')

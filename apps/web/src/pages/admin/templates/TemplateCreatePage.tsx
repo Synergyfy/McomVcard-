@@ -60,7 +60,7 @@ export default function TemplateCreatePage() {
   useEffect(() => {
     const sourceId = id || cloneId
     if (sourceId) {
-      const source = mockTemplates.find((t) => t.id === Number(sourceId))
+      const source = mockTemplates.find((t) => t.id === sourceId)
       if (source) {
         const sectionKey = (s: string) => s.toLowerCase().replace(/\s+/g, '_')
         const sections = Object.fromEntries(SECTIONS.map((s) => [sectionKey(s), source.sections[s] ?? false]))

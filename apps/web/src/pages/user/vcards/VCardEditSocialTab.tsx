@@ -4,7 +4,7 @@ import { userService } from '../../../services/user'
 import InputField from '../../../components/auth/InputField'
 import type { SocialLink } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditSocialTab({ vcardId }: Props) {
   const { t } = useTranslation()
@@ -15,7 +15,7 @@ export default function VCardEditSocialTab({ vcardId }: Props) {
 
   useEffect(() => {
     userService.getSocialLinks(vcardId)
-      .then(setLinks)
+      .then((links) => setLinks(Array.isArray(links) && links.length > 0 ? links[0] as any : {} as SocialLink))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [vcardId])
@@ -37,7 +37,7 @@ export default function VCardEditSocialTab({ vcardId }: Props) {
   const handleSave = async () => {
     setMessage(''); setSaving(true)
     try {
-      await userService.updateSocialLinks(vcardId, links)
+      await userService.updateSocialLink(vcardId, '1', links as any)
       setMessage(t('user.saved'))
     } catch {} finally { setSaving(false) }
   }

@@ -11,7 +11,7 @@ import { CardPreviewModal, buildMockFaces } from '../../../components/admin/Card
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
 export interface CardRow {
-  id: number
+  id: string
   name: string
   templateId: string
   version: string
@@ -31,25 +31,25 @@ export interface CardRow {
 }
 
 export const MOCK: CardRow[] = [
-  { id: 1, name: 'Standard Business Card', templateId: 'BCT-000001', version: '2.4', category: 'General', status: 'Published', businessesUsing: 534, cardsIssued: 12400, lastUpdated: '2 hours ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Standard', isStored: false },
-  { id: 2, name: 'Gold Premium Card', templateId: 'BCT-000002', version: '1.8', category: 'General', status: 'Published', businessesUsing: 423, cardsIssued: 9800, lastUpdated: '6 hours ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Gold', isStored: false },
-  { id: 3, name: 'Compact Networking Card', templateId: 'BCT-000003', version: '3.1', category: 'Technology', status: 'Published', businessesUsing: 321, cardsIssued: 7600, lastUpdated: '1 day ago', updatedBy: 'Template Designer', qrPosition: 'Top Right', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Technology', isStored: false },
-  { id: 4, name: 'Modern Café Card', templateId: 'BCT-000004', version: '2.0', category: 'Café', status: 'Published', businessesUsing: 287, cardsIssued: 5400, lastUpdated: '2 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Center', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Café', isStored: false },
-  { id: 5, name: 'Luxury Hotel Card', templateId: 'BCT-000005', version: '1.2', category: 'Hotel', status: 'Draft', businessesUsing: 0, cardsIssued: 0, lastUpdated: '3 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Hotel', isStored: false },
-  { id: 6, name: 'Fitness Trainer Card', templateId: 'BCT-000006', version: '1.5', category: 'Fitness', status: 'Published', businessesUsing: 198, cardsIssued: 3200, lastUpdated: '4 days ago', updatedBy: 'Template Designer', qrPosition: 'Top Left', qrSize: 'Small', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Fitness', isStored: false },
-  { id: 7, name: 'Real Estate Agent Card', templateId: 'BCT-000007', version: '2.2', category: 'Real Estate', status: 'Published', businessesUsing: 445, cardsIssued: 8900, lastUpdated: '5 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Real Estate', isStored: false },
-  { id: 8, name: 'Barber Shop Card', templateId: 'BCT-000008', version: '0.9', category: 'Barber', status: 'Draft', businessesUsing: 0, cardsIssued: 0, lastUpdated: '1 week ago', updatedBy: 'Admin', qrPosition: 'Center', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Barber', isStored: false },
-  { id: 9, name: 'Consultant Business Card', templateId: 'BCT-000009', version: '3.4', category: 'Consultant', status: 'Published', businessesUsing: 678, cardsIssued: 15300, lastUpdated: '1 week ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Consultant', isStored: false },
-  { id: 10, name: 'Retail Store Card', templateId: 'BCT-000010', version: '1.7', category: 'Retail', status: 'Published', businessesUsing: 267, cardsIssued: 6100, lastUpdated: '2 weeks ago', updatedBy: 'Template Designer', qrPosition: 'Top Right', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Retail', isStored: false },
-  { id: 11, name: 'Legal Professional Card', templateId: 'BCT-000011', version: '2.0', category: 'Legal', status: 'Published', businessesUsing: 156, cardsIssued: 2900, lastUpdated: '2 weeks ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Legal', isStored: false },
-  { id: 12, name: 'Agency Partner Card', templateId: 'BCT-000012', version: '1.1', category: 'General', status: 'Archived', businessesUsing: 89, cardsIssued: 1400, lastUpdated: '1 month ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Small', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'General', isStored: false },
+  { id: '1', name: 'Standard Business Card', templateId: 'BCT-000001', version: '2.4', category: 'General', status: 'Published', businessesUsing: 534, cardsIssued: 12400, lastUpdated: '2 hours ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Standard', isStored: false },
+  { id: '2', name: 'Gold Premium Card', templateId: 'BCT-000002', version: '1.8', category: 'General', status: 'Published', businessesUsing: 423, cardsIssued: 9800, lastUpdated: '6 hours ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Gold', isStored: false },
+  { id: '3', name: 'Compact Networking Card', templateId: 'BCT-000003', version: '3.1', category: 'Technology', status: 'Published', businessesUsing: 321, cardsIssued: 7600, lastUpdated: '1 day ago', updatedBy: 'Template Designer', qrPosition: 'Top Right', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Technology', isStored: false },
+  { id: '4', name: 'Modern Café Card', templateId: 'BCT-000004', version: '2.0', category: 'Café', status: 'Published', businessesUsing: 287, cardsIssued: 5400, lastUpdated: '2 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Center', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Café', isStored: false },
+  { id: '5', name: 'Luxury Hotel Card', templateId: 'BCT-000005', version: '1.2', category: 'Hotel', status: 'Draft', businessesUsing: 0, cardsIssued: 0, lastUpdated: '3 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Hotel', isStored: false },
+  { id: '6', name: 'Fitness Trainer Card', templateId: 'BCT-000006', version: '1.5', category: 'Fitness', status: 'Published', businessesUsing: 198, cardsIssued: 3200, lastUpdated: '4 days ago', updatedBy: 'Template Designer', qrPosition: 'Top Left', qrSize: 'Small', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Fitness', isStored: false },
+  { id: '7', name: 'Real Estate Agent Card', templateId: 'BCT-000007', version: '2.2', category: 'Real Estate', status: 'Published', businessesUsing: 445, cardsIssued: 8900, lastUpdated: '5 days ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Real Estate', isStored: false },
+  { id: '8', name: 'Barber Shop Card', templateId: 'BCT-000008', version: '0.9', category: 'Barber', status: 'Draft', businessesUsing: 0, cardsIssued: 0, lastUpdated: '1 week ago', updatedBy: 'Admin', qrPosition: 'Center', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Barber', isStored: false },
+  { id: '9', name: 'Consultant Business Card', templateId: 'BCT-000009', version: '3.4', category: 'Consultant', status: 'Published', businessesUsing: 678, cardsIssued: 15300, lastUpdated: '1 week ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Large', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Consultant', isStored: false },
+  { id: '10', name: 'Retail Store Card', templateId: 'BCT-000010', version: '1.7', category: 'Retail', status: 'Published', businessesUsing: 267, cardsIssued: 6100, lastUpdated: '2 weeks ago', updatedBy: 'Template Designer', qrPosition: 'Top Right', qrSize: 'Medium', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'Retail', isStored: false },
+  { id: '11', name: 'Legal Professional Card', templateId: 'BCT-000011', version: '2.0', category: 'Legal', status: 'Published', businessesUsing: 156, cardsIssued: 2900, lastUpdated: '2 weeks ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Medium', hasSecurity: true, ffIndicator: 'None', progressDisplay: 'None', theme: 'Legal', isStored: false },
+  { id: '12', name: 'Agency Partner Card', templateId: 'BCT-000012', version: '1.1', category: 'General', status: 'Archived', businessesUsing: 89, cardsIssued: 1400, lastUpdated: '1 month ago', updatedBy: 'Admin', qrPosition: 'Bottom Right', qrSize: 'Small', hasSecurity: false, ffIndicator: 'None', progressDisplay: 'None', theme: 'General', isStored: false },
 ]
 
 const STATUSES = ['all', 'published', 'draft', 'archived']
 
 export function toRow(t: StoredCardTemplate): CardRow {
   return {
-    id: t.id,
+    id: String(t.id),
     name: t.name,
     templateId: t.templateId,
     version: t.version.replace(/^v/i, ''),
@@ -208,7 +208,7 @@ export default function BusinessCardTemplatesPage() {
   }
 
   const openPreview = (t: CardRow) => {
-    const storedRow = t.isStored ? getCardTemplate(t.id) : undefined
+    const storedRow = t.isStored ? getCardTemplate(Number(t.id)) : undefined
     setPreviewFor({ row: t, faces: storedRow ? storedRow.builder.faces : buildMockFaces({
       name: t.name,
       templateId: t.templateId,
@@ -224,14 +224,14 @@ export default function BusinessCardTemplatesPage() {
   }
 
   const handleArchive = (t: CardRow) => {
-    if (t.isStored) { archiveCardTemplate(t.id); refresh() }
+    if (t.isStored) { archiveCardTemplate(Number(t.id)); refresh() }
     toast.success(`${t.name} archived`)
   }
 
   const handleDelete = (t: CardRow) => {
     if (!t.isStored) { toast.error('Only user-created card templates can be deleted'); return }
     if (window.confirm(`Delete "${t.name}"? This cannot be undone.`)) {
-      deleteCardTemplate(t.id); refresh(); toast.success(`${t.name} deleted`)
+      deleteCardTemplate(Number(t.id)); refresh(); toast.success(`${t.name} deleted`)
     }
   }
 

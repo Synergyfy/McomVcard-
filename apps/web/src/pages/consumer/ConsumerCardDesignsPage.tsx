@@ -9,17 +9,17 @@ import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
 import { consumerService } from '../../services/consumer'
 import { parseMembership } from '../../services/consumerMembership'
 
-const MOCK_CLAIMED_CARD_IDS = [5, 6, 7, 8]
+const MOCK_CLAIMED_CARD_IDS = ['5', '6', '7', '8']
 
-const DEFAULT_CARD_TITLES: Record<number, string> = {
-  5: 'Nature Lover',
-  6: 'Minimalist',
-  7: 'Tech Enthusiast',
-  8: 'Elegant Style',
+const DEFAULT_CARD_TITLES: Record<string, string> = {
+  '5': 'Nature Lover',
+  '6': 'Minimalist',
+  '7': 'Tech Enthusiast',
+  '8': 'Elegant Style',
 }
 
 interface ClaimedCardData {
-  designId: number
+  designId: string
   name: string
   phone: string
   email: string
@@ -28,8 +28,8 @@ interface ClaimedCardData {
 
 export default function ConsumerCardDesignsPage() {
   const navigate = useNavigate()
-  const [flipCardId, setFlipCardId] = useState<number | null>(null)
-  const [claimedData, setClaimedData] = useState<Record<number, ClaimedCardData>>({})
+  const [flipCardId, setFlipCardId] = useState<string | null>(null)
+  const [claimedData, setClaimedData] = useState<Record<string, ClaimedCardData>>({})
   const [profile, setProfile] = useState<MockConsumer | null>(null)
 
   const pricingState = useMemo(() => loadMembershipPricing(), [])

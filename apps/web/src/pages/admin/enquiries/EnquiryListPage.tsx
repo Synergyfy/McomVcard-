@@ -6,12 +6,12 @@ import type { Enquiry } from '../../../types'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
 const MOCK_ENQUIRIES: Enquiry[] = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', subject: 'Pricing Question', message: 'Hi, I am interested in the Pro plan. Can you tell me more about the features included?', created_at: '2025-07-12' },
-  { id: 2, name: 'Maria Santos', email: 'maria@example.com', subject: 'Partnership', message: 'We would like to partner with Mobile VCard Link for our business event. Please reach out.', created_at: '2025-07-11' },
-  { id: 3, name: 'Alex Kim', email: 'alex@example.com', subject: 'Feature Request', message: 'It would be great to have QR code analytics in the dashboard. Any plans for this?', created_at: '2025-07-10' },
-  { id: 4, name: 'Sophie Martin', email: 'sophie@example.com', subject: 'Account Issue', message: 'I am unable to log into my account after resetting my password. Can you help?', created_at: '2025-07-09' },
-  { id: 5, name: 'Carlos Rivera', email: 'carlos@example.com', subject: 'Refund Request', message: 'I was charged twice for my subscription. Please process a refund for the duplicate.', created_at: '2025-07-08' },
-  { id: 6, name: 'Priya Patel', email: 'priya@example.com', subject: 'General Inquiry', message: 'Do you support custom domains for vCards?', created_at: '2025-07-07' },
+  { id: '1', name: 'John Doe', email: 'john@example.com', subject: 'Pricing Question', message: 'Hi, I am interested in the Pro plan. Can you tell me more about the features included?', created_at: '2025-07-12' },
+  { id: '2', name: 'Maria Santos', email: 'maria@example.com', subject: 'Partnership', message: 'We would like to partner with Mobile VCard Link for our business event. Please reach out.', created_at: '2025-07-11' },
+  { id: '3', name: 'Alex Kim', email: 'alex@example.com', subject: 'Feature Request', message: 'It would be great to have QR code analytics in the dashboard. Any plans for this?', created_at: '2025-07-10' },
+  { id: '4', name: 'Sophie Martin', email: 'sophie@example.com', subject: 'Account Issue', message: 'I am unable to log into my account after resetting my password. Can you help?', created_at: '2025-07-09' },
+  { id: '5', name: 'Carlos Rivera', email: 'carlos@example.com', subject: 'Refund Request', message: 'I was charged twice for my subscription. Please process a refund for the duplicate.', created_at: '2025-07-08' },
+  { id: '6', name: 'Priya Patel', email: 'priya@example.com', subject: 'General Inquiry', message: 'Do you support custom domains for vCards?', created_at: '2025-07-07' },
 ]
 
 export default function EnquiryListPage() {

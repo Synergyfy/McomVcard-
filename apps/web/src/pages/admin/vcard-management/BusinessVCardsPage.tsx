@@ -285,7 +285,7 @@ export default function BusinessVCardsPage() {
   const [publishFilter, setPublishFilter] = useState('')
   const [visibilityFilter, setVisibilityFilter] = useState('')
   const [sortBy, setSortBy] = useState('Newest')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [previewVCard, setPreviewVCard] = useState<BusinessVCard | null>(null)
   const [builderVCard, setBuilderVCard] = useState<BusinessVCard | null>(null)
 

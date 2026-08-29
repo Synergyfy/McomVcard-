@@ -49,8 +49,8 @@ export default function FrontCMSPage() {
     }
   }
 
-  const updateFaq = async (id: number, key: string, value: string) => {
-    setFaqs(faqs.map((f) => String(f.id) === id ? { ...f, [key]: value } : f))
+  const updateFaq = async (id: string, key: string, value: string) => {
+    setFaqs(faqs.map((f) => f.id === id ? { ...f, [key]: value } : f))
   }
 
   const saveFaq = async (id: string) => {

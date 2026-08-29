@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { mockTemplates, mockClaimedTemplates } from '../../../services/mockData'
 import type { AdminTemplate } from '../../../types'
 
-const BUSINESS_ID = 1
+const BUSINESS_ID = '1'
 
 type Tab = 'claimed' | 'all'
 

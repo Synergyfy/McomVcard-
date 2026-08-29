@@ -10,7 +10,7 @@ const BUTTON_STYLES = ['rounded', 'pill', 'square']
 
 export default function TemplateCustomizePage() {
   const { id } = useParams()
-  const template = mockTemplates.find((t) => t.id === Number(id)) || mockTemplates[0]
+  const template = mockTemplates.find((t) => t.id === id) || mockTemplates[0]
 
   const [primaryColor, setPrimaryColor] = useState(template.primary_color)
   const [secondaryColor, setSecondaryColor] = useState(template.secondary_color)

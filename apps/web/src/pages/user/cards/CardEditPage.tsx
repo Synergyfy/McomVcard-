@@ -28,7 +28,7 @@ interface CustomField {
 
 export default function CardEditPage() {
   const { id } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === Number(id))
+  const design = mockCardDesigns.find((d) => d.id === id)
   const navigate = useNavigate()
 
   const [businessName, setBusinessName] = useState('GreenLeaf Coffee')

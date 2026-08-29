@@ -117,7 +117,7 @@ export default function CardListPage() {
   }
 
   const cloneDesign = (d: CardDesign) => {
-    const newId = Math.max(...data.map((x) => x.id)) + 1
+    const newId = String(Math.max(...data.map((x) => Number(x.id))) + 1)
     const clone: CardDesign = { ...d, id: newId, name: `${d.name} (Clone)`, usage: 0, created: new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' }) }
     setData((prev) => [...prev, clone])
     toast.success(`"${clone.name}" created`)

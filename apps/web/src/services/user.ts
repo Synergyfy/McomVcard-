@@ -176,15 +176,15 @@ export const userService = {
     return []
   },
 
-  async createBlogPost(_cardId: number, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
+  async createBlogPost(_cardId: string, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
     throw new Error('Not implemented')
   },
 
-  async updateBlogPost(_cardId: number, _postId: number, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
+  async updateBlogPost(_cardId: string, _postId: string, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
     throw new Error('Not implemented')
   },
 
-  async deleteBlogPost(_cardId: number, _postId: number): Promise<void> {
+  async deleteBlogPost(_cardId: string, _postId: string): Promise<void> {
     throw new Error('Not implemented')
   },
 
@@ -220,7 +220,7 @@ export const userService = {
 
   // SEO (not implemented in API yet - placeholder)
   async getSEO(_cardId: string): Promise<VCardSEO> {
-    return { id: 0, vcard_id: 0, meta_keyword: '', meta_description: '', site_title: '', home_title: '', google_analytics: '' }
+    return { id: '0', vcard_id: 0, meta_keyword: '', meta_description: '', site_title: '', home_title: '', google_analytics: '' }
   },
 
   async updateSEO(_cardId: string, _data: Partial<VCardSEO>): Promise<VCardSEO> {

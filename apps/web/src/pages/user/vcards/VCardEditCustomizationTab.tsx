@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 import type { VCardCustomization } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditCustomizationTab({ vcardId }: Props) {
   const { t } = useTranslation()

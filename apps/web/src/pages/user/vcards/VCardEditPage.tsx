@@ -70,7 +70,7 @@ export default function VCardEditPage() {
 
   useEffect(() => {
     if (!id) return
-    const found = mockVcards.find((v) => v.id === Number(id))
+    const found = mockVcards.find((v) => v.id === id)
     if (found) {
       setVcard(found)
       setPreviewForm({
@@ -81,7 +81,7 @@ export default function VCardEditPage() {
       })
     } else {
       setVcard({
-        id: Number(id), user_id: 1, name: 'My vCard', url_slug: `my-vcard-${id}`,
+        id: id || '1', user_id: 1, name: 'My vCard', url_slug: `my-vcard-${id}`,
         occupation: 'Professional', description: 'My digital business card',
         email: 'hello@example.com', phone: '+1 234 567 890', location: 'New York, NY',
         website: 'https://example.com', template_id: 1, status: 1,
@@ -98,7 +98,7 @@ export default function VCardEditPage() {
   )
   if (!vcard) return null
 
-  const template = mockTemplates.find((t) => t.id === vcard.template_id)
+  const template = mockTemplates.find((t) => t.id === String(vcard.template_id))
   const primaryColor = template?.primary_color || '#FF5C00'
   const secondaryColor = template?.secondary_color || '#FF8A50'
 
