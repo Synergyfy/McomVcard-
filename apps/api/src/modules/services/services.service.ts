@@ -75,7 +75,7 @@ export class ServicesService {
     if (dto.duration !== undefined) patch.duration = dto.duration
     if (dto.image !== undefined) patch.image = dto.image
 
-    await this.servicesRepo.update({ id }, patch)
+    await this.servicesRepo.update({ id }, patch as any)
 
     return ApiResponse.success(ServiceResponseDto.fromEntity(await this.findOne(id)), 'Service updated', 200)
   }

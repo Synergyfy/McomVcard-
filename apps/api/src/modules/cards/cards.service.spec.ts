@@ -26,9 +26,9 @@ import { CreateCardCustomizationDto } from './dto/create-card-customization.dto'
 import { CreateSocialLinkDto } from './dto/create-social-link.dto'
 import { CreateCardAccessDto } from './dto/create-card-access.dto'
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>
+type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
-function createMockRepo<T = any>(): MockRepo<T> {
+function createMockRepo(): MockRepo {
   return {
     findOne: jest.fn(),
     findOneBy: jest.fn(),
@@ -127,27 +127,27 @@ function makeAccess(overrides: Partial<CardAccess> = {}): CardAccess {
 
 describe('CardsService', () => {
   let service: CardsService
-  let cardsRepo: MockRepo<Card>
-  let profilesRepo: MockRepo<CardProfile>
-  let customizationsRepo: MockRepo<CardCustomization>
-  let socialLinksRepo: MockRepo<SocialLink>
-  let accessRepo: MockRepo<CardAccess>
-  let sectionsRepo: MockRepo<CardSection>
-  let centreControlsRepo: MockRepo<CardCentreControl>
-  let templatesRepo: MockRepo<Template>
-  let analyticsRepo: MockRepo<AnalyticsEvent>
+  let cardsRepo: MockRepo
+  let profilesRepo: MockRepo
+  let customizationsRepo: MockRepo
+  let socialLinksRepo: MockRepo
+  let accessRepo: MockRepo
+  let sectionsRepo: MockRepo
+  let centreControlsRepo: MockRepo
+  let templatesRepo: MockRepo
+  let analyticsRepo: MockRepo
   let businessesService: { findOwned: jest.Mock }
 
   beforeEach(async () => {
-    cardsRepo = createMockRepo<Card>()
-    profilesRepo = createMockRepo<CardProfile>()
-    customizationsRepo = createMockRepo<CardCustomization>()
-    socialLinksRepo = createMockRepo<SocialLink>()
-    accessRepo = createMockRepo<CardAccess>()
-    sectionsRepo = createMockRepo<CardSection>()
-    centreControlsRepo = createMockRepo<CardCentreControl>()
-    templatesRepo = createMockRepo<Template>()
-    analyticsRepo = createMockRepo<AnalyticsEvent>()
+    cardsRepo = createMockRepo()
+    profilesRepo = createMockRepo()
+    customizationsRepo = createMockRepo()
+    socialLinksRepo = createMockRepo()
+    accessRepo = createMockRepo()
+    sectionsRepo = createMockRepo()
+    centreControlsRepo = createMockRepo()
+    templatesRepo = createMockRepo()
+    analyticsRepo = createMockRepo()
     businessesService = { findOwned: jest.fn() }
 
     const module: TestingModule = await Test.createTestingModule({
@@ -162,13 +162,13 @@ describe('CardsService', () => {
         { provide: getRepositoryToken(CardCentreControl), useValue: centreControlsRepo },
         { provide: getRepositoryToken(Template), useValue: templatesRepo },
         { provide: getRepositoryToken(AnalyticsEvent), useValue: analyticsRepo },
-        { provide: getRepositoryToken(Membership), useValue: createMockRepo<Membership>() },
-        { provide: getRepositoryToken(MembershipTier), useValue: createMockRepo<MembershipTier>() },
-        { provide: getRepositoryToken(MembershipBenefit), useValue: createMockRepo<MembershipBenefit>() },
-        { provide: getRepositoryToken(Benefit), useValue: createMockRepo<Benefit>() },
-        { provide: getRepositoryToken(Season), useValue: createMockRepo<Season>() },
-        { provide: getRepositoryToken(Wallet), useValue: createMockRepo<Wallet>() },
-        { provide: getRepositoryToken(RewardBalance), useValue: createMockRepo<RewardBalance>() },
+        { provide: getRepositoryToken(Membership), useValue: createMockRepo() },
+        { provide: getRepositoryToken(MembershipTier), useValue: createMockRepo() },
+        { provide: getRepositoryToken(MembershipBenefit), useValue: createMockRepo() },
+        { provide: getRepositoryToken(Benefit), useValue: createMockRepo() },
+        { provide: getRepositoryToken(Season), useValue: createMockRepo() },
+        { provide: getRepositoryToken(Wallet), useValue: createMockRepo() },
+        { provide: getRepositoryToken(RewardBalance), useValue: createMockRepo() },
         { provide: BusinessesService, useValue: businessesService },
       ],
     }).compile()

@@ -16,7 +16,7 @@ export class UsersService {
   }
 
   async update(id: string, patch: Partial<User>): Promise<User | null> {
-    await this.usersRepo.update({ id }, patch)
+    await this.usersRepo.update({ id }, patch as any)
 
     return this.findById(id)
   }

@@ -80,7 +80,7 @@ export class ProductsService {
     if (dto.currency !== undefined) patch.currency = dto.currency
     if (dto.image !== undefined) patch.image = dto.image
 
-    await this.productsRepo.update({ id }, patch)
+    await this.productsRepo.update({ id }, patch as any)
 
     return ApiResponse.success(ProductResponseDto.fromEntity(await this.findOne(id)), 'Product updated', 200)
   }

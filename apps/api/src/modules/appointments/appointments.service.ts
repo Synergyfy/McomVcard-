@@ -104,7 +104,7 @@ export class AppointmentsService {
     if (dto.confirmation_message !== undefined) patch.confirmationMessage = dto.confirmation_message
     if (dto.cancellation_policy !== undefined) patch.cancellationPolicy = dto.cancellation_policy
 
-    await this.bookingRulesRepo.update({ id: ruleId }, patch)
+    await this.bookingRulesRepo.update({ id: ruleId }, patch as any)
 
     const updated = await this.bookingRulesRepo.findOneBy({ id: ruleId })
     if (!updated) throw new NotFoundException('Booking rules not found')
@@ -165,7 +165,7 @@ export class AppointmentsService {
     if (dto.end_time !== undefined) patch.endTime = dto.end_time
     if (dto.is_closed !== undefined) patch.isClosed = dto.is_closed
 
-    await this.availabilityRepo.update({ id: slotId }, patch)
+    await this.availabilityRepo.update({ id: slotId }, patch as any)
 
     const updated = await this.availabilityRepo.findOneBy({ id: slotId })
     if (!updated) throw new NotFoundException('Availability not found')
@@ -198,16 +198,16 @@ export class AppointmentsService {
 
     let duration = config.defaultDuration
 
-    let service = null
+    let service: import('../services/entities/service.entity').Service | null = null
 
     if (dto.service_id) {
       service = await this.servicesService.findOne(dto.service_id)
 
-      if (service.businessId !== businessId) {
+      if (service!.businessId !== businessId) {
         throw new BadRequestException('Service does not belong to this business')
       }
 
-      duration = service.duration ?? duration
+      duration = service!.duration ?? duration
     }
 
     const startMinutes = this.toMinutes(dto.start_time)
