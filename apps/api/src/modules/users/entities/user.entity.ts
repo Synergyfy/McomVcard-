@@ -52,6 +52,9 @@ export class User {
   @Column({ name: 'mcom_membership_level', type: 'varchar', nullable: true })
   mcomMembershipLevel!: string | null
 
+  @Column({ name: 'mcom_membership_tier', type: 'varchar', nullable: true })
+  mcomMembershipTier!: string | null
+
   @Column({ name: 'mcom_membership_status', type: 'varchar', nullable: true })
   mcomMembershipStatus!: string | null
 
@@ -64,6 +67,9 @@ export class User {
 
   @Column({ name: 'mcom_refresh_token', type: 'text', nullable: true })
   mcomRefreshToken!: string | null
+
+  @Column({ name: 'mcom_token_expires_at', type: 'timestamptz', nullable: true })
+  mcomTokenExpiresAt!: Date | null
 
   @Column({ name: 'mcom_tokens_updated_at', type: 'timestamptz', nullable: true })
   mcomTokensUpdatedAt!: Date | null
