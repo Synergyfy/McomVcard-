@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, Outlet, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { mcomService } from '../../services/mcom'
 
 /**
  * Route guard that enforces MCOM platform access.
@@ -12,19 +11,8 @@ import { mcomService } from '../../services/mcom'
  */
 export default function RequireVcardAccess() {
   const { user, isAuthenticated, isLoading, refreshMcomStatus } = useAuth()
-  const [upgradeUrl, setUpgradeUrl] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState('')
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    mcomService
-      .getConfig()
-      .then((cfg) => setUpgradeUrl(cfg.membershipUrl))
-      .catch(() => {
-        // Membership CTA degrades gracefully — the MCOM branding page link stays.
-      })
-  }, [isAuthenticated])
 
   if (isLoading) {
     return (
@@ -65,8 +53,8 @@ export default function RequireVcardAccess() {
 
             <h1 className="text-xl font-extrabold text-gray-900 mt-6">MCOM VCard access required</h1>
             <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-              Your MCOM Solutions account does not have an active package for MCOM VCard. Upgrade or activate your
-              membership on MCOM Solutions to unlock the dashboard.
+              Your MCOM Solutions account does not have an active package for MCOM VCard. Choose a plan to unlock the
+              dashboard — payments are processed securely by MCOM Solutions.
             </p>
 
             {syncError && (
@@ -74,16 +62,12 @@ export default function RequireVcardAccess() {
             )}
 
             <div className="mt-6 space-y-2">
-              {upgradeUrl && (
-                <a
-                  href={upgradeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-bold hover:opacity-95 transition-all shadow-md shadow-blue-200"
-                >
-                  Upgrade on MCOM Solutions
-                </a>
-              )}
+              <Link
+                to="/b/payment"
+                className="block w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-bold hover:opacity-95 transition-all shadow-md shadow-blue-200"
+              >
+                Choose a plan & pay
+              </Link>
               <button
                 type="button"
                 onClick={handleResync}

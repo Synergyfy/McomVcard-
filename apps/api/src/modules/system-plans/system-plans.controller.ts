@@ -5,6 +5,39 @@ import { SystemPlansService } from './system-plans.service'
 import { CreateSystemPlanDto, UpdateSystemPlanDto, SystemPlanResponseDto } from './dto/system-plan.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 
+export interface PlanSchemaField {
+  key: string
+  label: string
+  type: 'number' | 'boolean'
+  unlimited?: boolean
+}
+
+export interface PlanSchema {
+  quotas: PlanSchemaField[]
+  featureFlags: PlanSchemaField[]
+}
+
+/**
+ * The plan configuration contract Vcard exposes to MCOM Solutions. MCOM
+ * Solutions renders quota/flag forms from this schema when creating or editing
+ * plans for this platform. `unlimited` marks numeric quotas that support the
+ * "Unlimited" (=-1) toggle.
+ */
+export const VCARD_PLAN_SCHEMA: PlanSchema = {
+  quotas: [
+    { key: 'maxVCards', label: 'Max VCards', type: 'number', unlimited: true },
+    { key: 'maxConsumerVCards', label: 'Max Consumer VCards', type: 'number', unlimited: true },
+    { key: 'maxTeamMembers', label: 'Max Team Members', type: 'number', unlimited: true },
+  ],
+  featureFlags: [
+    { key: 'allowNfc', label: 'Allow NFC', type: 'boolean' },
+    { key: 'customDomains', label: 'Custom Domains', type: 'boolean' },
+    { key: 'customQrCodes', label: 'Custom QR Codes', type: 'boolean' },
+    { key: 'advancedAnalytics', label: 'Advanced Analytics', type: 'boolean' },
+    { key: 'dedicatedSupport', label: 'Dedicated Support', type: 'boolean' },
+  ],
+}
+
 /**
  * Machine-facing plan API for MCOM Solutions (the "Generic Connector"
  * contract). Full CRUD, authenticated by `x-mcom-solution-api-key`.
@@ -30,7 +63,7 @@ export class SystemPlansController {
   @ApiBody({ type: CreateSystemPlanDto })
   @SwaggerApiResponse({ status: 201, type: SystemPlanResponseDto })
   @SwaggerApiResponse({ status: 401, description: 'Invalid or missing API key' })
-  @SwaggerApiResponse({ status: 409, description: 'A plan with this level/audience already exists' })
+  @SwaggerApiResponse({ status: 409, description: 'A plan with this name already exists' })
   async create(@Body() dto: CreateSystemPlanDto) {
     return this.toResponse(await this.systemPlansService.create(dto))
   }
@@ -41,6 +74,19 @@ export class SystemPlansController {
   @SwaggerApiResponse({ status: 401, description: 'Invalid or missing API key' })
   findAll() {
     return this.systemPlansService.findAll()
+  }
+
+  /**
+   * Static plan configuration schema (quotas + feature flags) consumed by MCOM
+   * Solutions to render the plan form. Declared BEFORE `:id` so the literal
+   * `schema` segment is never captured as a plan UUID.
+   */
+  @Get('schema')
+  @ApiOperation({ summary: 'Get the plan configuration schema (quotas + feature flags)' })
+  @SwaggerApiResponse({ status: 200, description: 'Plan schema used by MCOM Solutions to render the plan form' })
+  @SwaggerApiResponse({ status: 401, description: 'Invalid or missing API key' })
+  getSchema(): PlanSchema {
+    return VCARD_PLAN_SCHEMA
   }
 
   @Get(':id')
