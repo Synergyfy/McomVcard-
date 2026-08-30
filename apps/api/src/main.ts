@@ -14,7 +14,9 @@ import { join } from 'path'
 import express from 'express'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  // rawBody: true keeps the exact incoming bytes on req.rawBody so inbound
+  // MCOM webhook signatures (HMAC over the raw payload) can be verified.
+  const app = await NestFactory.create(AppModule, { rawBody: true })
   app.setGlobalPrefix('api')
 
   // Serve uploaded media files (spec §45): bytes live on disk, metadata in DB.

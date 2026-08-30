@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { ConfigService } from '@nestjs/config'
-import { SystemPlansController } from './system-plans.controller'
+import { SystemPlansController, VCARD_PLAN_SCHEMA } from './system-plans.controller'
 import { SystemPlansService } from './system-plans.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { SystemPlanResponseDto } from './dto/system-plan.dto'
@@ -74,6 +74,21 @@ describe('SystemPlansController', () => {
       // Flat access for GenericHttpConnector.createPlan
       expect((result as any).id).toBe('plan-1')
       expect((result as any).monthlyPrice).toBe(10)
+    })
+  })
+
+  describe('GET /schema', () => {
+    it('returns the Vcard plan schema without calling the service', () => {
+      const result = controller.getSchema()
+
+      expect(result).toEqual(VCARD_PLAN_SCHEMA)
+      expect(result.quotas.some((q) => q.key === 'maxVCards' && q.unlimited)).toBe(true)
+      expect(result.quotas.some((q) => q.key === 'maxConsumerVCards')).toBe(true)
+      expect(result.quotas.some((q) => q.key === 'maxTeamMembers')).toBe(true)
+      expect(result.featureFlags.some((f) => f.key === 'allowNfc' && f.type === 'boolean')).toBe(true)
+      expect(result.featureFlags.some((f) => f.key === 'customDomains')).toBe(true)
+      expect(service.findAll).not.toHaveBeenCalled()
+      expect(service.findOne).not.toHaveBeenCalled()
     })
   })
 
