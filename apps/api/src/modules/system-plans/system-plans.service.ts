@@ -11,17 +11,19 @@ import {
   UpdatePlanDto,
   PlanLevel,
   PlanAudience,
+  PlanType,
   PlanTiersDto,
 } from '../plans/dto/plan.dto'
 
 /**
  * Bridges the flat MCOM Solutions connector contract (`ExternalPlan`) and
- * Vcard's rich plan model (level x audience x Normal/Pro/Pro+ tiers).
+ * Vcard's plan model.
  *
  * Mapping rules:
- * - Connector plans live on the `business` audience.
- * - The plan `level` is inferred from the name (Bronze/Silver/Gold/Platinum,
- *   default Gold) so central keeps a single price field.
+ * - A plan's identity is its free-form `name` (like Mall/Rewards) — the
+ *   connector may name a plan anything ("Tes Plan", "Gold", ...). `level` and
+ *   `audience` are non-unique metadata: the plan lives on the `business`
+ *   audience and its level label is inferred from the name (default Gold).
  * - The flat monthly/quarterly/annual price is applied to all three Vcard
  *   access tiers; `trialDuration` becomes each tier's `trialDays`.
  * - Read responses surface the **Pro** tier as the canonical price.
@@ -80,6 +82,8 @@ export class SystemPlansService {
       audience: SystemPlansService.AUDIENCE,
       name: dto.name,
       tagline: dto.description ?? undefined,
+      type: (dto.type as PlanType) ?? 'STANDARD',
+      seasonId: dto.seasonId,
       features: (dto.features ?? []).map((text) => ({ text, description: '', scope: 'All' as const })),
       tiers: { Normal: tier(trialDays), Pro: tier(trialDays), 'Pro+': tier(trialDays) },
       configuration: dto.configuration ?? undefined,
@@ -107,6 +111,8 @@ export class SystemPlansService {
     if (dto.configuration !== undefined) update.configuration = dto.configuration
     if (dto.isActive !== undefined) update.status = dto.isActive ? 'active' : 'inactive'
     if (dto.isDefault !== undefined) update.isDefault = dto.isDefault
+    if (dto.type !== undefined) update.type = dto.type as PlanType
+    if (dto.seasonId !== undefined) update.seasonId = dto.seasonId
 
     const hasPricing =
       dto.monthlyPrice !== undefined ||
@@ -156,8 +162,9 @@ export class SystemPlansService {
       configuration: plan.configuration ?? undefined,
       isActive: plan.status === 'active',
       isDefault: plan.isDefault,
-      type: 'STANDARD',
+      type: plan.type ?? 'STANDARD',
       trialDuration: pro?.trialDays ?? undefined,
+      seasonId: plan.seasonId ?? undefined,
       stripeMonthlyPriceId: plan.stripeMonthlyPriceId ?? undefined,
       stripeQuarterlyPriceId: plan.stripeQuarterlyPriceId ?? undefined,
       stripeAnnualPriceId: plan.stripeAnnualPriceId ?? undefined,

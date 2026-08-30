@@ -14,11 +14,30 @@ export interface SsoStartResponse {
   authorizeUrl: string
 }
 
+/** The user's purchased VCard plan resolved back to a local Plan (see /v1/auth/sso/status). */
+export interface ActivePlan {
+  id: string
+  name: string
+  level: string
+  audience: string
+  status: string
+  isDefault: boolean
+  trialDays?: number
+  monthlyPrice?: number
+  quarterlyPrice?: number
+  annualPrice?: number
+  features?: string[]
+  configuration?: { quotas?: Record<string, number | boolean>; featureFlags?: Record<string, boolean> } | null
+  stripeMonthlyPriceId?: string
+  expiresAt?: string | null
+}
+
 export interface SsoStatusResponse {
   permissions?: { can_access_vcard?: boolean } | null
   can_access_vcard: boolean
   membership_level?: string | null
   membership_status?: string | null
+  active_plan?: ActivePlan | null
 }
 
 export interface SsoCompleteResult {
@@ -28,12 +47,13 @@ export interface SsoCompleteResult {
 
 export const mcomService = {
   /** Ask the API for the Central authorize URL (state cookie is set server-side), then redirect. */
-  async startLogin(card?: string, business?: string): Promise<void> {
+  async startLogin(card?: string, business?: string, redirect?: string): Promise<void> {
     const params = new URLSearchParams()
     if (card) params.set('card', card)
     if (business) params.set('business', business)
+    if (redirect) params.set('redirect', redirect)
     const qs = params.toString()
-    const res = await api.get<SsoStartResponse>(`/auth/sso/login${qs ? `?${qs}` : ''}`)
+    const res = await api.get<SsoStartResponse>(`/v1/auth/sso/login${qs ? `?${qs}` : ''}`)
     const authorizeUrl = (res.data as unknown as SsoStartResponse)?.authorizeUrl
     if (!authorizeUrl) throw new Error('MCOM did not return an authorize URL')
 
@@ -42,7 +62,7 @@ export const mcomService = {
 
   /** Complete the OAuth callback: exchange code + validate state against the cookie. */
   async completeLogin(code: string, state: string): Promise<SsoCompleteResult> {
-    const res = await api.post('/auth/sso/callback', { code, state })
+    const res = await api.post('/v1/auth/sso/callback', { code, state })
     const body = res.data as { token: string; user: ApiUserResponse; return_to?: string }
     tokenStore.set(body.token)
     return {
@@ -53,20 +73,28 @@ export const mcomService = {
 
   /** Refresh the stored MCOM access token and resync permissions from Central. */
   async refreshSession(): Promise<User> {
-    const res = await api.post('/auth/sso/refresh')
+    const res = await api.post('/v1/auth/sso/refresh')
     const body = res.data as { user: ApiUserResponse }
     return mapApiUser(body.user as ApiUserResponse)
   },
 
   /** Current access status. `sync=1` forces a fresh profile pull from Central. */
   async getStatus(sync = false): Promise<SsoStatusResponse> {
-    const res = await api.get<SsoStatusResponse>(`/auth/sso/status${sync ? '?sync=1' : ''}`)
+    const res = await api.get<SsoStatusResponse>(`/v1/auth/sso/status${sync ? '?sync=1' : ''}`)
     return res.data as unknown as SsoStatusResponse
   },
 
   /** Public, secret-free config (membership upgrade URL for the access-denied CTA). */
   async getConfig(): Promise<{ membershipUrl: string }> {
-    const res = await api.get<{ membershipUrl: string }>('/auth/sso/config')
+    const res = await api.get<{ membershipUrl: string }>('/v1/auth/sso/config')
     return res.data as unknown as { membershipUrl: string }
+  },
+
+  /** Complete the Direct Dashboard Handshake: exchange a Central-signed JWT for a local session. */
+  async completeHandshake(token: string): Promise<{ user: User; role?: string | null }> {
+    const res = await api.get(`/v1/auth/sso-login?token=${encodeURIComponent(token)}`)
+    const body = res.data as { token: string; user: ApiUserResponse; role?: string | null }
+    tokenStore.set(body.token)
+    return { user: mapApiUser(body.user as ApiUserResponse), role: body.role }
   },
 }

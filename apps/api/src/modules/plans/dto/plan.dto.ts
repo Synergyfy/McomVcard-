@@ -18,6 +18,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 export type PlanLevel = 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
 export type PlanAudience = 'business' | 'consumer'
 export type PlanAccessTier = 'Normal' | 'Pro' | 'Pro+'
+export type PlanType = 'STANDARD' | 'TRIAL' | 'SEASONAL'
 export type BillingCycle = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type RuleScope = 'All' | 'Admin setup' | 'Business usage' | 'Consumer usage' | 'Public page'
 
@@ -238,6 +239,16 @@ export class CreatePlanDto {
   @Type(() => PlanConfigurationDto)
   configuration?: PlanConfigurationDto
 
+  @ApiPropertyOptional({ enum: ['STANDARD', 'TRIAL', 'SEASONAL'], example: 'STANDARD', description: 'Plan type (STANDARD | TRIAL | SEASONAL)' })
+  @IsOptional()
+  @IsIn(['STANDARD', 'TRIAL', 'SEASONAL'])
+  type?: PlanType
+
+  @ApiPropertyOptional({ example: 'uuid', description: 'Season UUID for SEASONAL plans' })
+  @IsOptional()
+  @IsString()
+  seasonId?: string
+
   @ApiPropertyOptional({ example: false, description: 'Marks this as the default/free tier' })
   @IsOptional()
   @IsBoolean()
@@ -336,6 +347,16 @@ export class UpdatePlanDto {
   @ValidateNested()
   @Type(() => PlanConfigurationDto)
   configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({ enum: ['STANDARD', 'TRIAL', 'SEASONAL'], example: 'STANDARD', description: 'Plan type (STANDARD | TRIAL | SEASONAL)' })
+  @IsOptional()
+  @IsIn(['STANDARD', 'TRIAL', 'SEASONAL'])
+  type?: PlanType
+
+  @ApiPropertyOptional({ example: 'uuid', description: 'Season UUID for SEASONAL plans' })
+  @IsOptional()
+  @IsString()
+  seasonId?: string
 
   @ApiPropertyOptional({ example: false, description: 'Marks this as the default/free tier' })
   @IsOptional()

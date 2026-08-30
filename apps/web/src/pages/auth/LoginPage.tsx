@@ -49,7 +49,12 @@ export default function LoginPage() {
           navigate(`/c/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business || '')}`)
         }
       } else {
-        navigate('/b/dashboard')
+        const redirect = searchParams.get('redirect')
+        if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+          navigate(redirect)
+        } else {
+          navigate('/b/dashboard')
+        }
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || t('auth.errors.login_failed')

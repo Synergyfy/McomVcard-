@@ -15,8 +15,9 @@ interface AuthContextValue {
   updateUser: (user: User) => void
   impersonate: (userId: string) => Promise<void>
   stopImpersonating: () => Promise<void>
-  loginWithMcom: (options?: { card?: string; business?: string }) => Promise<void>
+  loginWithMcom: (options?: { card?: string; business?: string; redirect?: string }) => Promise<void>
   completeMcomCallback: (code: string, state: string) => Promise<SsoCompleteResult>
+  completeMcomHandshake: (token: string) => Promise<{ user: User; role?: string | null }>
   refreshMcomStatus: () => Promise<void>
 }
 
@@ -125,10 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setStoredUser])
 
   const loginWithMcom = useCallback(
-    async (options?: { card?: string; business?: string }) => {
+    async (options?: { card?: string; business?: string; redirect?: string }) => {
       // The API generates + stores the OAuth `state` in an HttpOnly cookie and
       // returns the Central authorize URL; the browser is redirected there.
-      await mcomService.startLogin(options?.card, options?.business)
+      await mcomService.startLogin(options?.card, options?.business, options?.redirect)
     },
     [],
   )
@@ -136,6 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeMcomCallback = useCallback(
     async (code: string, state: string) => {
       const result = await mcomService.completeLogin(code, state)
+      setStoredUser(result.user)
+      return result
+    },
+    [setStoredUser],
+  )
+
+  const completeMcomHandshake = useCallback(
+    async (token: string) => {
+      const result = await mcomService.completeHandshake(token)
       setStoredUser(result.user)
       return result
     },
@@ -162,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         stopImpersonating,
         loginWithMcom,
         completeMcomCallback,
+        completeMcomHandshake,
         refreshMcomStatus,
       }}
     >

@@ -5,12 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-  Unique,
 } from 'typeorm'
 
 export type PlanLevel = 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
 export type PlanAudience = 'business' | 'consumer'
 export type PlanAccessTier = 'Normal' | 'Pro' | 'Pro+'
+export type PlanType = 'STANDARD' | 'TRIAL' | 'SEASONAL'
 export type BillingCycle = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type RuleScope = 'All' | 'Admin setup' | 'Business usage' | 'Consumer usage' | 'Public page'
 
@@ -66,8 +66,8 @@ export interface PlanConfiguration {
 }
 
 @Entity({ name: 'plans' })
-@Unique(['level', 'audience'])
 @Index(['audience', 'sortOrder'])
+@Index('uq_plans_name', ['name'], { unique: true })
 export class Plan {
   @PrimaryGeneratedColumn('uuid')
   id!: string
@@ -87,7 +87,7 @@ export class Plan {
   @Column({ default: false })
   popular!: boolean
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'sort_order', type: 'int', default: 0 })
   sortOrder!: number
 
   @Column({ type: 'jsonb', nullable: true })
@@ -102,7 +102,7 @@ export class Plan {
   @Column({ type: 'jsonb', nullable: true })
   sections!: PricingSections | null
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ name: 'annual_discount', type: 'jsonb', nullable: true })
   annualDiscount!: AnnualDiscount | null
 
   @Column({ default: 'GBP' })
@@ -112,6 +112,12 @@ export class Plan {
   status!: string
 
   // ── MCOM SOLUTIONS CONNECTOR FIELDS (additive — safe migration) ──────────
+  @Column({ name: 'type', type: 'varchar', length: 20, default: 'STANDARD' })
+  type!: PlanType
+
+  @Column({ name: 'season_id', type: 'varchar', nullable: true })
+  seasonId!: string | null
+
   @Column({ name: 'configuration', type: 'jsonb', nullable: true })
   configuration!: PlanConfiguration | null
 

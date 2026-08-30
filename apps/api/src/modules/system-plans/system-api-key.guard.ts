@@ -7,8 +7,9 @@ import { Request } from 'express'
  *
  * MCOM Solutions' Generic HTTP Connector calls every registered app with an
  * `x-mcom-solution-api-key` header set to the per-app API key issued by the
- * MCOM Console. Vcard validates that header against its own `MCOM_API_KEY`
- * env var (the apiKey assigned to the `mcom-vcard` client in the Console).
+ * MCOM Console. Vcard validates that header against its own
+ * `MCOM_SOLUTION_API_KEY` env var (the apiKey assigned to the `mcom-vcard`
+ * client in the Console).
  */
 @Injectable()
 export class SystemApiKeyGuard implements CanActivate {
@@ -17,10 +18,10 @@ export class SystemApiKeyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>()
     const apiKey = request.headers['x-mcom-solution-api-key'] as string | undefined
-    const validKey = this.config.get<string>('MCOM_API_KEY') || ''
+    const validKey = this.config.get<string>('MCOM_SOLUTION_API_KEY') || ''
 
     if (!validKey) {
-      throw new UnauthorizedException('MCOM_API_KEY not configured on server')
+      throw new UnauthorizedException('MCOM_SOLUTION_API_KEY not configured on server')
     }
     if (!apiKey || apiKey !== validKey) {
       throw new UnauthorizedException('Invalid or missing MCOM Solution API key')

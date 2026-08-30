@@ -26,7 +26,10 @@ export function attach401Retry(api: AxiosInstance): void {
 
         try {
           const res = await api.post('/refresh')
-          const newToken = res.data?.data?.token
+          // Tolerate both the unwrapped shape ({ token, ... }) from the shared
+          // `api` instance and the raw envelope ({ data: { token, ... } }) from
+          // instances without the unwrap interceptor.
+          const newToken = res.data?.token ?? res.data?.data?.token
           if (newToken) {
             tokenStore.set(newToken)
             original.headers.Authorization = `Bearer ${newToken}`

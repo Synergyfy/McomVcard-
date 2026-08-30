@@ -26,6 +26,10 @@ export interface McomUserPackage {
   packageName: string | null
   status: string
   externalPlanId: string | null
+  expiresAt?: string | null
+  amount?: number | null
+  currency?: string | null
+  billingCycle?: string | null
 }
 
 interface McomTokenResponse {
@@ -77,7 +81,7 @@ export class McomService {
    * Exchange the temporary OAuth code for Central tokens, then fetch the full
    * profile (incl. dynamic permissions) with the freshly issued access token.
    */
-  async exchangeCode(code: string): Promise<{ accessToken: string; refreshToken: string; user: McomUserInfo }> {
+  async exchangeCode(code: string): Promise<{ accessToken: string; refreshToken: string; expiresIn?: number; user: McomUserInfo }> {
     const basic = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')
 
     const tokens = (await this.request('/api/v1/auth/sso/token', {
@@ -94,7 +98,7 @@ export class McomService {
 
     const user = await this.getUserInfo(tokens.accessToken)
 
-    return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || '', user }
+    return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || '', expiresIn: tokens.expiresIn, user }
   }
 
   /** Fetch the full Central profile + dynamic permissions with a Bearer token. */
@@ -169,6 +173,12 @@ export class McomService {
   private async request(path: string, opts: RequestOptions): Promise<unknown> {
     const url = `${this.baseUrl}${path}`
     const rawBody = opts.body !== undefined ? JSON.stringify(opts.body) : ''
+    // Console-registered apps authenticate with the body-signed HMAC scheme:
+    // X-Mcom-Client-ID + X-Mcom-Signature: sha256=<HMAC(rawBody)>. This is what
+    // MCOM Solutions' HmacAuthGuard (data-sharing) and WalletHmacGuard expect.
+    // The legacy X-Service-Id/X-Timestamp/X-Signature scheme only whitelists a
+    // fixed set of services (rewards/spin/mall/audit/expo) and does NOT include
+    // mcom-vcard, so it must not be used here.
     const signature = createHmac('sha256', this.hmacSecret).update(rawBody).digest('hex')
 
     let res: Response
@@ -194,7 +204,13 @@ export class McomService {
       const text = await res.text().catch(() => '')
 
       if (res.status === 401 || res.status === 403) {
-        throw new UnauthorizedException(`MCOM Central rejected the request (${res.status})`)
+        // Surface Central's own message (e.g. "Invalid authorization code")
+        // instead of a generic wrapper — otherwise single-use code exhaustion
+        // or credential problems are indistinguishable.
+        const detail = this.extractMessage(text)
+        throw new UnauthorizedException(
+          detail ? `MCOM Central rejected the request (${res.status}): ${detail}` : `MCOM Central rejected the request (${res.status})`,
+        )
       }
       if (res.status === 400) {
         throw new BadRequestException(`MCOM Central bad request: ${text.slice(0, 300)}`)
@@ -211,5 +227,17 @@ export class McomService {
     } catch {
       return text
     }
+  }
+
+  /** Best-effort pull of Central's human-readable error message from its response body. */
+  private extractMessage(body: string): string | null {
+    if (!body) return null
+    try {
+      const parsed = JSON.parse(body) as { message?: unknown }
+      if (typeof parsed?.message === 'string') return parsed.message.slice(0, 300)
+    } catch {
+      // fall through to the raw snippet
+    }
+    return body.slice(0, 300) || null
   }
 }
