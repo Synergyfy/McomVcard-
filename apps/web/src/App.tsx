@@ -9,6 +9,7 @@ import UserLayout from './components/user/UserLayout'
 import ConsumerLayout from './components/consumer/ConsumerLayout'
 import BusinessLayout from './components/business/layout/BusinessLayout'
 import RequireVcardAccess from './components/auth/RequireVcardAccess'
+import RequireAuth from './components/auth/RequireAuth'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
@@ -28,6 +29,7 @@ const ContactPage = lazy(() => import('./pages/ContactPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const AuthCallbackPage = lazy(() => import('./pages/auth/AuthCallbackPage'))
+const SsoLoginPage = lazy(() => import('./pages/auth/SsoLoginPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'))
@@ -165,6 +167,8 @@ const BusinessMembershipPage = lazy(() => import('./pages/business/MembershipPag
 const BusinessMembershipPlansPage = lazy(() => import('./pages/business/MembershipPlansPage'))
 const BusinessMembershipConfirmationPage = lazy(() => import('./pages/business/MembershipConfirmationPage'))
 const BusinessMembershipPaymentPage = lazy(() => import('./pages/business/MembershipPaymentPage'))
+const PlanCheckoutPage = lazy(() => import('./pages/business/PlanCheckoutPage'))
+const PaymentSuccessPage = lazy(() => import('./pages/business/PaymentSuccessPage'))
 const BusinessReportsPage = lazy(() => import('./pages/business/ReportsPage'))
 const BusinessIntegrationsPage = lazy(() => import('./pages/business/IntegrationsPage'))
 const BusinessHelpSupportPage = lazy(() => import('./pages/business/HelpSupportPage'))
@@ -231,10 +235,15 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                <Route path="/sso-login" element={<SsoLoginPage />} />
                 <Route path="/onboarding/mcom-solutions" element={<MCOMSolutionsPage />} />
                 <Route path="/onboarding/choose-membership" element={<ChooseMembershipPage />} />
                 <Route path="/onboarding/payment" element={<PaymentPage />} />
                 <Route path="/onboarding/confirmation" element={<MembershipConfirmationPage />} />
+                <Route element={<RequireAuth />}>
+                  <Route path="/b/payment" element={<PlanCheckoutPage />} />
+                  <Route path="/b/payment/success" element={<PaymentSuccessPage />} />
+                </Route>
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />

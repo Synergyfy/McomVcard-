@@ -25,6 +25,10 @@ export class UsersService {
     return this.usersRepo.findOne({ where: { email } })
   }
 
+  findByMcomUserId(mcomUserId: string) {
+    return this.usersRepo.findOne({ where: { mcomUserId } })
+  }
+
   async create(user: Partial<User>): Promise<User> {
     const newUser = this.usersRepo.create(user as any)
     const saved = await this.usersRepo.save(newUser)

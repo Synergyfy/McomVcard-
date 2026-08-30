@@ -133,6 +133,12 @@ export class PlanResponseDto {
   @ApiPropertyOptional({ example: { quotas: { maxVCards: 50 }, featureFlags: { customDomains: true } } })
   configuration!: PlanConfiguration | null
 
+  @ApiProperty({ enum: ['STANDARD', 'TRIAL', 'SEASONAL'], example: 'STANDARD' })
+  type!: string
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  seasonId!: string | null
+
   @ApiProperty({ example: false })
   isDefault!: boolean
 
@@ -227,6 +233,8 @@ export class PlanResponseDto {
     dto.currency = entity.currency
     dto.status = entity.status
     dto.configuration = entity.configuration
+    dto.type = entity.type
+    dto.seasonId = entity.seasonId
     dto.isDefault = entity.isDefault
     dto.stripeMonthlyPriceId = entity.stripeMonthlyPriceId
     dto.stripeQuarterlyPriceId = entity.stripeQuarterlyPriceId

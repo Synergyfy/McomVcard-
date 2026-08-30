@@ -26,9 +26,14 @@ export const validationSchema = Joi.object({
   MCOM_SOLUTIONS_URL: Joi.string().uri().default('http://localhost:3010'),
   MCOM_CLIENT_ID: Joi.string().optional().empty('').default(''),
   MCOM_CLIENT_SECRET: Joi.string().optional().empty('').default(''),
-  MCOM_API_KEY: Joi.string().optional().empty('').default(''),
+  // Inbound System API Key — authorizes MCOM Solutions when it calls
+  // /api/v1/system/* (sent in the `x-mcom-solution-api-key` header).
+  MCOM_SOLUTION_API_KEY: Joi.string().optional().empty('').default(''),
   MCOM_HMAC_SECRET: Joi.string().optional().empty('').default(''),
   MCOM_WEBHOOK_SECRET: Joi.string().optional().empty('').default(''),
+  // Shared JWT secret for the Direct Dashboard Handshake (/sso-login?token=...).
+  // Signed by MCOM Central with issuer `mcom-central`; verified here.
+  SSO_SECRET: Joi.string().optional().empty('').default(''),
   MCOM_PLATFORM_SLUG: Joi.string().default('vcard'),
   MCOM_REDIRECT_URI: Joi.string().uri().default('http://localhost:8000/auth/callback'),
   MCOM_SCOPES: Joi.string().default('profile email business membership packages'),
