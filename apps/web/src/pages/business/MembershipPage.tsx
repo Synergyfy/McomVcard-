@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import { mockMembership, mockMembershipBenefits, mockSeasons } from '../../services/businessDashboardStore'
+import MyPlanCard from '../../components/business/MyPlanCard'
 
 export default function MembershipPage() {
     const navigate = useNavigate()
@@ -20,7 +21,10 @@ export default function MembershipPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your plan, benefits and what happens next.</p>
             </div>
 
-            {/* Current plan hero */}
+            {/* Real MCOM plan (falls back to empty state when no purchased package) */}
+            <MyPlanCard />
+
+            {/* Current plan hero (legacy mock — superseded by MyPlanCard when real data exists) */}
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-orange-200 dark:shadow-none">
                 <div className="flex items-center justify-between">
                     <p className="text-xs text-white/70">Current plan</p>

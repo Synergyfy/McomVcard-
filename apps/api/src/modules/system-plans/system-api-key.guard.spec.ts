@@ -17,7 +17,7 @@ function makeConfigMock(key: string): { get: jest.Mock } {
 }
 
 describe('SystemApiKeyGuard', () => {
-  it('allows a request whose header matches MCOM_API_KEY', () => {
+  it('allows a request whose header matches MCOM_SOLUTION_API_KEY', () => {
     const guard = new SystemApiKeyGuard(makeConfigMock('secret-key') as unknown as ConfigService)
 
     expect(guard.canActivate(makeContext('secret-key'))).toBe(true)
@@ -35,11 +35,11 @@ describe('SystemApiKeyGuard', () => {
     expect(() => guard.canActivate(makeContext('wrong-key'))).toThrow(UnauthorizedException)
   })
 
-  it('rejects when MCOM_API_KEY is not configured on the server', () => {
+  it('rejects when MCOM_SOLUTION_API_KEY is not configured on the server', () => {
     const guard = new SystemApiKeyGuard(makeConfigMock('') as unknown as ConfigService)
 
     expect(() => guard.canActivate(makeContext('secret-key'))).toThrow(
-      'MCOM_API_KEY not configured on server',
+      'MCOM_SOLUTION_API_KEY not configured on server',
     )
   })
 })

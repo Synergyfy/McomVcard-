@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import AuthLayout from '../../components/auth/AuthLayout'
@@ -8,7 +8,11 @@ import { consumerService } from '../../services/consumer'
 /**
  * OAuth 2.0 callback landing page (the browser lands here after MCOM Central
  * redirects with ?code=...&state=...). The actual token exchange happens
- * server-side at POST /api/auth/sso/callback; this page just orchestrates it.
+ * server-side at POST /api/v1/auth/sso/callback; this page just orchestrates it.
+ *
+ * The OAuth `code` is single-use, so this effect must fire exactly ONCE even
+ * though React StrictMode double-invokes effects in development — otherwise the
+ * second POST re-exchanges the already-consumed code and Central answers 401.
  */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -16,8 +20,12 @@ export default function AuthCallbackPage() {
   const { completeMcomCallback } = useAuth()
   const [error, setError] = useState('')
   const [handled, setHandled] = useState(false)
+  const firedRef = useRef(false)
 
   useEffect(() => {
+    if (firedRef.current) return
+    firedRef.current = true
+
     const code = searchParams.get('code')
     const state = searchParams.get('state')
 
@@ -27,12 +35,9 @@ export default function AuthCallbackPage() {
       return
     }
 
-    let cancelled = false
-
     const run = async () => {
       try {
         const { user, returnTo } = await completeMcomCallback(code, state)
-        if (cancelled) return
 
         if (returnTo) {
           navigate(returnTo, { replace: true })
@@ -55,18 +60,13 @@ export default function AuthCallbackPage() {
           navigate('/b/dashboard', { replace: true })
         }
       } catch (err: any) {
-        if (cancelled) return
         setError(err?.response?.data?.message || 'MCOM authentication failed. Please try again.')
       } finally {
-        if (!cancelled) setHandled(true)
+        setHandled(true)
       }
     }
 
     run()
-
-    return () => {
-      cancelled = true
-    }
   }, [searchParams, completeMcomCallback, navigate])
 
   return (

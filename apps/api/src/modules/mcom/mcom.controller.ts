@@ -38,8 +38,15 @@ function safeStateEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB)
 }
 
+/** Accept only internal, non-protocol-relative paths for post-login redirects. */
+function safeReturnPath(path?: string): string | null {
+  if (!path) return null
+  if (!path.startsWith('/') || path.startsWith('//')) return null
+  return path
+}
+
 @ApiTags('auth/sso (MCOM Solutions)')
-@Controller('auth/sso')
+@Controller('v1/auth/sso')
 export class McomController {
   constructor(
     private readonly mcomService: McomService,
@@ -62,14 +69,17 @@ export class McomController {
     @Res({ passthrough: true }) res: Response,
     @Query('card') card?: string,
     @Query('business') business?: string,
+    @Query('redirect') redirect?: string,
   ) {
     const state = randomBytes(32).toString('hex')
     setOauthStateCookie(res, state)
 
+    const safeRedirect = safeReturnPath(redirect)
     // Preserve the card-invite context so the SPA callback can restore the
-    // consumer card-association flow after the SSO round trip.
-    if (card || business) {
-      setOauthReturnCookie(res, JSON.stringify({ card: card || '', business: business || '' }))
+    // consumer card-association flow after the SSO round trip, plus an optional
+    // post-login redirect (e.g. back to /b/payment after a re-auth).
+    if (card || business || safeRedirect) {
+      setOauthReturnCookie(res, JSON.stringify({ card: card || '', business: business || '', redirect: safeRedirect || '' }))
     }
 
     return ApiResponse.success({ authorizeUrl: this.mcomService.getAuthorizeUrl(state) }, 'MCOM SSO login URL', 200)
@@ -98,12 +108,18 @@ export class McomController {
       throw new BadRequestException('OAuth state mismatch — possible CSRF attempt')
     }
 
-    const { accessToken, refreshToken, user } = await this.mcomService.exchangeCode(body.code)
+    const { accessToken, refreshToken, expiresIn, user } = await this.mcomService.exchangeCode(body.code)
 
-    const result = await this.authService.mcomProvisionAndIssue(user, accessToken, refreshToken, {
-      userAgent: req.get('user-agent'),
-      ip: req.ip,
-    })
+    const result = await this.authService.mcomProvisionAndIssue(
+      user,
+      accessToken,
+      refreshToken,
+      {
+        userAgent: req.get('user-agent'),
+        ip: req.ip,
+      },
+      expiresIn,
+    )
 
     setRefreshTokenCookie(res, result.refreshToken, this.authService.refreshTokenTtl())
 
@@ -111,8 +127,14 @@ export class McomController {
     let returnTo = '/b/dashboard'
     if (returnRaw) {
       try {
-        const { card, business } = JSON.parse(returnRaw) as { card?: string; business?: string }
-        if (card) {
+        const { card, business, redirect } = JSON.parse(returnRaw) as {
+          card?: string
+          business?: string
+          redirect?: string
+        }
+        if (safeReturnPath(redirect)) {
+          returnTo = redirect
+        } else if (card) {
           returnTo = business
             ? `/c/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business)}`
             : `/c/setup?card=${encodeURIComponent(card)}`
@@ -226,6 +248,7 @@ export class McomController {
       if (!pkg?.externalPlanId) return null
 
       const plan = await this.plansService.findOne(pkg.externalPlanId)
+      const pro = plan.tiers?.Pro
       return {
         id: plan.id,
         name: plan.name ?? plan.level,
@@ -233,10 +256,14 @@ export class McomController {
         audience: plan.audience,
         status: plan.status,
         isDefault: plan.isDefault,
-        trialDays: plan.tiers?.Pro?.trialDays ?? undefined,
+        trialDays: pro?.trialDays ?? undefined,
+        monthlyPrice: pro?.monthly ?? undefined,
+        quarterlyPrice: pro?.quarterly ?? undefined,
+        annualPrice: pro?.annual ?? undefined,
         configuration: plan.configuration ?? undefined,
         features: (plan.features ?? []).map((f) => f.text),
         stripeMonthlyPriceId: plan.stripeMonthlyPriceId ?? undefined,
+        expiresAt: pkg.expiresAt ?? undefined,
       }
     } catch {
       return null
@@ -265,17 +292,22 @@ export class McomController {
     let accessToken: string | null = dbUser.mcomAccessToken ? decryptMcomToken(dbUser.mcomAccessToken) : null
 
     let userInfo: McomUserInfo
+    let expiresIn: number | undefined
     try {
       if (!accessToken) {
-        accessToken = (await this.mcomService.refreshTokens(refreshToken)).accessToken
+        const refreshed = await this.mcomService.refreshTokens(refreshToken)
+        accessToken = refreshed.accessToken
+        expiresIn = refreshed.expiresIn
       }
       userInfo = await this.mcomService.getUserInfo(accessToken)
     } catch {
       // Access token expired/invalid — rotate via the Central refresh endpoint
-      accessToken = (await this.mcomService.refreshTokens(refreshToken)).accessToken
+      const refreshed = await this.mcomService.refreshTokens(refreshToken)
+      accessToken = refreshed.accessToken
+      expiresIn = refreshed.expiresIn
       userInfo = await this.mcomService.getUserInfo(accessToken)
     }
 
-    return this.authService.syncMcomSession(userId, accessToken, userInfo)
+    return this.authService.syncMcomSession(userId, accessToken, userInfo, expiresIn)
   }
 }

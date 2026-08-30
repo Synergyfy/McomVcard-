@@ -37,6 +37,8 @@ function makePlan(overrides: Partial<PlanResponseDto> = {}): PlanResponseDto {
     currency: 'GBP',
     status: 'active',
     configuration: null,
+    type: 'STANDARD',
+    seasonId: null,
     isDefault: false,
     stripeMonthlyPriceId: null,
     stripeQuarterlyPriceId: null,
@@ -139,6 +141,15 @@ describe('SystemPlansService', () => {
 
       const createArg = plansService.create!.mock.calls[0][0] as any
       expect(createArg.level).toBe('Gold')
+    })
+
+    it('keeps the connector name verbatim for arbitrary plan names', async () => {
+      plansService.create!.mockResolvedValue(makePlan({ name: 'Tes Plan' }))
+
+      await service.create({ name: 'Tes Plan', monthlyPrice: 10 })
+
+      const createArg = plansService.create!.mock.calls[0][0] as any
+      expect(createArg.name).toBe('Tes Plan')
     })
 
     it('uses a 14-day trial when type is TRIAL and no trialDuration given', async () => {
