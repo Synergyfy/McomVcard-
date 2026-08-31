@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { MembershipPricingState, PlanLevel, PlanRule, PlanTier, RuleScope } from '../../../services/membershipPricingStore'
 import { PLAN_LEVELS, PLAN_TIERS } from '../../../services/membershipPricingStore'
-import { resourcePages, resourceUsage } from '../../../services/membershipResources'
+import { getSystemResources, resourcePages, resourceUsage } from '../../../services/membershipResources'
 import { parseLimit } from '../../../services/membershipEnforcement'
 
 /* ------------------------------------------------------------------ */
@@ -86,6 +86,10 @@ export function EntitlementsSection({ state, update }: {
   update: (fn: (s: MembershipPricingState) => MembershipPricingState) => void
 }) {
   const [plan, setPlan] = useState<PlanLevel>('Bronze')
+
+  useEffect(() => {
+    getSystemResources()
+  }, [])
 
   /* Union of rule labels (order follows the first plan's rules). */
   const labels = useMemo(() => {

@@ -10,6 +10,9 @@ import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { UpdateSettingsDto } from './dto/update-settings.dto'
 import { Business } from '../businesses/entities/business.entity'
+import { Card, CardType } from '../cards/entities/card.entity'
+import { ChildCard } from '../child-cards/entities/child-card.entity'
+import { Wallet } from '../finance/entities/wallet.entity'
 
 @Injectable()
 export class ProfileService {
@@ -18,6 +21,9 @@ export class ProfileService {
     private authService: AuthService,
     private rolesService: RolesService,
     @InjectRepository(Business) private businessesRepo: Repository<Business>,
+    @InjectRepository(Card) private cardsRepo: Repository<Card>,
+    @InjectRepository(ChildCard) private childCardsRepo: Repository<ChildCard>,
+    @InjectRepository(Wallet) private walletsRepo: Repository<Wallet>,
   ) {}
 
   async getProfile(userId: string) {
@@ -103,5 +109,45 @@ export class ProfileService {
       can_manage_cards: isAdmin || ownedBusinesses.length > 0,
       can_manage_businesses: isAdmin || ownedBusinesses.length > 0,
     }, 'Business permissions retrieved', 200)
+  }
+
+  async getUsageStats(userId: string) {
+    const [businessVcards, consumerVcards, businessCards, consumerStoreCards] = await Promise.all([
+      this.cardsRepo.count({ where: { ownerId: userId, type: CardType.BUSINESS_VCARD } }),
+      this.cardsRepo.count({ where: { type: CardType.CONSUMER_VCARD } }),
+      this.cardsRepo.count({ where: { ownerId: userId, type: CardType.BUSINESS_CARD } }),
+      this.cardsRepo.count({ where: { type: CardType.CONSUMER_STORE_CARD } }),
+    ])
+
+    const childCardRows = await this.childCardsRepo
+      .createQueryBuilder('cc')
+      .innerJoin('cc.card', 'card')
+      .where('card.owner_id = :userId', { userId })
+      .getMany()
+
+    const additionalCards = childCardRows.length
+    const familyAllocations = 0
+    const friendAllocations = 0
+
+    let totalWalletBalance = 0
+    if (childCardRows.length > 0) {
+      const childIds = [...new Set(childCardRows.map(r => r.childId))]
+      const wallets = await this.walletsRepo
+        .createQueryBuilder('w')
+        .where('w.user_id IN (:...childIds)', { childIds })
+        .getMany()
+      totalWalletBalance = wallets.reduce((sum, w) => sum + Number(w.balance), 0)
+    }
+
+    return ApiResponse.success({
+      business_vcards: businessVcards,
+      consumer_vcards: consumerVcards,
+      business_cards: businessCards,
+      consumer_cards: consumerStoreCards,
+      family_allocations: familyAllocations,
+      friend_allocations: friendAllocations,
+      additional_cards: additionalCards,
+      total_wallet_balance: totalWalletBalance,
+    }, 'Usage stats retrieved', 200)
   }
 }
