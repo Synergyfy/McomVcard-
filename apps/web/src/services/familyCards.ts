@@ -1,4 +1,4 @@
-import { mockConsumers } from './mockData'
+import api from './api'
 
 export interface WishItem {
   id: number
@@ -50,8 +50,6 @@ export function kindFromRelationship(relationship: string): MemberKind {
   return relationship.trim().toLowerCase() === 'friend' ? 'Friend' : 'Family'
 }
 
-const delay = () => new Promise((r) => setTimeout(r, 250))
-
 const gradients = [
   'from-pink-400 to-rose-600',
   'from-blue-400 to-indigo-600',
@@ -68,230 +66,255 @@ const wishGradients = [
   'from-emerald-50 to-teal-100 dark:from-emerald-500/10 dark:to-teal-500/10',
 ]
 
-function seedMembers(): FamilyCardMember[] {
-  return [
-    {
-      id: 1,
-      cardId: 'CARD-FAM-000001',
-      name: 'Sarah Anderson',
-      relationship: 'Wife',
-      kind: 'Family',
-      status: 'Active',
-      phone: '+44 7700 900456',
-      email: 'sarah.a@email.com',
-      dob: '14 Mar 1988',
-      avatar: { emoji: '👩', gradient: 'from-pink-400 to-rose-600' },
-      createdAt: '10 Feb 2026',
-      lastUsed: '2 days ago',
-      rewardBalance: 45,
-      cardBalance: 25,
-      eCardValue: 5,
-      cardType: 'Family Card',
-      membership: 'Bronze Pro Family Card',
-      issuedBy: mockConsumers[0].primaryIssuingBusiness || 'GreenLeaf Coffee',
-      shareLink: 'https://mcomvcard.link/f/1',
-      wishlist: [
-        { id: 1, title: 'Nike Trainers', price: '£89', emoji: '👟', gradient: wishGradients[0] },
-        { id: 2, title: 'Spa Day', price: '£120', emoji: '💆‍♀️', gradient: wishGradients[1] },
-        { id: 3, title: 'Cookbook', price: '£25', emoji: '📚', gradient: wishGradients[2] },
-      ],
-      recentActivity: [
-        { action: 'QR scanned at Bloom Beauty Salon', time: '2 days ago' },
-        { action: 'Redeemed "Free Haircut" reward', time: '1 week ago' },
-        { action: 'Card shared with Sarah', time: '10 Feb 2026' },
-      ],
+function mapChildCardToMember(card: any): FamilyCardMember {
+  const child = card.child || card.user || {}
+  const permissions = card.card || card
+
+  return {
+    id: card.id,
+    cardId: permissions.card_id || permissions.slug || `CARD-FAM-${String(card.id).padStart(6, '0')}`,
+    name: child.name || `${child.first_name || ''} ${child.last_name || ''}`.trim() || 'Unknown',
+    relationship: permissions.relationship || card.relationship || 'Family',
+    kind: kindFromRelationship(permissions.relationship || card.relationship || 'Family'),
+    status: permissions.can_use_wallet !== false ? 'Active' : 'Suspended',
+    phone: child.phone || '',
+    email: child.email || '',
+    dob: child.dob || undefined,
+    avatar: {
+      emoji: child.avatar_emoji || '👤',
+      gradient: child.avatar_gradient || gradients[0],
     },
-    {
-      id: 2,
-      cardId: 'CARD-FAM-000002',
-      name: 'David Anderson',
-      relationship: 'Son',
-      kind: 'Family',
-      status: 'Active',
-      phone: '+44 7700 900789',
-      email: 'david.a@email.com',
-      dob: '02 Sep 2012',
-      avatar: { emoji: '👦', gradient: 'from-blue-400 to-indigo-600' },
-      createdAt: '10 Feb 2026',
-      lastUsed: '1 hour ago',
-      rewardBalance: 120,
-      cardBalance: 10,
-      eCardValue: 2,
-      cardType: 'Family Card',
-      membership: 'Bronze Pro Family Card',
-      issuedBy: mockConsumers[0].primaryIssuingBusiness || 'GreenLeaf Coffee',
-      shareLink: 'https://mcomvcard.link/f/2',
-      wishlist: [
-        { id: 4, title: 'Laptop', price: '£549', emoji: '💻', gradient: wishGradients[1] },
-        { id: 5, title: 'School Books', price: '£35', emoji: '📖', gradient: wishGradients[2] },
-        { id: 6, title: 'Birthday Gift', price: '£50', emoji: '🎁', gradient: wishGradients[3] },
-      ],
-      recentActivity: [
-        { action: 'QR scanned at The Bakery Corner', time: '1 hour ago' },
-        { action: 'Earned 20 points from school lunch', time: '3 hours ago' },
-        { action: 'Card shared with David', time: '10 Feb 2026' },
-      ],
-    },
-  ]
+    createdAt: card.created_at || new Date().toISOString(),
+    lastUsed: card.last_used_at || card.updated_at || '',
+    rewardBalance: permissions.reward_balance || 0,
+    cardBalance: permissions.wallet_allocation || 0,
+    eCardValue: permissions.e_card_value || 0,
+    cardType: permissions.card_type || 'Family Card',
+    membership: permissions.membership || 'Bronze Pro Family Card',
+    issuedBy: permissions.issued_by || '',
+    shareLink: permissions.share_link || '',
+    wishlist: (card.wishlist?.items || []).map((item: any) => ({
+      id: item.id,
+      title: item.product?.name || item.name || item.title || '',
+      price: item.product?.price ? `£${item.product.price}` : item.price || undefined,
+      emoji: item.product?.emoji || item.emoji || '🎁',
+      gradient: item.gradient || wishGradients[0],
+      image: item.product?.image || item.image || undefined,
+    })),
+    recentActivity: (card.recent_activity || []).map((a: any) => ({
+      action: a.action || a.description || '',
+      time: a.time || a.created_at || '',
+    })),
+  }
 }
 
-let members: FamilyCardMember[] = seedMembers()
-let nextId = 100
-let nextWishId = 1000
+async function findOrCreateUserByEmail(email: string, name?: string): Promise<string> {
+  const existing = await api.get(`/users/by-email/${encodeURIComponent(email)}`)
+  const user = existing.data?.data || existing.data
+  if (user?.id) return user.id
+
+  const [firstName, ...rest] = (name || email.split('@')[0]).split(' ')
+  const created = await api.post('/register', {
+    firstName,
+    lastName: rest.join(' ') || '',
+    email,
+  })
+  const newUser = created.data?.user || created.data
+  return newUser.id
+}
+
+async function getWishlistForMember(memberId: number): Promise<{ id: number; items: any[] } | null> {
+  try {
+    const res = await api.get('/wishlists', { params: { child_card_id: memberId } })
+    const wishlists = res.data?.data || res.data
+    if (Array.isArray(wishlists) && wishlists.length > 0) {
+      const wl = wishlists[0]
+      const detail = await api.get(`/wishlists/${wl.id}`)
+      return detail.data?.data || detail.data
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 export const familyService = {
   async getMembers(): Promise<FamilyCardMember[]> {
-    return delay().then(() => members.map((m) => ({ ...m, wishlist: [...m.wishlist] })))
+    const res = await api.get('/child-cards')
+    const cards = res.data?.data || res.data
+    return (Array.isArray(cards) ? cards : []).map(mapChildCardToMember)
   },
+
   async getMember(id: number): Promise<FamilyCardMember | undefined> {
-    return delay().then(() => {
-      const m = members.find((x) => x.id === id)
-      return m ? { ...m, wishlist: [...m.wishlist] } : undefined
-    })
+    try {
+      const res = await api.get(`/child-cards/${id}`)
+      const card = res.data?.data || res.data
+      return card ? mapChildCardToMember(card) : undefined
+    } catch {
+      return undefined
+    }
   },
+
   async addMember(input: NewFamilyMemberInput): Promise<FamilyCardMember> {
-    return delay().then(() => {
-      const id = nextId++
-      const member: FamilyCardMember = {
-        id,
-        cardId: `CARD-FAM-${String(id).padStart(6, '0')}`,
+    const childUserId = await findOrCreateUserByEmail(input.email || '', input.name)
+
+    const res = await api.post('/child-cards', {
+      card_id: null,
+      child_id: childUserId,
+      relationship: input.relationship,
+      can_view: true,
+      can_use_wallet: true,
+      can_manage: false,
+      wallet_allocation: 0,
+    })
+    const card = res.data?.data || res.data
+
+    return mapChildCardToMember({
+      ...card,
+      child: {
         name: input.name,
-        relationship: input.relationship,
-        kind: input.kind,
-        status: 'Active',
-        phone: input.phone,
         email: input.email || '',
+        phone: input.phone,
         dob: input.dob,
-        avatar: input.avatar,
-        createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        lastUsed: 'Just created',
-        rewardBalance: 0,
-        cardBalance: 0,
-        eCardValue: 0,
-        cardType: input.kind === 'Friend' ? 'Friend Card' : 'Family Card',
-        membership: 'Bronze Pro Family Card',
-        issuedBy: mockConsumers[0].primaryIssuingBusiness || 'GreenLeaf Coffee',
-        shareLink: `https://mcomvcard.link/f/${id}`,
-        wishlist: [],
-        recentActivity: [
-          { action: 'Card created', time: 'Just now' },
-        ],
-      }
-      members = [...members, member]
-      return { ...member, wishlist: [...member.wishlist] }
+        avatar_emoji: input.avatar.emoji,
+        avatar_gradient: input.avatar.gradient,
+      },
+      relationship: input.relationship,
+      recent_activity: [{ action: 'Card shared', time: 'Just now' }],
     })
   },
+
   async updateMember(id: number, patch: Partial<Pick<FamilyCardMember, 'name' | 'relationship' | 'phone' | 'email' | 'dob' | 'avatar'>>): Promise<FamilyCardMember | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === id)
-      if (idx === -1) return undefined
-      members = members.map((m, i) => (i === idx ? { ...m, ...patch } : m))
-      const updated = members[idx]
-      return { ...updated, wishlist: [...updated.wishlist] }
-    })
+    try {
+      const payload: Record<string, any> = {}
+      if (patch.relationship !== undefined) payload.relationship = patch.relationship
+      if (patch.name !== undefined) payload.name = patch.name
+
+      const res = await api.patch(`/child-cards/${id}`, payload)
+      const card = res.data?.data || res.data
+      return card ? mapChildCardToMember(card) : undefined
+    } catch {
+      return undefined
+    }
   },
+
   async removeMember(id: number): Promise<boolean> {
-    return delay().then(() => {
-      const before = members.length
-      members = members.filter((m) => m.id !== id)
-      return members.length !== before
-    })
+    try {
+      await api.delete(`/child-cards/${id}`)
+      return true
+    } catch {
+      return false
+    }
   },
+
   async fundMember(id: number, amount: number): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === id)
-      if (idx === -1) return undefined
-      const owner = mockConsumers[0]
-      const ownerBalance = owner.cardBalance ?? 0
-      if (ownerBalance < amount) throw new Error('Insufficient card balance')
-      owner.cardBalance = Math.round((ownerBalance - amount) * 100) / 100
-      members = members.map((m, i) =>
-        i === idx
-          ? {
-              ...m,
-              cardBalance: Math.round((m.cardBalance + amount) * 100) / 100,
-              recentActivity: [
-                { action: `Received £${amount.toFixed(2)} from ${owner.name}`, time: 'Just now' },
-                ...m.recentActivity,
-              ],
-            }
-          : m
-      )
-      const updated = members[idx]
-      return { member: { ...updated, wishlist: [...updated.wishlist] }, ownerBalance: owner.cardBalance }
-    })
-  },
-  /** Send a gift/e-card to a friend — the friend keeps control of their own wallet. */
-  async sendGiftCard(id: number, amount: number, provider?: string): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === id)
-      if (idx === -1) return undefined
-      const owner = mockConsumers[0]
-      const ownerBalance = owner.cardBalance ?? 0
-      if (ownerBalance < amount) throw new Error('Insufficient card balance')
-      owner.cardBalance = Math.round((ownerBalance - amount) * 100) / 100
-      const via = provider ? ` via ${provider}` : ''
-      members = members.map((m, i) =>
-        i === idx
-          ? {
-              ...m,
-              eCardValue: Math.round((m.eCardValue + amount) * 100) / 100,
-              recentActivity: [
-                { action: `Received £${amount.toFixed(2)} gift e-card from ${owner.name}${via}`, time: 'Just now' },
-                ...m.recentActivity,
-              ],
-            }
-          : m
-      )
-      const updated = members[idx]
-      return { member: { ...updated, wishlist: [...updated.wishlist] }, ownerBalance: owner.cardBalance }
-    })
-  },
-  async setStatus(id: number, status: 'Active' | 'Suspended'): Promise<FamilyCardMember | undefined> {    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === id)
-      if (idx === -1) return undefined
-      members = members.map((m, i) => (i === idx ? { ...m, status } : m))
-      const updated = members[idx]
-      return { ...updated, wishlist: [...updated.wishlist] }
-    })
-  },
-  async addWish(memberId: number, title: string, price?: string, image?: string): Promise<FamilyCardMember | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === memberId)
-      if (idx === -1) return undefined
-      const item: WishItem = {
-        id: nextWishId++,
-        title,
-        price: price || undefined,
-        emoji: '🎁',
-        gradient: wishGradients[members[idx].wishlist.length % wishGradients.length],
-        image: image || undefined,
+    try {
+      const res = await api.post('/wallet/allocate-to-child', {
+        child_card_id: id,
+        amount,
+      })
+      const result = res.data?.data || res.data
+
+      const memberRes = await api.get(`/child-cards/${id}`)
+      const card = memberRes.data?.data || memberRes.data
+
+      return {
+        member: mapChildCardToMember(card),
+        ownerBalance: result.owner_balance ?? 0,
       }
-      members = members.map((m, i) => (i === idx ? { ...m, wishlist: [...m.wishlist, item] } : m))
-      const updated = members[idx]
-      return { ...updated, wishlist: [...updated.wishlist] }
-    })
+    } catch (err: any) {
+      if (err?.response?.data?.message?.includes('Insufficient')) {
+        throw new Error('Insufficient card balance')
+      }
+      throw err
+    }
   },
-  async updateWish(memberId: number, wishId: number, patch: Partial<Pick<WishItem, 'title' | 'price' | 'image'>>): Promise<FamilyCardMember | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === memberId)
-      if (idx === -1) return undefined
-      members = members.map((m, i) =>
-        i === idx ? { ...m, wishlist: m.wishlist.map((w) => (w.id === wishId ? { ...w, ...patch } : w)) } : m
-      )
-      const updated = members[idx]
-      return { ...updated, wishlist: [...updated.wishlist] }
-    })
+
+  /** Send a gift/e-card to a friend — the friend keeps control of their own wallet. */
+  async sendGiftCard(id: number, amount: number, _provider?: string): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
+    try {
+      const member = await this.getMember(id)
+      const recipientUserId = member?.email ? await findOrCreateUserByEmail(member.email) : undefined
+
+      const res = await api.post('/wallet/transfer', {
+        recipient_id: recipientUserId,
+        amount,
+        description: 'Gift e-card',
+      })
+      const result = res.data?.data || res.data
+
+      const memberRes = await api.get(`/child-cards/${id}`)
+      const card = memberRes.data?.data || memberRes.data
+
+      return {
+        member: mapChildCardToMember(card),
+        ownerBalance: result.owner_balance ?? 0,
+      }
+    } catch (err: any) {
+      if (err?.response?.data?.message?.includes('Insufficient')) {
+        throw new Error('Insufficient card balance')
+      }
+      throw err
+    }
   },
+
+  async setStatus(id: number, status: 'Active' | 'Suspended'): Promise<FamilyCardMember | undefined> {
+    try {
+      const res = await api.patch(`/child-cards/${id}`, {
+        can_use_wallet: status === 'Active',
+      })
+      const card = res.data?.data || res.data
+      return card ? mapChildCardToMember(card) : undefined
+    } catch {
+      return undefined
+    }
+  },
+
+  async addWish(memberId: number, title: string, price?: string, _image?: string): Promise<FamilyCardMember | undefined> {
+    try {
+      let wishlist = await getWishlistForMember(memberId)
+      if (!wishlist) {
+        const createRes = await api.post('/wishlists', {
+          name: `Wishlist for ${memberId}`,
+          is_private: true,
+        })
+        wishlist = createRes.data?.data || createRes.data
+      }
+
+      if (!wishlist) return undefined
+
+      await api.post(`/wishlists/${wishlist.id}/items`, {
+        product_id: null,
+        note: title,
+        name: title,
+        price: price ? parseFloat(price.replace(/[^0-9.]/g, '')) : undefined,
+        emoji: '🎁',
+        gradient: wishGradients[0],
+      })
+
+      return this.getMember(memberId)
+    } catch {
+      return undefined
+    }
+  },
+
+  async updateWish(memberId: number, _wishId: number, _patch: Partial<Pick<WishItem, 'title' | 'price' | 'image'>>): Promise<FamilyCardMember | undefined> {
+    // API does not support updating wishlist items — return member as-is
+    return this.getMember(memberId)
+  },
+
   async removeWish(memberId: number, wishId: number): Promise<FamilyCardMember | undefined> {
-    return delay().then(() => {
-      const idx = members.findIndex((m) => m.id === memberId)
-      if (idx === -1) return undefined
-      members = members.map((m, i) => (i === idx ? { ...m, wishlist: m.wishlist.filter((w) => w.id !== wishId) } : m))
-      const updated = members[idx]
-      return { ...updated, wishlist: [...updated.wishlist] }
-    })
+    try {
+      const wishlist = await getWishlistForMember(memberId)
+      if (wishlist) {
+        await api.delete(`/wishlists/${wishlist.id}/items/${wishId}`)
+      }
+      return this.getMember(memberId)
+    } catch {
+      return undefined
+    }
   },
+
   getAvatarGradients(): string[] {
     return gradients
   },

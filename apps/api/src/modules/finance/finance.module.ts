@@ -5,6 +5,7 @@ import { WalletController } from './wallet.controller'
 import { WalletService } from './wallet.service'
 import { Wallet } from './entities/wallet.entity'
 import { WalletTransaction } from './entities/wallet-transaction.entity'
+import { ChildCard } from '../child-cards/entities/child-card.entity'
 import { RewardsController } from './rewards.controller'
 import { RewardsService } from './rewards.service'
 import { RewardBalance } from './entities/reward-balance.entity'
@@ -23,7 +24,7 @@ import { Business } from '../businesses/entities/business.entity'
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([Wallet, WalletTransaction, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business]),
+    TypeOrmModule.forFeature([Wallet, WalletTransaction, ChildCard, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business]),
   ],
   controllers: [WalletController, RewardsController, CashbackController, CatalogController],
   providers: [WalletService, RewardsService, CashbackService, CatalogService],

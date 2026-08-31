@@ -1,10 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { Wishlist } from './entities/wishlist.entity'
 import { WishlistItem } from './entities/wishlist-item.entity'
+import { WishlistShare } from './entities/wishlist-share.entity'
 import { ProductsService } from '../products/products.service'
+import { UsersService } from '../users/users.service'
+import { WalletService } from '../finance/wallet.service'
 import { CreateWishlistDto, UpdateWishlistDto, AddWishlistItemDto } from './dto/wishlist.dto'
+import { ShareWishlistDto } from './dto/share-wishlist.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { WishlistResponseDto, WishlistItemResponseDto } from './dto/wishlist-response.dto'
 
@@ -13,7 +17,11 @@ export class WishlistsService {
   constructor(
     @InjectRepository(Wishlist) private wishlistsRepo: Repository<Wishlist>,
     @InjectRepository(WishlistItem) private itemsRepo: Repository<WishlistItem>,
+    @InjectRepository(WishlistShare) private sharesRepo: Repository<WishlistShare>,
     private readonly productsService: ProductsService,
+    private readonly usersService: UsersService,
+    private readonly walletService: WalletService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(userId: string, dto: CreateWishlistDto) {
@@ -132,6 +140,118 @@ export class WishlistsService {
     await this.itemsRepo.delete({ id: item.id })
 
     return ApiResponse.message('Wishlist item removed', 200)
+  }
+
+  // ── Wishlist sharing ──────────────────────────────────────────
+
+  async share(userId: string, wishlistId: string, dto: ShareWishlistDto) {
+    const wishlist = await this.findOne(userId, wishlistId)
+
+    const recipient = await this.usersService.findByEmail(dto.email)
+    if (!recipient) throw new NotFoundException('No user found with that email')
+    if (recipient.id === userId) throw new BadRequestException('Cannot share a wishlist with yourself')
+
+    const existing = await this.sharesRepo.findOne({
+      where: { wishlistId, sharedWithUserId: recipient.id },
+    })
+
+    if (existing) throw new ConflictException('Wishlist already shared with this user')
+
+    const saved = await this.sharesRepo.save(
+      this.sharesRepo.create({
+        wishlistId: wishlist.id,
+        sharedWithUserId: recipient.id,
+        permission: dto.permission,
+      }),
+    )
+
+    return ApiResponse.success(
+      {
+        id: saved.id,
+        wishlist_id: saved.wishlistId,
+        shared_with_user_id: saved.sharedWithUserId,
+        permission: saved.permission,
+        created_at: saved.createdAt.toISOString(),
+      },
+      'Wishlist shared successfully',
+      201,
+    )
+  }
+
+  async listSharedWithMe(userId: string) {
+    const shares = await this.sharesRepo.find({
+      where: { sharedWithUserId: userId },
+      relations: { wishlist: true },
+      order: { createdAt: 'DESC' },
+    })
+
+    const enriched = await Promise.all(
+      shares.map(async (share) => {
+        const items = await this.loadItems(share.wishlistId)
+        return {
+          share_id: share.id,
+          permission: share.permission,
+          shared_at: share.createdAt.toISOString(),
+          wishlist: WishlistResponseDto.fromEntity(share.wishlist, items),
+        }
+      }),
+    )
+
+    return ApiResponse.success(enriched, 'Shared wishlists retrieved', 200)
+  }
+
+  async fulfillItem(userId: string, wishlistId: string, itemId: string) {
+    const share = await this.sharesRepo.findOne({
+      where: { wishlistId, sharedWithUserId: userId },
+    })
+
+    if (!share) throw new ForbiddenException('You do not have access to this wishlist')
+    if (share.permission !== 'fulfill') throw new ForbiddenException('You only have view permission on this wishlist')
+
+    const item = await this.itemsRepo.findOne({
+      where: { id: itemId, wishlistId },
+      relations: { product: true },
+    })
+
+    if (!item) throw new NotFoundException('Wishlist item not found')
+
+    if (item.fulfilledBy) throw new BadRequestException('This item has already been fulfilled')
+
+    const productPrice = item.product?.price
+    if (productPrice == null || productPrice <= 0) {
+      throw new BadRequestException('This product has no valid price for fulfillment')
+    }
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      await manager.update(WishlistItem, { id: itemId }, { fulfilledBy: userId })
+
+      const walletRepo = manager.getRepository('Wallet')
+      const walletTxRepo = manager.getRepository('WalletTransaction')
+
+      const wallet = await walletRepo.findOne({ where: { userId } })
+
+      if (!wallet) throw new BadRequestException('You do not have a wallet to fulfill this item')
+      if (wallet.status !== 'active') throw new BadRequestException('Your wallet is not active')
+
+      const newBalance = Number((wallet.balance - productPrice).toFixed(2))
+      if (newBalance < 0) throw new BadRequestException('Insufficient wallet balance')
+
+      await manager.update('Wallet', { id: wallet.id }, { balance: newBalance })
+
+      const tx = walletTxRepo.create({
+        walletId: wallet.id,
+        type: 'DEBIT',
+        amount: productPrice,
+        balanceAfter: newBalance,
+        description: `Fulfilled wishlist item: ${item.product?.name ?? itemId}`,
+      })
+
+      await walletTxRepo.save(tx)
+
+      return { itemId, product_price: productPrice, new_balance: newBalance }
+    })
+
+    return ApiResponse.success(result, 'Wishlist item fulfilled', 200)
   }
 
   private async loadItems(wishlistId: string): Promise<WishlistItem[]> {
