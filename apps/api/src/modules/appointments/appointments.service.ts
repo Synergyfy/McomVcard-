@@ -185,6 +185,44 @@ export class AppointmentsService {
     return ApiResponse.message('Availability deleted', 200)
   }
 
+  async bulkUpsertAvailability(businessId: string, ownerId: string, dtos: CreateAvailabilityDto[]) {
+    await this.businessesService.findOwned(businessId, ownerId)
+
+    const results: Availability[] = []
+
+    for (const dto of dtos) {
+      this.assertValidTimeRange(dto.start_time, dto.end_time)
+
+      const existing = await this.availabilityRepo.findOne({
+        where: { businessId, dayOfWeek: dto.day_of_week },
+      })
+
+      if (existing) {
+        const patch: Partial<Availability> = {}
+        patch.startTime = dto.start_time
+        patch.endTime = dto.end_time
+        patch.isClosed = dto.is_closed ?? false
+        await this.availabilityRepo.update({ id: existing.id }, patch as any)
+        const updated = await this.availabilityRepo.findOneBy({ id: existing.id })
+        if (updated) results.push(updated)
+      } else {
+        const saved = await this.availabilityRepo.save(
+          this.availabilityRepo.create({
+            businessId,
+            dayOfWeek: dto.day_of_week,
+            startTime: dto.start_time,
+            endTime: dto.end_time,
+            isClosed: dto.is_closed ?? false,
+          }),
+        )
+        results.push(saved)
+      }
+    }
+
+    const sortedResults = results.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
+    return ApiResponse.success(sortedResults.map(AvailabilityResponseDto.fromEntity), 'Availability bulk upserted', 200)
+  }
+
   // --- Appointments ---
 
   // Public booking: any authenticated user can request an appointment at a business.

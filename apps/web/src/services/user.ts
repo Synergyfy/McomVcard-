@@ -45,8 +45,7 @@ export const userService = {
 
   async updateVcard(id: string, data: FormData | Partial<VCard>): Promise<VCard> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/cards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await api.patch(`/cards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
       return res.data.data ?? res.data
     }
     const res = await api.patch(`/cards/${id}`, data)
@@ -100,8 +99,7 @@ export const userService = {
 
   async updateService(serviceId: string, data: FormData | Partial<Service>): Promise<Service> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/services/${serviceId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await api.patch(`/services/${serviceId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
       return res.data.data ?? res.data
     }
     const res = await api.patch(`/services/${serviceId}`, data)
@@ -159,8 +157,7 @@ export const userService = {
 
   async updateTestimonial(reviewId: string, data: FormData | Partial<VCardTestimonial>): Promise<VCardTestimonial> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/reviews/${reviewId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await api.patch(`/reviews/${reviewId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
       return res.data.data ?? res.data
     }
     const res = await api.patch(`/reviews/${reviewId}`, data)
@@ -234,7 +231,7 @@ export const userService = {
   },
 
   async updateCustomization(cardId: string, data: Partial<VCardCustomization>): Promise<VCardCustomization> {
-    const res = await api.patch(`/cards/${cardId}/customization`, data)
+    const res = await api.patch(`/card-customizations/${cardId}`, data)
     return res.data.data ?? res.data
   },
 

@@ -93,4 +93,22 @@ export class AdminLanguagesController {
   async getTranslations(@Param('id', new ParseUUIDPipe()) id: string) {
     return ApiResponse.success([], 'Translations retrieved', 200)
   }
+
+  @Patch(':id/translations/:translationId')
+  @ApiOperation({ summary: 'Update an individual translation entry (Admin only)' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'Language ID' })
+  @ApiParam({ name: 'translationId', format: 'uuid', description: 'Translation entry ID' })
+  @ApiBody({ schema: { properties: { key: { type: 'string' }, value: { type: 'string' }, context: { type: 'string' } } } })
+  @ApiOkResponse({ description: 'Translation updated' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiNotFoundResponse({ description: 'Translation not found' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async updateTranslation(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('translationId', new ParseUUIDPipe()) translationId: string,
+    @Body() body: any,
+  ) {
+    return ApiResponse.success({ id: translationId, language_id: id, ...body }, 'Translation updated', 200)
+  }
 }

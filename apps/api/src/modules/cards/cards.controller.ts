@@ -299,6 +299,26 @@ export class CardsController {
     return this.cardsService.getCustomization(id)
   }
 
+  @Patch('cards/:cardId/customization')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a card customization by card ID', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
+  @ApiBody({ type: UpdateCardCustomizationDto, examples: { default: { summary: 'Update customization', value: { primary_color: '#1e293b' } } } })
+  @ApiOkResponse({
+    description: 'Card customization updated',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(CardCustomizationResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own the parent card' })
+  @ApiNotFoundResponse({ description: 'Card customization not found' })
+  async updateCustomizationByCardId(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardCustomizationDto) {
+    return this.cardsService.updateCustomizationByCardId(cardId, user.id, body)
+  }
+
   @Patch('card-customizations/:customizationId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card customization', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
@@ -461,9 +481,9 @@ export class CardsController {
     return this.cardsService.getAccess(id)
   }
 
-  @Patch('card-access/:accessId')
+  @Patch('card-access/:cardId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a card access settings', description: 'Updates access settings. The settings must belong to a card the authenticated user owns.' })
+  @ApiOperation({ summary: 'Update a card access settings', description: 'Updates access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardAccessDto, examples: { default: { summary: 'Update access settings', value: { is_enabled: false } } } })
   @ApiOkResponse({
     description: 'Card access updated',
@@ -478,13 +498,13 @@ export class CardsController {
   @ApiForbiddenResponse({ description: 'You do not own the parent card' })
   @ApiNotFoundResponse({ description: 'Card access not found' })
   @ApiBadRequestResponse({ description: 'expires_at required for "until" expiry' })
-  async updateAccess(@Param('accessId', new ParseUUIDPipe()) accessId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardAccessDto) {
-    return this.cardsService.updateAccessByAccess(accessId, user.id, body)
+  async updateAccess(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardAccessDto) {
+    return this.cardsService.updateAccessByCardId(cardId, user.id, body)
   }
 
-  @Delete('card-access/:accessId')
+  @Delete('card-access/:cardId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a card access settings', description: 'Deletes access settings. The settings must belong to a card the authenticated user owns.' })
+  @ApiOperation({ summary: 'Delete a card access settings', description: 'Deletes access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
     description: 'Card access deleted',
     schema: {
@@ -497,8 +517,8 @@ export class CardsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'You do not own the parent card' })
   @ApiNotFoundResponse({ description: 'Card access not found' })
-  async removeAccess(@Param('accessId', new ParseUUIDPipe()) accessId: string, @CurrentUser() user: UserResponseDto) {
-    return this.cardsService.removeAccessByAccess(accessId, user.id)
+  async removeAccess(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.removeAccessByCardId(cardId, user.id)
   }
 
   // ---- Templates (system-defined, read-only) ----

@@ -518,6 +518,13 @@ export class CardsService {
     return ApiResponse.success(CardCustomizationResponseDto.fromEntity(updated), 'Card customization updated', 200)
   }
 
+  async updateCustomizationByCardId(cardId: string, ownerId: string, dto: UpdateCardCustomizationDto) {
+    await this.findOwned(cardId, ownerId)
+    const customization = await this.customizationsRepo.findOne({ where: { cardId } })
+    if (!customization) throw new NotFoundException('Card customization not found')
+    return this.updateCustomizationByCustomization(customization.id, ownerId, dto)
+  }
+
   async removeCustomizationByCustomization(customizationId: string, ownerId: string) {
     await this.findOwnedCustomization(customizationId, ownerId)
     await this.customizationsRepo.delete({ id: customizationId })
@@ -615,9 +622,24 @@ export class CardsService {
     return ApiResponse.success(CardAccessResponseDto.fromEntity(updated), 'Card access updated', 200)
   }
 
+  async updateAccessByCardId(cardId: string, ownerId: string, dto: UpdateCardAccessDto) {
+    await this.findOwned(cardId, ownerId)
+    const access = await this.accessRepo.findOne({ where: { cardId } })
+    if (!access) throw new NotFoundException('Card access not found')
+    return this.updateAccessByAccess(access.id, ownerId, dto)
+  }
+
   async removeAccessByAccess(accessId: string, ownerId: string) {
     await this.findOwnedAccess(accessId, ownerId)
     await this.accessRepo.delete({ id: accessId })
+    return ApiResponse.message('Card access deleted', 200)
+  }
+
+  async removeAccessByCardId(cardId: string, ownerId: string) {
+    await this.findOwned(cardId, ownerId)
+    const access = await this.accessRepo.findOne({ where: { cardId } })
+    if (!access) throw new NotFoundException('Card access not found')
+    await this.accessRepo.delete({ id: access.id })
     return ApiResponse.message('Card access deleted', 200)
   }
 

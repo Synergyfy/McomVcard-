@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-29 (session: Phase 11 — Production Hardening: compression, graceful shutdown, Dockerfile, CI/CD, strictNullChecks)
+> Last updated: 2026-08-30 (session: Frontend-API Integration — PUT→PATCH fixes, card-access/customization URL fixes, consumer service wired to real API, contact endpoint)
 > Working branch: `logic`
-> Latest commits: `da5a5dc` (fix(frontend): reconcile auth service with backend settings API), `14ab05f` (fix: update test mocks for new service dependencies and fix admin e2e login), `eee6391` (feat: add missing frontend API endpoints), `3fdbe2c` (feat(plans): Plan CRUD for pricing system — 4 levels × 2 audiences), `361cab9` (Frontend auth integration — User type alignment, tokenStore unification, 401 retry, Vite proxy, seed fix), `6fc78bb` (Phase 18 — e2e test suite 50 checks, unit tests 155 tests, validation hardening)
+> Latest commits: `3312b83` (feat(api): Phase 11 — Production Hardening), `d3c3d1e` (feat(cards): Phase 5 Milestone D completion — consumer store card, template gating, type validation), `e0e8cbb` (fix(frontend): align all TypeScript types with string-based API IDs)
 
 ---
 
@@ -598,6 +598,28 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
   - Services: Fixed `participatingBusinessService.getById` param type, `membershipResources` comparisons
 - **Verification:** `pnpm exec tsc --noEmit` → 0 errors; `pnpm run build` → builds successfully (1.83s)
 - **Next:** Ready to commit
+
+---
+
+## Frontend-API Integration (2026-08-30)
+
+### Done
+- **PUT→PATCH mismatch fix** — Admin service (`admin.ts`): 24 `api.put()` → `api.patch()` for all update endpoints; fixed `/admin/vcards` → `/admin/cards`, `/admin/all-currencies` → `/admin/currencies`
+- **PUT→PATCH mismatch fix** — User service (`user.ts`): 3 FormData `_method=PUT` spoofing → `api.patch()` (updateVcard, updateService, updateTestimonial); fixed customization URL to `/card-customizations/${cardId}`
+- **Card-access URL fix** — Backend now accepts `PATCH /card-access/:cardId` (looks up access record by cardId internally); old `:accessId` route kept for backward compat
+- **Card-customization URL fix** — Backend now accepts `PATCH /cards/:cardId/customization` (looks up customization by cardId); old route kept
+- **Bulk availability** — Backend now accepts `PATCH /businesses/:id/availability` with array of slots
+- **Contact endpoint** — New `POST /api/contact` (public, no auth) with `MailService` integration, `ContactModule` registered
+- **Consumer service** — `consumer.ts` rewritten: `getProfile()`, `getSavedCards()`, `getRewardHistory()`, `getReferrals()`, `getWallet()`, `getMembership()`, `fundCard()`, `associateCard()`, `getRecentActivity()` all call real API endpoints
+- **Fixed** consumer.ts TypeScript errors (unused variables)
+
+### Verified
+- `pnpm exec tsc --noEmit` — 0 errors (API + web)
+- `pnpm test` — 155 passed, 4 suites
+
+### Remaining
+- `participatingBusinesses.ts` still uses mock data
+- `getProfileByEmail`, `getFamilyCards`, `getShareContent`, `getCardActivity`, `getNearbyOffers`, `getExchangeItems`, `getRedeemItems` — TODO endpoints not yet in backend
 
 ---
 
