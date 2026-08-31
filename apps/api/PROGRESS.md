@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-30 (session: Frontend-API Integration — PUT→PATCH fixes, card-access/customization URL fixes, consumer service wired to real API, contact endpoint)
+> Last updated: 2026-08-31 (session: Added 3 consumer endpoints — card activity feed, nearby offers, redeemable items)
 > Working branch: `logic`
-> Latest commits: `3312b83` (feat(api): Phase 11 — Production Hardening), `d3c3d1e` (feat(cards): Phase 5 Milestone D completion — consumer store card, template gating, type validation), `e0e8cbb` (fix(frontend): align all TypeScript types with string-based API IDs)
+> Latest commits: `d345091` (feat: frontend-API integration — PUT→PATCH fixes, contact endpoint, card URL fixes, consumer wired to real API), `3312b83` (feat(api): Phase 11 — Production Hardening), `d3c3d1e` (feat(cards): Phase 5 Milestone D completion — consumer store card, template gating, type validation)
 
 ---
 
@@ -619,7 +619,15 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 
 ### Remaining
 - `participatingBusinesses.ts` still uses mock data
-- `getProfileByEmail`, `getFamilyCards`, `getShareContent`, `getCardActivity`, `getNearbyOffers`, `getExchangeItems`, `getRedeemItems` — TODO endpoints not yet in backend
+- `getProfileByEmail`, `getFamilyCards`, `getShareContent` — TODO endpoints not yet in backend
+
+### Completed (2026-08-31)
+- **GET /cards/:id/activity** — Card activity feed (last 50 activity logs by business, returns action/time/type/status/value)
+- **GET /campaigns/nearby** — Nearby active offers (public consumer endpoint, joins business name, limit 20)
+- **GET /vouchers/redeem/items** — Redeemable items (public consumer endpoint, status=AVAILABLE, limit 20)
+- All three endpoints follow existing conventions: Swagger docs, JwtAuthGuard, snake_case JSON, ApiResponse envelope
+- Files created: `dto/card-activity-response.dto.ts`, `dto/nearby-offer-response.dto.ts`, `dto/redeemable-item-response.dto.ts`
+- Files modified: `cards.controller.ts`, `cards.service.ts`, `cards.module.ts`, `campaigns.controller.ts`, `campaigns.service.ts`, `vouchers.controller.ts`, `vouchers.service.ts`
 
 ---
 

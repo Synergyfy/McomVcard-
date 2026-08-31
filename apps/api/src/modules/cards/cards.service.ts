@@ -13,6 +13,7 @@ import { CardSection } from './entities/card-section.entity'
 import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
+import { ActivityLog } from '../activity/entities/activity-log.entity'
 import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
 import { MembershipBenefit } from '../memberships/entities/membership-benefit.entity'
@@ -43,6 +44,7 @@ import {
 } from './dto/card-response.dto'
 import { CardSectionResponseDto } from './dto/card-section-response.dto'
 import { CardCentreControlResponseDto } from './dto/card-centre-control-response.dto'
+import { CardActivityResponseDto } from './dto/card-activity-response.dto'
 
 const CARD_RELATIONS = {
   profile: true,
@@ -66,6 +68,7 @@ export class CardsService {
     @InjectRepository(CardCentreControl) private centreControlsRepo: Repository<CardCentreControl>,
     @InjectRepository(Template) private templatesRepo: Repository<Template>,
     @InjectRepository(AnalyticsEvent) private analyticsRepo: Repository<AnalyticsEvent>,
+    @InjectRepository(ActivityLog) private activityLogsRepo: Repository<ActivityLog>,
     @InjectRepository(Membership) private membershipsRepo: Repository<Membership>,
     @InjectRepository(MembershipTier) private tiersRepo: Repository<MembershipTier>,
     @InjectRepository(MembershipBenefit) private membershipBenefitsRepo: Repository<MembershipBenefit>,
@@ -641,6 +644,23 @@ export class CardsService {
     if (!access) throw new NotFoundException('Card access not found')
     await this.accessRepo.delete({ id: access.id })
     return ApiResponse.message('Card access deleted', 200)
+  }
+
+  // --- Card Activity Feed ---
+
+  async getCardActivity(cardId: string) {
+    const card = await this.findOne(cardId)
+    if (!card.businessId) {
+      return ApiResponse.success([], 'Card activity retrieved', 200)
+    }
+
+    const logs = await this.activityLogsRepo.find({
+      where: { businessId: card.businessId },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    })
+
+    return ApiResponse.success(logs.map(CardActivityResponseDto.fromEntity), 'Card activity retrieved', 200)
   }
 
   // --- Sections ---

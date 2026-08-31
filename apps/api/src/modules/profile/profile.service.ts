@@ -1,17 +1,23 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 import { UsersService } from '../users/users.service'
 import { User } from '../users/entities/user.entity'
 import { AuthService } from '../auth/auth.service'
+import { RolesService } from '../roles/roles.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { UpdateSettingsDto } from './dto/update-settings.dto'
+import { Business } from '../businesses/entities/business.entity'
 
 @Injectable()
 export class ProfileService {
   constructor(
     private usersService: UsersService,
     private authService: AuthService,
+    private rolesService: RolesService,
+    @InjectRepository(Business) private businessesRepo: Repository<Business>,
   ) {}
 
   async getProfile(userId: string) {
@@ -83,5 +89,19 @@ export class ProfileService {
     await this.authService.revokeAllSessions(user.id)
 
     return ApiResponse.message('Account deactivated', 200)
+  }
+
+  async getBusinessPermissions(userId: string) {
+    const roleNames = await this.rolesService.getRoleNamesForUser(userId)
+    const isAdmin = roleNames.includes('ADMIN')
+
+    const ownedBusinesses = await this.businessesRepo.find({ where: { ownerId: userId }, order: { createdAt: 'DESC' } })
+
+    return ApiResponse.success({
+      is_admin: isAdmin,
+      owned_businesses: ownedBusinesses.map(b => ({ id: b.id, name: b.name, slug: b.slug })),
+      can_manage_cards: isAdmin || ownedBusinesses.length > 0,
+      can_manage_businesses: isAdmin || ownedBusinesses.length > 0,
+    }, 'Business permissions retrieved', 200)
   }
 }

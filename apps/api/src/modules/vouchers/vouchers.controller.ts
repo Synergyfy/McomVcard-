@@ -21,9 +21,10 @@ import { ApiResponse } from '../../lib/utils/api-response'
 import { VouchersService } from './vouchers.service'
 import { CreateVoucherDto } from './dto/voucher.dto'
 import { VoucherResponseDto, VoucherTransactionResponseDto } from './dto/voucher-response.dto'
+import { RedeemableItemResponseDto } from './dto/redeemable-item-response.dto'
 
 @ApiTags('vouchers')
-@ApiExtraModels(ApiResponse, VoucherResponseDto, VoucherTransactionResponseDto)
+@ApiExtraModels(ApiResponse, VoucherResponseDto, VoucherTransactionResponseDto, RedeemableItemResponseDto)
 @UseGuards(JwtAuthGuard)
 @Controller('vouchers')
 export class VouchersController {
@@ -73,6 +74,32 @@ export class VouchersController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   async listVouchers(@CurrentUser() user: UserResponseDto, @Query('status') status?: string) {
     return this.vouchersService.listVouchers(user.id, status)
+  }
+
+  // --- Redeemable items (consumer discovery) ---
+
+  @Get('redeem/items')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List redeemable items',
+    description: 'Returns the 20 most recent vouchers with AVAILABLE status, ready for redemption.',
+  })
+  @ApiOkResponse({
+    description: 'Redeemable items',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(RedeemableItemResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listRedeemableItems() {
+    return this.vouchersService.listRedeemableItems()
   }
 
   @Get(':id')

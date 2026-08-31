@@ -12,6 +12,7 @@ import { CardSection } from './entities/card-section.entity'
 import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
+import { ActivityLog } from '../activity/entities/activity-log.entity'
 import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
 import { MembershipBenefit } from '../memberships/entities/membership-benefit.entity'
@@ -162,6 +163,7 @@ describe('CardsService', () => {
         { provide: getRepositoryToken(CardCentreControl), useValue: centreControlsRepo },
         { provide: getRepositoryToken(Template), useValue: templatesRepo },
         { provide: getRepositoryToken(AnalyticsEvent), useValue: analyticsRepo },
+        { provide: getRepositoryToken(ActivityLog), useValue: createMockRepo() },
         { provide: getRepositoryToken(Membership), useValue: createMockRepo() },
         { provide: getRepositoryToken(MembershipTier), useValue: createMockRepo() },
         { provide: getRepositoryToken(MembershipBenefit), useValue: createMockRepo() },
