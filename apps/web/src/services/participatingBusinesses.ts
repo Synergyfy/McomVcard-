@@ -11,7 +11,6 @@
 /*  Pro+ tiers.                                                        */
 /* ------------------------------------------------------------------ */
 
-import { mockBusinesses } from './mockData'
 import type { PlanLevel } from './membershipPricingStore'
 import { parseMembership } from './consumerMembership'
 
@@ -46,17 +45,15 @@ export const PARTICIPATING_LEVELS: PlanLevel[] = ['Bronze', 'Silver', 'Gold', 'P
 /** Membership tiers ordered lowest → highest. */
 export const PARTICIPATING_TIERS: MembershipTier[] = ['Standard', 'Pro', 'Pro+']
 
-/** Business ids hand-picked to surface on the home page "featured" row. */
-const DEFAULT_FEATURED_IDS = ['1', '2', '4', '6', '7', '10']
-
-const FEATURED_KEY = 'mcom_featured_businesses'
-
 /* ------------------------------------------------------------------ */
 /*  Featured businesses — controlled by the Admin.                     */
-/*  Persisted to localStorage (mock backend) so the landing page and   */
-/*  find-a-business page reflect the Admin's choices. New platform     */
-/*  defaults are always merged in so older saved states stay valid.    */
+/*  Persisted to localStorage so the landing page and find-a-business  */
+/*  page reflect the Admin's choices. New platform defaults are always */
+/*  merged in so older saved states stay valid.                        */
 /* ------------------------------------------------------------------ */
+
+const DEFAULT_FEATURED_IDS = ['1', '2', '4', '6', '7', '10']
+const FEATURED_KEY = 'mcom_featured_businesses'
 
 function loadFeaturedIds(): Set<string> {
   const ids = new Set<string>(DEFAULT_FEATURED_IDS)
@@ -108,40 +105,173 @@ function toInitials(name: string): string {
     .join('') || '?'
 }
 
-export const PARTICIPATING_BUSINESSES: ParticipatingBusiness[] = mockBusinesses
-  .filter((b) => b.status === 'verified')
-  .map((b) => {
-    const { level, tier } = parseMembership(b.membership || 'Bronze Standard')
-    return {
-      id: b.id,
-      name: b.name,
-      industry: b.industry,
-      address: b.address,
-      city: toCity(b.address),
-      description: b.description,
-      website: b.website,
-      logo: b.logo,
-      phone: b.phone,
-      email: b.email,
-      verified: b.status === 'verified',
-      initials: toInitials(b.name),
-      membership: b.membership || 'Bronze Standard',
-      membershipLevel: level,
-      membershipTier: tier,
-      featured: DEFAULT_FEATURED_IDS.includes(b.id),
-      scans: b.scans ?? 0,
-      cards: b.cards ?? 0,
-      joined: b.joined ?? '',
+function formatJoined(dateStr: string): string {
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
+/* ------------------------------------------------------------------ */
+/*  API shape from GET /businesses/directory.                          */
+/* ------------------------------------------------------------------ */
+
+interface ApiCategory {
+  id: string
+  name: string
+}
+
+interface ApiLocation {
+  address: string
+  city: string
+}
+
+interface ApiBusiness {
+  id: string
+  name: string
+  slug: string
+  description: string
+  email: string
+  phone: string
+  website: string
+  status: string
+  category: ApiCategory
+  locations: ApiLocation[]
+  created_at: string
+}
+
+interface ApiResponse {
+  success: boolean
+  data: ApiBusiness[]
+  message: string
+}
+
+function mapApiBusiness(b: ApiBusiness): ParticipatingBusiness {
+  const membership = 'Bronze Standard'
+  const { level, tier } = parseMembership(membership)
+  const address = b.locations?.[0]?.address || ''
+  const city = b.locations?.[0]?.city || toCity(address)
+
+  return {
+    id: b.id,
+    name: b.name,
+    industry: b.category?.name || '',
+    address,
+    city,
+    description: b.description,
+    website: b.website,
+    phone: b.phone,
+    email: b.email,
+    verified: b.status === 'active',
+    initials: toInitials(b.name),
+    membership,
+    membershipLevel: level,
+    membershipTier: tier,
+    featured: loadFeaturedIds().has(b.id),
+    scans: 0,
+    cards: 0,
+    joined: formatJoined(b.created_at),
+  }
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+let cachedBusinesses: ParticipatingBusiness[] | null = null
+
+async function fetchDirectory(): Promise<ParticipatingBusiness[]> {
+  if (cachedBusinesses) return cachedBusinesses
+
+  const res = await fetch(`${API_BASE}/businesses/directory`)
+  if (!res.ok) throw new Error(`Failed to fetch businesses: ${res.status}`)
+
+  const json: ApiResponse = await res.json()
+  if (!json.success) throw new Error(json.message || 'Failed to fetch businesses')
+
+  cachedBusinesses = json.data.map(mapApiBusiness)
+  return cachedBusinesses
+}
+
+function invalidateCache(): void {
+  cachedBusinesses = null
+}
+
+export const participatingBusinessService = {
+  async getAll(): Promise<ParticipatingBusiness[]> {
+    const businesses = await fetchDirectory()
+    return businesses.map(withFeatured)
+  },
+
+  async getById(id: string): Promise<ParticipatingBusiness | undefined> {
+    const businesses = await fetchDirectory()
+    const b = businesses.find((x) => x.id === id)
+    return b ? withFeatured(b) : undefined
+  },
+
+  async search(
+    query: string,
+    industry?: string,
+    level?: PlanLevel,
+    tier?: MembershipTier,
+  ): Promise<ParticipatingBusiness[]> {
+    const q = query.trim().toLowerCase()
+
+    let url = `${API_BASE}/businesses/directory`
+    const params = new URLSearchParams()
+    if (q) params.set('search', q)
+    if (params.toString()) url += `?${params.toString()}`
+
+    let businesses: ParticipatingBusiness[]
+
+    if (q || (!industry && !level && !tier)) {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`Failed to search businesses: ${res.status}`)
+      const json: ApiResponse = await res.json()
+      if (!json.success) throw new Error(json.message || 'Failed to search businesses')
+      businesses = json.data.map(mapApiBusiness)
+    } else {
+      businesses = await fetchDirectory()
     }
-  })
 
-export const PARTICIPATING_INDUSTRIES: string[] = Array.from(
-  new Set(PARTICIPATING_BUSINESSES.map((b) => b.industry)),
-).sort()
+    return businesses
+      .filter((b) => {
+        if (industry && b.industry !== industry) return false
+        if (level && b.membershipLevel !== level) return false
+        if (tier && b.membershipTier !== tier) return false
+        return true
+      })
+      .map(withFeatured)
+  },
 
-export const PARTICIPATING_CITIES: string[] = Array.from(
-  new Set(PARTICIPATING_BUSINESSES.map((b) => b.city).filter(Boolean)),
-).sort()
+  /** Force re-fetch on next call (e.g. after admin changes). */
+  refresh(): void {
+    invalidateCache()
+  },
+}
+
+/* ------------------------------------------------------------------ */
+/*  Derived directory data — lazy-loaded from the API.                 */
+/* ------------------------------------------------------------------ */
+
+let _industries: string[] | null = null
+let _cities: string[] | null = null
+
+export async function getParticipatingIndustries(): Promise<string[]> {
+  if (_industries) return _industries
+  const businesses = await fetchDirectory()
+  _industries = Array.from(new Set(businesses.map((b) => b.industry))).sort()
+  return _industries
+}
+
+export async function getParticipatingCities(): Promise<string[]> {
+  if (_cities) return _cities
+  const businesses = await fetchDirectory()
+  _cities = Array.from(new Set(businesses.map((b) => b.city).filter(Boolean))).sort()
+  return _cities
+}
+
+export async function getParticipatingBusinesses(): Promise<ParticipatingBusiness[]> {
+  return participatingBusinessService.getAll()
+}
 
 /* Parse a "Jan 2026"-style joined date into a comparable Date. */
 export function joinedToDate(joined: string): Date {
@@ -151,40 +281,4 @@ export function joinedToDate(joined: string): Date {
   const month = months[match[1]]
   if (month === undefined) return new Date(0)
   return new Date(Number(match[2]), month, 1)
-}
-
-const delay = () => new Promise((r) => setTimeout(r, 300))
-
-export const participatingBusinessService = {
-  async getAll(): Promise<ParticipatingBusiness[]> {
-    return delay().then(() => PARTICIPATING_BUSINESSES.map(withFeatured))
-  },
-  async getById(id: string): Promise<ParticipatingBusiness | undefined> {
-    return delay().then(() => {
-      const b = PARTICIPATING_BUSINESSES.find((x) => x.id === id)
-      return b ? withFeatured(b) : undefined
-    })
-  },
-  async search(
-    query: string,
-    industry?: string,
-    level?: PlanLevel,
-    tier?: MembershipTier,
-  ): Promise<ParticipatingBusiness[]> {
-    return delay().then(() => {
-      const q = query.trim().toLowerCase()
-      return PARTICIPATING_BUSINESSES.filter((b) => {
-        if (industry && b.industry !== industry) return false
-        if (level && b.membershipLevel !== level) return false
-        if (tier && b.membershipTier !== tier) return false
-        if (!q) return true
-        return (
-          b.name.toLowerCase().includes(q) ||
-          b.industry.toLowerCase().includes(q) ||
-          b.city.toLowerCase().includes(q) ||
-          b.membership.toLowerCase().includes(q)
-        )
-      }).map(withFeatured)
-    })
-  },
 }

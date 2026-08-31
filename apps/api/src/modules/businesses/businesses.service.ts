@@ -183,6 +183,34 @@ export class BusinessesService {
     return ApiResponse.success(categories.map(BusinessCategoryResponseDto.fromEntity), 'Business categories retrieved', 200)
   }
 
+  async listDirectory(search?: string, category?: string) {
+    const qb = this.businessesRepo
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.category', 'category')
+      .leftJoinAndSelect('b.locations', 'locations')
+      .where('b.status = :status', { status: 'active' })
+      .orderBy('b.createdAt', 'DESC')
+      .take(100)
+
+    if (search) {
+      qb.andWhere('(LOWER(b.name) LIKE :search OR LOWER(b.description) LIKE :search)', {
+        search: `%${search.toLowerCase()}%`,
+      })
+    }
+
+    if (category) {
+      qb.andWhere('LOWER(category.name) = :category', { category: category.toLowerCase() })
+    }
+
+    const businesses = await qb.getMany()
+
+    return ApiResponse.success(
+      businesses.map(b => BusinessResponseDto.fromEntity(b)),
+      'Business directory retrieved',
+      200,
+    )
+  }
+
   async listForOwner(ownerId: string) {
     const businesses = await this.businessesRepo.find({
       where: { ownerId },
