@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { participatingBusinessService, PARTICIPATING_LEVELS, PARTICIPATING_TIERS, PARTICIPATING_CITIES, joinedToDate } from '../../services/participatingBusinesses'
+import { participatingBusinessService, PARTICIPATING_LEVELS, PARTICIPATING_TIERS, getParticipatingCities, getParticipatingIndustries, joinedToDate } from '../../services/participatingBusinesses'
 import type { ParticipatingBusiness, MembershipTier } from '../../services/participatingBusinesses'
 import type { PlanLevel } from '../../services/membershipPricingStore'
-import { PARTICIPATING_INDUSTRIES } from '../../services/participatingBusinesses'
 
 type Step = 'find' | 'connect' | 'receive'
 
@@ -104,6 +103,8 @@ export default function FindBusinessPage() {
     const [selected, setSelected] = useState<ParticipatingBusiness | null>(null)
     const [connecting, setConnecting] = useState(false)
     const [error, setError] = useState(false)
+    const [industries, setIndustries] = useState<string[]>([])
+    const [cities, setCities] = useState<string[]>([])
 
     const inviteCardId = useMemo(() => `MC-CARD-${(selected?.id ?? 0).toString().padStart(6, '0')}`, [selected])
 
@@ -123,6 +124,8 @@ export default function FindBusinessPage() {
 
     useEffect(() => {
         loadBusinesses()
+        getParticipatingIndustries().then(setIndustries).catch(() => {})
+        getParticipatingCities().then(setCities).catch(() => {})
     }, [loadBusinesses])
 
     const results = useMemo(() => {
@@ -244,7 +247,7 @@ export default function FindBusinessPage() {
                                 className="h-12 px-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-accent-500"
                             >
                                 <option value="All">All locations</option>
-                                {PARTICIPATING_CITIES.map((c) => (
+                                {cities.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </select>
@@ -254,7 +257,7 @@ export default function FindBusinessPage() {
                                 className="h-12 px-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-accent-500"
                             >
                                 <option value="All">All industries</option>
-                                {PARTICIPATING_INDUSTRIES.map((ind) => (
+                                {industries.map((ind) => (
                                     <option key={ind} value={ind}>{ind}</option>
                                 ))}
                             </select>

@@ -241,11 +241,14 @@ export const consumerService = {
     return mapUserToConsumerProfile(res.data)
   },
 
-  async getProfileByEmail(_email: string): Promise<ConsumerProfile | null> {
-    // TODO: Backend endpoint GET /users/by-email/:email does not exist yet
-    // This would require a new endpoint in the users or auth module
-    console.warn('getProfileByEmail: Backend endpoint not implemented')
-    return null
+  async getProfileByEmail(email: string): Promise<ConsumerProfile | null> {
+    try {
+      const res = await api.get(`/users/by-email/${encodeURIComponent(email)}`)
+      const user = res.data.data || res.data
+      return user ? mapUserToConsumerProfile(user) : null
+    } catch {
+      return null
+    }
   },
 
   async createProfile(data: { name: string; email: string; phone?: string; location?: string }): Promise<ConsumerProfile> {
@@ -315,47 +318,94 @@ export const consumerService = {
   },
 
   async getFamilyCards(): Promise<ConsumerProfile['additionalCards']> {
-    // TODO: Backend endpoint for family cards does not exist yet
-    // Could use child-cards module
-    console.warn('getFamilyCards: Backend endpoint not implemented')
-    return []
+    try {
+      const profile = await this.getProfile()
+      const res = await api.get(`/users/${profile.id}/family-cards`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((c: any) => ({
+        id: c.id || '',
+        name: c.name || c.card_name || '',
+        relationship: c.relationship || 'Family',
+        status: c.status || 'active',
+        locked: !c.can_manage,
+        allocatedAt: c.created_at || '',
+      }))
+    } catch {
+      return []
+    }
   },
 
   async getShareContent(): Promise<ConsumerProfile['shareContent']> {
-    // TODO: Backend endpoint for share content does not exist yet
-    console.warn('getShareContent: Backend endpoint not implemented')
-    return []
+    try {
+      const profile = await this.getProfile()
+      const res = await api.get(`/users/${profile.id}/share-content`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((s: any) => ({
+        id: s.id || '',
+        title: s.card_title || s.title || '',
+        source: s.source || 'MCOMVCard',
+        status: s.status || 'active',
+        availableUntil: s.available_until || '',
+      }))
+    } catch {
+      return []
+    }
   },
 
   async getCardActivity(): Promise<ConsumerProfile['cardActivity']> {
-    // TODO: Backend endpoint for card activity does not exist yet
-    console.warn('getCardActivity: Backend endpoint not implemented')
-    return []
+    try {
+      const profile = await this.getProfile()
+      const cards = profile.savedCards || []
+      if (cards.length === 0) return []
+      const res = await api.get(`/cards/${cards[0].id}/activity`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((a: any) => ({
+        action: a.action || '',
+        time: a.time || a.created_at || '',
+        type: a.type || 'card',
+        actor: a.actor || 'System',
+        source: a.source || 'MCOMVCard',
+        status: a.status || 'Completed',
+      }))
+    } catch {
+      return []
+    }
   },
 
   async getNearbyOffers(): Promise<any[]> {
-    // TODO: Backend endpoint for nearby offers does not exist yet
-    console.warn('getNearbyOffers: Backend endpoint not implemented')
-    return []
+    try {
+      const res = await api.get('/campaigns/nearby')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
   },
 
   async getExchangeItems(): Promise<any[]> {
-    // TODO: Backend endpoint for exchange items does not exist yet
-    console.warn('getExchangeItems: Backend endpoint not implemented')
-    return []
+    try {
+      const res = await api.get('/products/exchange')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
   },
 
   async getRedeemItems(): Promise<any[]> {
-    // TODO: Backend endpoint for redeem items does not exist yet
-    console.warn('getRedeemItems: Backend endpoint not implemented')
-    return []
+    try {
+      const res = await api.get('/vouchers/redeem/items')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
   },
 
   async getNotifications(): Promise<any[]> {
-    // TODO: Check if notifications module has consumer endpoint
-    // Currently using notifications module but need to verify endpoint
-    const res = await api.get('/notifications')
-    return res.data.data || res.data || []
+    try {
+      const res = await api.get('/notifications')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
   },
 
   async getUnreadNotificationCount(): Promise<number> {

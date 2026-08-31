@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-31 (session: Added 3 consumer endpoints — card activity feed, nearby offers, redeemable items)
+> Last updated: 2026-08-31 (session: Remaining mock services connected — participatingBusinesses, exchange items, profile by email, all consumer.ts TODOs)
 > Working branch: `logic`
-> Latest commits: `d345091` (feat: frontend-API integration — PUT→PATCH fixes, contact endpoint, card URL fixes, consumer wired to real API), `3312b83` (feat(api): Phase 11 — Production Hardening), `d3c3d1e` (feat(cards): Phase 5 Milestone D completion — consumer store card, template gating, type validation)
+> Latest commits: `c58337a` (feat(api): add missing backend endpoints for frontend-API integration), `d345091` (feat: frontend-API integration), `d3c3d1e` (feat(cards): Phase 5 Milestone D)
 
 ---
 
@@ -618,16 +618,26 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - `pnpm test` — 155 passed, 4 suites
 
 ### Remaining
-- `participatingBusinesses.ts` still uses mock data
-- `getProfileByEmail`, `getFamilyCards`, `getShareContent` — TODO endpoints not yet in backend
+- `familyCards.ts` — Full family card management (wishlists, fund transfers, gift cards) needs new backend endpoints
+- `membershipResources.ts` — Static resource definitions with mock usage counts (display-only, low priority)
+- `admin.ts` — Uses mockData as fallback for some admin pages (acceptable for now)
 
 ### Completed (2026-08-31)
 - **GET /cards/:id/activity** — Card activity feed (last 50 activity logs by business, returns action/time/type/status/value)
 - **GET /campaigns/nearby** — Nearby active offers (public consumer endpoint, joins business name, limit 20)
 - **GET /vouchers/redeem/items** — Redeemable items (public consumer endpoint, status=AVAILABLE, limit 20)
-- All three endpoints follow existing conventions: Swagger docs, JwtAuthGuard, snake_case JSON, ApiResponse envelope
-- Files created: `dto/card-activity-response.dto.ts`, `dto/nearby-offer-response.dto.ts`, `dto/redeemable-item-response.dto.ts`
-- Files modified: `cards.controller.ts`, `cards.service.ts`, `cards.module.ts`, `campaigns.controller.ts`, `campaigns.service.ts`, `vouchers.controller.ts`, `vouchers.service.ts`
+- **GET /businesses/directory** — Public business directory (no auth, supports search/category filters, limit 100)
+- **GET /products/exchange** — Exchange items listing (public, active products with business info)
+- **GET /users/by-email/:email** — Find user by email (consumer profile lookup)
+- **GET /users/:id/family-cards** — Child cards for a user (with permission flags)
+- **GET /users/:id/share-content** — Shared cards for a user
+- **GET /users/me/business-permissions** — Role-based permissions (is_admin, owned_businesses, can_manage_*)
+- **Language + Translation entities** — Full CRUD with real DB storage
+- **@Public() decorator** — Skip JWT guard on public endpoints
+- **participatingBusinesses.ts** — Rewritten to call GET /businesses/directory (real API)
+- **consumer.ts** — All 10+ methods now call real API endpoints (getFamilyCards, getShareContent, getCardActivity, getNearbyOffers, getExchangeItems, getRedeemItems, getNotifications, getProfileByEmail)
+- **FindBusinessPage.tsx** — Updated to use async getParticipatingIndustries/getParticipatingCities
+- Files created: `public.decorator.ts`, `nearby-offer-response.dto.ts`, `redeemable-item-response.dto.ts`, `card-activity-response.dto.ts`, `exchange-item-response.dto.ts`, `user-basic-response.dto.ts`, `family-card-response.dto.ts`, `share-content-response.dto.ts`, `language.entity.ts`, `translation.entity.ts`, `languages.module.ts`, `languages.service.ts`, `users.controller.ts`, `user-actions.service.ts`
 
 ---
 
