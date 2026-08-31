@@ -41,6 +41,7 @@ import { UpsertCentreControlDto } from './dto/upsert-centre-controls.dto'
 import { ApplyTemplateDto } from './dto/apply-template.dto'
 import { CardSectionResponseDto } from './dto/card-section-response.dto'
 import { CardCentreControlResponseDto } from './dto/card-centre-control-response.dto'
+import { CardActivityResponseDto } from './dto/card-activity-response.dto'
 
 @ApiTags('cards')
 @ApiExtraModels(
@@ -53,6 +54,7 @@ import { CardCentreControlResponseDto } from './dto/card-centre-control-response
   TemplateResponseDto,
   CardSectionResponseDto,
   CardCentreControlResponseDto,
+  CardActivityResponseDto,
 )
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -668,6 +670,33 @@ export class CardsController {
   @ApiNotFoundResponse({ description: 'Card not found' })
   async getCardStats(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.cardsService.getCardStats(id)
+  }
+
+  // ---- Card activity feed ----
+
+  @Get('cards/:id/activity')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get card activity feed',
+    description: 'Returns the 50 most recent activity log entries for the business linked to this card.',
+  })
+  @ApiOkResponse({
+    description: 'Card activity feed',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardActivityResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  async getCardActivity(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.getCardActivity(id)
   }
 
   // ---- Sections ----

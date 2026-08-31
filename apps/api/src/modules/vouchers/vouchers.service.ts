@@ -12,6 +12,7 @@ import {
   VoucherVendorResponseDto,
 } from './dto/voucher-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { RedeemableItemResponseDto } from './dto/redeemable-item-response.dto'
 
 @Injectable()
 export class VouchersService {
@@ -259,6 +260,26 @@ export class VouchersService {
       'Voucher transactions retrieved',
       200,
     )
+  }
+
+  // ── Redeemable items (consumer discovery) ────────────────────────────────
+
+  async listRedeemableItems() {
+    const vouchers = await this.vouchersRepo.find({
+      where: { status: 'AVAILABLE' as const },
+      relations: { vendor: true },
+      order: { createdAt: 'DESC' },
+      take: 20,
+    })
+
+    const enriched = await Promise.all(
+      vouchers.map(async (voucher) => {
+        const current = await this.applyExpiry(voucher.id)
+        return RedeemableItemResponseDto.fromEntity(current, current.vendor)
+      }),
+    )
+
+    return ApiResponse.success(enriched, 'Redeemable items retrieved', 200)
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

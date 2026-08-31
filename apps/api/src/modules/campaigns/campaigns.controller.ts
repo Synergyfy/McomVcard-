@@ -32,9 +32,10 @@ import {
   CouponRedemptionResponseDto,
   CampaignTemplateResponseDto,
 } from './dto/campaign-response.dto'
+import { NearbyOfferResponseDto } from './dto/nearby-offer-response.dto'
 
 @ApiTags('campaigns')
-@ApiExtraModels(ApiResponse, CampaignResponseDto, OfferResponseDto, CouponResponseDto, CouponRedemptionResponseDto)
+@ApiExtraModels(ApiResponse, CampaignResponseDto, OfferResponseDto, CouponResponseDto, CouponRedemptionResponseDto, NearbyOfferResponseDto)
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private readonly campaignsService: CampaignsService) {}
@@ -98,6 +99,30 @@ export class CampaignsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   async getTemplate(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.campaignsService.getTemplate(id)
+  }
+
+  // --- Consumer discovery (must come before :id routes) ---
+
+  @Get('nearby')
+  @ApiOperation({
+    summary: 'List nearby active offers',
+    description: 'Public consumer endpoint: returns the 20 most recent active offers across all businesses.',
+  })
+  @ApiOkResponse({
+    description: 'Nearby active offers',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(NearbyOfferResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  async listNearbyOffers() {
+    return this.campaignsService.listNearbyOffers()
   }
 
   @Get(':id')

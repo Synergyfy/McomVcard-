@@ -23,6 +23,7 @@ import {
 } from './dto/campaign-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
+import { NearbyOfferResponseDto } from './dto/nearby-offer-response.dto'
 
 const toDate = (value: string | undefined | null): Date | null =>
   value === undefined || value === null || value === '' ? null : new Date(value)
@@ -277,6 +278,19 @@ export class CampaignsService {
     })
 
     return ApiResponse.success(offers.map((o) => OfferResponseDto.fromEntity(o)), 'Active offers retrieved', 200)
+  }
+
+  // --- Nearby offers (consumer discovery) ---
+
+  async listNearbyOffers() {
+    const offers = await this.offersRepo.find({
+      where: { isActive: true },
+      relations: { business: true },
+      order: { createdAt: 'DESC' },
+      take: 20,
+    })
+
+    return ApiResponse.success(offers.map((o) => NearbyOfferResponseDto.fromEntity(o)), 'Nearby offers retrieved', 200)
   }
 
   // --- Ownership helpers ---

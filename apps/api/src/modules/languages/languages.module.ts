@@ -1,0 +1,13 @@
+import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { Language } from './entities/language.entity'
+import { Translation } from './entities/translation.entity'
+import { LanguagesService } from './languages.service'
+
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Language, Translation])],
+  providers: [LanguagesService],
+  exports: [LanguagesService],
+})
+export class LanguagesModule {}

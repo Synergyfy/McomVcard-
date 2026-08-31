@@ -22,6 +22,7 @@ import { Benefit } from '../memberships/entities/benefit.entity'
 import { Season } from '../seasons/entities/season.entity'
 import { Wallet } from '../finance/entities/wallet.entity'
 import { RewardBalance } from '../finance/entities/reward-balance.entity'
+import { ActivityLog } from '../activity/entities/activity-log.entity'
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { RewardBalance } from '../finance/entities/reward-balance.entity'
       Season,
       Wallet,
       RewardBalance,
+      ActivityLog,
     ]),
   ],
   controllers: [CardsController, CardsPublicController],

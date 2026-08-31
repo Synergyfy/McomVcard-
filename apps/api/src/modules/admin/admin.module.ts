@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module'
 import { UsersModule } from '../users/users.module'
 import { RolesModule } from '../roles/roles.module'
 import { PlansModule } from '../plans/plans.module'
+import { LanguagesModule } from '../languages/languages.module'
 import { AdminController } from './admin.controller'
 import { AdminUsersController } from './admin-users.controller'
 import { AdminBusinessesController } from './admin-businesses.controller'
@@ -68,6 +69,7 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     UsersModule,
     RolesModule,
     PlansModule,
+    LanguagesModule,
     TypeOrmModule.forFeature([
       User,
       Business,
