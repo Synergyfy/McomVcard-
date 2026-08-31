@@ -35,6 +35,7 @@ import { PlansModule } from './modules/plans/plans.module'
 import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
 import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
 import { EventsModule } from './modules/events/events.module'
+import { ContactModule } from './modules/contact/contact.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -84,6 +85,7 @@ import { APP_GUARD } from '@nestjs/core'
     GiftCardsModule,
     CashbackProgramsModule,
     EventsModule,
+    ContactModule,
   ],
   controllers: [],
   providers: [

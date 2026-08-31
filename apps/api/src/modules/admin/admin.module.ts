@@ -39,6 +39,7 @@ import { AdminActivityLogsController } from './admin-activity-logs.controller'
 import { AdminNewsletterController } from './admin-newsletter.controller'
 import { AdminBookingsController } from './admin-bookings.controller'
 import { AdminSystemController } from './admin-system.controller'
+import { AdminVcardsController } from './admin-vcards.controller'
 
 import { User } from '../users/entities/user.entity'
 import { Business } from '../businesses/entities/business.entity'
@@ -126,6 +127,7 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     AdminNewsletterController,
     AdminBookingsController,
     AdminSystemController,
+    AdminVcardsController,
   ],
 })
 export class AdminModule {}

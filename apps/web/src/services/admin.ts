@@ -109,7 +109,7 @@ export const adminService = {
   },
 
   async updateUser(id: string, data: Partial<User>): Promise<User> {
-    const res = await api.put(`/admin/users/${id}`, data)
+    const res = await api.patch(`/admin/users/${id}`, data)
     return res.data
   },
 
@@ -124,12 +124,12 @@ export const adminService = {
 
   // vCards
   async getVcards(params?: Record<string, any>): Promise<{ data: VCard[]; total: number }> {
-    const res = await api.get('/admin/vcards', { params })
+    const res = await api.get('/admin/cards', { params })
     return res.data
   },
 
   async deleteVcard(id: string): Promise<void> {
-    await api.delete(`/admin/vcards/${id}`)
+    await api.delete(`/admin/cards/${id}`)
   },
 
   // Plans
@@ -149,7 +149,7 @@ export const adminService = {
   },
 
   async updatePlan(id: string, data: Partial<Plan> & { plan_feature?: Partial<PlanFeature> }): Promise<Plan> {
-    const res = await api.put(`/admin/plans/${id}`, data)
+    const res = await api.patch(`/admin/plans/${id}`, data)
     return res.data
   },
 
@@ -169,7 +169,7 @@ export const adminService = {
   },
 
   async updateTemplate(id: string, data: Partial<Template>): Promise<Template> {
-    const res = await api.put(`/admin/templates/${id}`, data)
+    const res = await api.patch(`/admin/templates/${id}`, data)
     return res.data
   },
 
@@ -189,7 +189,7 @@ export const adminService = {
   },
 
   async updateCurrency(id: string, data: Partial<Currency>): Promise<Currency> {
-    const res = await api.put(`/admin/currencies/${id}`, data)
+    const res = await api.patch(`/admin/currencies/${id}`, data)
     return res.data
   },
 
@@ -214,7 +214,7 @@ export const adminService = {
   },
 
   async updateRole(id: string, data: Partial<Role> & { permissions?: string[] }): Promise<Role> {
-    const res = await api.put(`/admin/roles/${id}`, data)
+    const res = await api.patch(`/admin/roles/${id}`, data)
     return res.data
   },
 
@@ -234,7 +234,7 @@ export const adminService = {
   },
 
   async updateTestimonial(id: string, data: Partial<FrontTestimonial>): Promise<FrontTestimonial> {
-    const res = await api.put(`/admin/testimonials/${id}`, data)
+    const res = await api.patch(`/admin/testimonials/${id}`, data)
     return res.data
   },
 
@@ -254,7 +254,7 @@ export const adminService = {
   },
 
   async updateFrontFeature(id: string, data: Partial<FrontFeature>): Promise<FrontFeature> {
-    const res = await api.put(`/admin/features/${id}`, data)
+    const res = await api.patch(`/admin/features/${id}`, data)
     return res.data
   },
 
@@ -269,7 +269,7 @@ export const adminService = {
   },
 
   async updateAboutUs(id: string, data: Partial<AboutUs>): Promise<AboutUs> {
-    const res = await api.put(`/admin/about-us/${id}`, data)
+    const res = await api.patch(`/admin/about-us/${id}`, data)
     return res.data
   },
 
@@ -305,7 +305,7 @@ export const adminService = {
   },
 
   async updateGeneralSettings(data: Partial<DashboardMeta>): Promise<void> {
-    await api.put('/admin/settings/general', data)
+    await api.patch('/admin/settings/general', data)
   },
 
   async getEmailSettings(): Promise<EmailSetting> {
@@ -314,7 +314,7 @@ export const adminService = {
   },
 
   async updateEmailSettings(data: Partial<EmailSetting>): Promise<void> {
-    await api.put('/admin/settings/email', data)
+    await api.patch('/admin/settings/email', data)
   },
 
   async getPaymentSettings(): Promise<PaymentSetting> {
@@ -323,12 +323,12 @@ export const adminService = {
   },
 
   async updatePaymentSettings(data: Partial<PaymentSetting>): Promise<void> {
-    await api.put('/admin/settings/payment', data)
+    await api.patch('/admin/settings/payment', data)
   },
 
   // Currencies (for dropdowns)
   async getAllCurrencies(): Promise<Currency[]> {
-    const res = await api.get('/admin/all-currencies')
+    const res = await api.get('/admin/currencies')
     return res.data
   },
 
@@ -347,7 +347,7 @@ export const adminService = {
     return res.data
   },
   async updateAdmin(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
-    const res = await api.put(`/admin/admins/${id}`, data)
+    const res = await api.patch(`/admin/admins/${id}`, data)
     return res.data
   },
   async deleteAdmin(id: string): Promise<void> {
@@ -359,7 +359,7 @@ export const adminService = {
     return res.data
   },
   async updateSubscribedUserPlan(id: string, data: Partial<SubscribedUserPlan>): Promise<SubscribedUserPlan> {
-    const res = await api.put(`/admin/subscribed-plans/${id}`, data)
+    const res = await api.patch(`/admin/subscribed-plans/${id}`, data)
     return res.data
   },
   // Cash Payments
@@ -368,7 +368,7 @@ export const adminService = {
     return res.data
   },
   async updateCashPayment(id: string, data: Partial<CashPayment>): Promise<CashPayment> {
-    const res = await api.put(`/admin/cash-payments/${id}`, data)
+    const res = await api.patch(`/admin/cash-payments/${id}`, data)
     return res.data
   },
   // Affiliate Users
@@ -382,7 +382,7 @@ export const adminService = {
     return res.data
   },
   async updateAffiliateTransaction(id: string, data: Partial<AffiliateTransaction>): Promise<AffiliateTransaction> {
-    const res = await api.put(`/admin/affiliate-transactions/${id}`, data)
+    const res = await api.patch(`/admin/affiliate-transactions/${id}`, data)
     return res.data
   },
   // Withdraw Transactions
@@ -391,7 +391,7 @@ export const adminService = {
     return res.data
   },
   async updateWithdrawTransaction(id: string, data: Partial<WithdrawTransaction>): Promise<WithdrawTransaction> {
-    const res = await api.put(`/admin/withdraw-transactions/${id}`, data)
+    const res = await api.patch(`/admin/withdraw-transactions/${id}`, data)
     return res.data
   },
   // Countries
@@ -408,7 +408,7 @@ export const adminService = {
     return res.data
   },
   async updateCountry(id: string, data: Partial<Country>): Promise<Country> {
-    const res = await api.put(`/admin/countries/${id}`, data)
+    const res = await api.patch(`/admin/countries/${id}`, data)
     return res.data
   },
   async deleteCountry(id: string): Promise<void> {
@@ -428,7 +428,7 @@ export const adminService = {
     return res.data
   },
   async updateLanguage(id: string, data: Partial<Language>): Promise<Language> {
-    const res = await api.put(`/admin/languages/${id}`, data)
+    const res = await api.patch(`/admin/languages/${id}`, data)
     return res.data
   },
   async deleteLanguage(id: string): Promise<void> {
@@ -439,7 +439,7 @@ export const adminService = {
     return res.data
   },
   async updateTranslation(languageId: number, id: string, data: Partial<TranslationEntry>): Promise<void> {
-    await api.put(`/admin/languages/${languageId}/translations/${id}`, data)
+    await api.patch(`/admin/languages/${languageId}/translations/${id}`, data)
   },
   // Coupon Codes
   async getCouponCodes(params?: Record<string, any>): Promise<{ data: CouponCode[]; total: number }> {
@@ -455,7 +455,7 @@ export const adminService = {
     return res.data
   },
   async updateCouponCode(id: string, data: Partial<CouponCode>): Promise<CouponCode> {
-    const res = await api.put(`/admin/coupon-codes/${id}`, data)
+    const res = await api.patch(`/admin/coupon-codes/${id}`, data)
     return res.data
   },
   async deleteCouponCode(id: string): Promise<void> {
@@ -467,7 +467,7 @@ export const adminService = {
     return res.data
   },
   async updateFrontCMS(data: Partial<FrontCMS>): Promise<void> {
-    await api.put('/admin/front-cms', data)
+    await api.patch('/admin/front-cms', data)
   },
   async getFaqs(): Promise<FaqItem[]> {
     const res = await api.get('/admin/faqs')
@@ -478,7 +478,7 @@ export const adminService = {
     return res.data
   },
   async updateFaq(id: string, data: Partial<FaqItem>): Promise<FaqItem> {
-    const res = await api.put(`/admin/faqs/${id}`, data)
+    const res = await api.patch(`/admin/faqs/${id}`, data)
     return res.data
   },
   async deleteFaq(id: string): Promise<void> {
@@ -494,7 +494,7 @@ export const adminService = {
     return res.data
   },
   async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate> {
-    const res = await api.put(`/admin/email-templates/${id}`, data)
+    const res = await api.patch(`/admin/email-templates/${id}`, data)
     return res.data
   },
   // Activity Logs
@@ -524,7 +524,7 @@ export const adminService = {
     return res.data
   },
   async updateBookingStatus(id: string, status: AdminBooking['status']): Promise<AdminBooking> {
-    const res = await api.put(`/admin/bookings/${id}`, { status })
+    const res = await api.patch(`/admin/bookings/${id}`, { status })
     return res.data
   },
   async deleteBooking(id: string): Promise<void> {

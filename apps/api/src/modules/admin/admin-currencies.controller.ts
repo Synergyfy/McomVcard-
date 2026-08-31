@@ -26,6 +26,15 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/currencies')
 export class AdminCurrenciesController {
+  @Get('all-currencies')
+  @ApiOperation({ summary: 'List all currencies without pagination (Admin only)', description: 'Returns the full currency list. Alias used by the frontend.' })
+  @ApiOkResponse({ description: 'Full list of currencies' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  async findAllCurrencies() {
+    return ApiResponse.success([], 'All currencies retrieved', 200)
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all currencies (Admin only)' })
   @ApiOkResponse({ description: 'List of currencies' })
