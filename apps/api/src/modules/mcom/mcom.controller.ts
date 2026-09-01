@@ -133,7 +133,7 @@ export class McomController {
           redirect?: string
         }
         if (safeReturnPath(redirect)) {
-          returnTo = redirect
+          returnTo = redirect as string
         } else if (card) {
           returnTo = business
             ? `/c/setup?card=${encodeURIComponent(card)}&business=${encodeURIComponent(business)}`
