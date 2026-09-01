@@ -13,6 +13,7 @@ import {
     type AnalyticsOverview,
 } from '../../services/businessApi'
 import { businessVCardLink } from '../../services/businessStore'
+import MyPlanCard from '../../components/business/MyPlanCard'
 import {
     quickActions,
     currentSeason,
@@ -275,6 +276,11 @@ export default function BusinessHomePage() {
                         <Link to="/b/membership" className="underline font-semibold">View plan</Link>
                     </div>
                 </div>
+            </section>
+
+            {/* Real MCOM plan (falls back to empty state when no purchased package) */}
+            <section>
+                <MyPlanCard />
             </section>
 
             {/* Main cards */}

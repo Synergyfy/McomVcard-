@@ -44,6 +44,36 @@ export class User {
   @Column({ name: 'theme_mode', default: 'light' })
   themeMode!: string
 
+  // ── MCOM Solutions Central Hub SSO/billing linkage ──
+  // Nullable when the account was created through local email/password auth.
+  @Column({ name: 'mcom_user_id', type: 'varchar', nullable: true })
+  mcomUserId!: string | null
+
+  @Column({ name: 'mcom_membership_level', type: 'varchar', nullable: true })
+  mcomMembershipLevel!: string | null
+
+  @Column({ name: 'mcom_membership_tier', type: 'varchar', nullable: true })
+  mcomMembershipTier!: string | null
+
+  @Column({ name: 'mcom_membership_status', type: 'varchar', nullable: true })
+  mcomMembershipStatus!: string | null
+
+  @Column({ name: 'mcom_can_access_vcard', type: 'boolean', default: false })
+  mcomCanAccessVcard!: boolean
+
+  // Central OAuth tokens, encrypted at rest (see lib/utils/mcom-crypto.util).
+  @Column({ name: 'mcom_access_token', type: 'text', nullable: true })
+  mcomAccessToken!: string | null
+
+  @Column({ name: 'mcom_refresh_token', type: 'text', nullable: true })
+  mcomRefreshToken!: string | null
+
+  @Column({ name: 'mcom_token_expires_at', type: 'timestamptz', nullable: true })
+  mcomTokenExpiresAt!: Date | null
+
+  @Column({ name: 'mcom_tokens_updated_at', type: 'timestamptz', nullable: true })
+  mcomTokensUpdatedAt!: Date | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

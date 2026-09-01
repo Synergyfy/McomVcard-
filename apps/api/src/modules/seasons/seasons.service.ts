@@ -37,6 +37,16 @@ export class SeasonsService {
     return ApiResponse.success(seasons.map(SeasonResponseDto.fromEntity), 'Seasons retrieved', 200)
   }
 
+  /** Active seasons (status = active and not yet ended) — used by the MCOM Solutions connector. */
+  async listActive(): Promise<Season[]> {
+    const now = new Date()
+    const seasons = await this.seasonsRepo.find({
+      where: { status: 'active' },
+      order: { startsAt: 'ASC' },
+    })
+    return seasons.filter((season) => season.endsAt > now)
+  }
+
   async findOne(id: string) {
     const season = await this.seasonsRepo.findOne({ where: { id } })
 

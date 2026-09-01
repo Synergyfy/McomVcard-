@@ -36,6 +36,8 @@ import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
 import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
 import { EventsModule } from './modules/events/events.module'
 import { ContactModule } from './modules/contact/contact.module'
+import { SystemPlansModule } from './modules/system-plans/system-plans.module'
+import { McomModule } from './modules/mcom/mcom.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
@@ -86,6 +88,8 @@ import { APP_GUARD } from '@nestjs/core'
     CashbackProgramsModule,
     EventsModule,
     ContactModule,
+    SystemPlansModule,
+    McomModule,
   ],
   controllers: [],
   providers: [
