@@ -118,7 +118,7 @@ export const adminService = {
   },
 
   async impersonateUser(id: string): Promise<{ token: string }> {
-    const res = await api.post(`/admin/users/${id}/impersonate`)
+    const res = await api.post(`/admin/impersonate/${id}`)
     return res.data
   },
 

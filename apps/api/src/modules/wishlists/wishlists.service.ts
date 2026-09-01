@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, ILike, Repository } from 'typeorm'
 import { Wishlist } from './entities/wishlist.entity'
 import { WishlistItem } from './entities/wishlist-item.entity'
 import { WishlistShare } from './entities/wishlist-share.entity'
@@ -36,9 +36,12 @@ export class WishlistsService {
     return ApiResponse.success(WishlistResponseDto.fromEntity(await this.findOne(userId, saved.id)), 'Wishlist created', 201)
   }
 
-  async listForUser(userId: string) {
+  async listForUser(userId: string, name?: string) {
+    const where: any = { userId }
+    if (name) where.name = ILike(`%${name}%`)
+
     const wishlists = await this.wishlistsRepo.find({
-      where: { userId },
+      where,
       order: { createdAt: 'DESC' },
     })
 
