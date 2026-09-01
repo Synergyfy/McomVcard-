@@ -18,6 +18,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { CashPaymentsService } from '../finance/cash-payments.service'
+import { AdminPaginatedQueryDto } from './dto/admin-paginated-query.dto'
+import { CreateCashPaymentDto, UpdateCashPaymentDto } from '../finance/dto/cash-payment.dto'
 
 @ApiTags('admin-cash-payments')
 @ApiExtraModels(ApiResponse)
@@ -26,17 +29,16 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/cash-payments')
 export class AdminCashPaymentsController {
+  constructor(private readonly cashPaymentsService: CashPaymentsService) {}
+
   @Get()
   @ApiOperation({ summary: 'List all cash payments (Admin only)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'status', required: false, type: String })
   @ApiOkResponse({ description: 'List of cash payments' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  async findAll(@Query() query: any) {
-    return ApiResponse.success({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } }, 'Cash payments retrieved', 200)
+  async findAll(@Query() query: AdminPaginatedQueryDto) {
+    const result = await this.cashPaymentsService.findAll(query)
+    return ApiResponse.success(result, 'Cash payments retrieved', 200)
   }
 
   @Get(':id')
@@ -47,20 +49,34 @@ export class AdminCashPaymentsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Cash payment not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.success({ id, amount: 100, currency: 'GBP', status: 'completed', userId: 'user-id' }, 'Cash payment retrieved', 200)
+    const result = await this.cashPaymentsService.findOne(id)
+    return ApiResponse.success(result, 'Cash payment retrieved', 200)
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a cash payment (Admin only)' })
+  @ApiBody({ type: CreateCashPaymentDto })
+  @ApiCreatedResponse({ description: 'Cash payment created' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async create(@Body() dto: CreateCashPaymentDto) {
+    const result = await this.cashPaymentsService.create(dto)
+    return ApiResponse.success(result, 'Cash payment created', 201)
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a cash payment (Admin only)' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ schema: { properties: { status: { type: 'string', enum: ['pending', 'completed', 'failed', 'refunded'] } } } })
+  @ApiBody({ type: UpdateCashPaymentDto })
   @ApiOkResponse({ description: 'Cash payment updated' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Cash payment not found' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'Cash payment updated', 200)
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateCashPaymentDto) {
+    const result = await this.cashPaymentsService.update(id, dto)
+    return ApiResponse.success(result, 'Cash payment updated', 200)
   }
 
   @Delete(':id')
@@ -71,6 +87,7 @@ export class AdminCashPaymentsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Cash payment not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.cashPaymentsService.remove(id)
     return ApiResponse.message('Cash payment deleted', 200)
   }
 }

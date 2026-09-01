@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
 import {
   ApiTags,
   ApiBearerAuth,
@@ -18,6 +18,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { SubscribersService } from '../newsletter/subscribers.service'
+import { CreateSubscriberDto } from '../newsletter/dto/subscriber.dto'
 
 @ApiTags('admin-subscribers')
 @ApiExtraModels(ApiResponse)
@@ -26,16 +28,48 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/subscribers')
 export class AdminSubscribersController {
+  constructor(private readonly subscribersService: SubscribersService) {}
+
   @Get()
   @ApiOperation({ summary: 'List all subscribers (Admin only)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'sort', required: false, type: String })
+  @ApiQuery({ name: 'order', required: false, enum: ['ASC', 'DESC'] })
   @ApiOkResponse({ description: 'List of subscribers' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  async findAll(@Query() query: any) {
-    return ApiResponse.success({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } }, 'Subscribers retrieved', 200)
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('sort') sort?: string,
+    @Query('order') order?: 'ASC' | 'DESC',
+  ) {
+    const result = await this.subscribersService.findAll({
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+      search,
+      status,
+      sort,
+      order,
+    })
+    return ApiResponse.success(result, 'Subscribers retrieved', 200)
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a subscriber (Admin only)' })
+  @ApiBody({ type: CreateSubscriberDto })
+  @ApiCreatedResponse({ description: 'Subscriber created' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async create(@Body() dto: CreateSubscriberDto) {
+    const subscriber = await this.subscribersService.create(dto)
+    return ApiResponse.success(subscriber, 'Subscriber created', 201)
   }
 
   @Get(':id')
@@ -46,20 +80,8 @@ export class AdminSubscribersController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Subscriber not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.success({ id, email: 'subscriber@example.com', status: 'active' }, 'Subscriber retrieved', 200)
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update a subscriber (Admin only)' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ schema: { properties: { status: { type: 'string', enum: ['active', 'unsubscribed', 'bounced'] } } } })
-  @ApiOkResponse({ description: 'Subscriber updated' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  @ApiNotFoundResponse({ description: 'Subscriber not found' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'Subscriber updated', 200)
+    const subscriber = await this.subscribersService.findOne(id)
+    return ApiResponse.success(subscriber, 'Subscriber retrieved', 200)
   }
 
   @Delete(':id')
@@ -70,6 +92,19 @@ export class AdminSubscribersController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Subscriber not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.subscribersService.remove(id)
     return ApiResponse.message('Subscriber deleted', 200)
+  }
+
+  @Post(':id/unsubscribe')
+  @ApiOperation({ summary: 'Unsubscribe a subscriber (Admin only)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ description: 'Subscriber unsubscribed' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiNotFoundResponse({ description: 'Subscriber not found' })
+  async unsubscribe(@Param('id', new ParseUUIDPipe()) id: string) {
+    const subscriber = await this.subscribersService.unsubscribe(id)
+    return ApiResponse.success(subscriber, 'Subscriber unsubscribed', 200)
   }
 }

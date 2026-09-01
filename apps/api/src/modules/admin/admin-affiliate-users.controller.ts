@@ -1,10 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
+import { Controller, Get, Patch, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
-  ApiCreatedResponse,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
@@ -18,6 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { AffiliatesService } from '../affiliates/affiliates.service'
 
 @ApiTags('admin-affiliate-users')
 @ApiExtraModels(ApiResponse)
@@ -26,50 +26,15 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/affiliate-users')
 export class AdminAffiliateUsersController {
+  constructor(private readonly affiliatesService: AffiliatesService) {}
+
   @Get()
   @ApiOperation({ summary: 'List all affiliate users (Admin only)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'search', required: false, type: String })
   @ApiOkResponse({ description: 'List of affiliate users' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  async findAll(@Query() query: any) {
-    return ApiResponse.success({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } }, 'Affiliate users retrieved', 200)
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get an affiliate user by ID' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOkResponse({ description: 'Affiliate user found' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  @ApiNotFoundResponse({ description: 'Affiliate user not found' })
-  async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.success({ id, userId: 'user-id', code: 'AFF-123456', status: 'active', joinedAt: new Date() }, 'Affiliate user retrieved', 200)
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update an affiliate user (Admin only)' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ schema: { properties: { status: { type: 'string', enum: ['active', 'inactive', 'suspended'] } } } })
-  @ApiOkResponse({ description: 'Affiliate user updated' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  @ApiNotFoundResponse({ description: 'Affiliate user not found' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'Affiliate user updated', 200)
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete an affiliate user (Admin only)' })
-  @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOkResponse({ description: 'Affiliate user deleted' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  @ApiNotFoundResponse({ description: 'Affiliate user not found' })
-  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.message('Affiliate user deleted', 200)
+  async findAll() {
+    const result = await this.affiliatesService.listAll()
+    return result
   }
 }
