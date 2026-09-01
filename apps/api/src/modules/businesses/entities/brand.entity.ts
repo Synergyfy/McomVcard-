@@ -19,7 +19,7 @@ export class Brand {
   @Column({ type: 'text', nullable: true })
   description!: string | null
 
-  @Column({ name: 'logo_url', nullable: true })
+  @Column({ name: 'logo_url', type: 'text', nullable: true })
   logoUrl!: string | null
 
   @Column({ default: 'active' })

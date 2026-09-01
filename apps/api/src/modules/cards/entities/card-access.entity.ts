@@ -16,7 +16,7 @@ export class CardAccess {
   @Column({ name: 'is_enabled', default: false })
   isEnabled!: boolean
 
-  @Column({ name: 'password_hash', nullable: true })
+  @Column({ name: 'password_hash', type: 'text', nullable: true })
   passwordHash!: string | null
 
   @Column({ name: 'hint', type: 'varchar', length: 200, nullable: true })

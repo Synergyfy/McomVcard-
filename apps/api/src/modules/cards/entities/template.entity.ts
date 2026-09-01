@@ -31,22 +31,22 @@ export class Template {
   @Column({ name: 'is_consumer', default: true })
   isConsumer!: boolean
 
-  @Column({ name: 'font_family', nullable: true })
+  @Column({ name: 'font_family', type: 'text', nullable: true })
   fontFamily!: string | null
 
-  @Column({ name: 'primary_color', nullable: true })
+  @Column({ name: 'primary_color', type: 'text', nullable: true })
   primaryColor!: string | null
 
-  @Column({ name: 'secondary_color', nullable: true })
+  @Column({ name: 'secondary_color', type: 'text', nullable: true })
   secondaryColor!: string | null
 
-  @Column({ name: 'button_style', nullable: true })
+  @Column({ name: 'button_style', type: 'text', nullable: true })
   buttonStyle!: string | null
 
-  @Column({ name: 'logo_position', nullable: true })
+  @Column({ name: 'logo_position', type: 'text', nullable: true })
   logoPosition!: string | null
 
-  @Column({ name: 'bg_style', nullable: true })
+  @Column({ name: 'bg_style', type: 'text', nullable: true })
   bgStyle!: string | null
 
   @Column({ type: 'jsonb', nullable: true })

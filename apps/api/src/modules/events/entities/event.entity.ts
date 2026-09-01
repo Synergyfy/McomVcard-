@@ -47,7 +47,7 @@ export class Event {
   @Column({ type: 'text', nullable: true })
   description!: string | null
 
-  @Column({ name: 'hero_image', nullable: true })
+  @Column({ name: 'hero_image', type: 'text', nullable: true })
   heroImage!: string | null
 
   @Column({ name: 'starts_at', type: 'timestamptz' })
@@ -65,7 +65,7 @@ export class Event {
   @Column({ name: 'is_virtual', default: false })
   isVirtual!: boolean
 
-  @Column({ name: 'virtual_url', nullable: true })
+  @Column({ name: 'virtual_url', type: 'text', nullable: true })
   virtualUrl!: string | null
 
   @Column({ default: EventStatus.DRAFT })

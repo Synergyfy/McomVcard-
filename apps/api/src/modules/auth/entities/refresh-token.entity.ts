@@ -27,7 +27,7 @@ export class RefreshToken {
   @Column({ name: 'replaced_by', type: 'uuid', nullable: true })
   replacedBy!: string | null
 
-  @Column({ name: 'user_agent', nullable: true })
+  @Column({ name: 'user_agent', type: 'text', nullable: true })
   userAgent!: string | null
 
   @Column({ type: 'text', nullable: true })
