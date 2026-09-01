@@ -1,20 +1,21 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockConsumers } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
+import type { User } from '../../../types'
 
 type SortKey = 'consumer' | 'membership' | 'status' | 'joined' | 'lastActivity'
 type SortDir = 'asc' | 'desc'
 
 const PER_PAGE_OPTIONS = [25, 50, 100] as const
 const MEMBERSHIPS = ['Bronze', 'Bronze Pro', 'Silver Pro', 'Gold', 'Gold Pro', 'Platinum Pro', 'Platinum Pro+']
-const BUSINESSES = Array.from(new Set(mockConsumers.map(c => c.primaryIssuingBusiness)))
-const SOURCES = Array.from(new Set(mockConsumers.map(c => c.registrationSource)))
+const BUSINESSES: string[] = []
+const SOURCES: string[] = []
 
 export default function ConsumerListPage() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
@@ -24,6 +25,19 @@ export default function ConsumerListPage() {
   const [selected, setSelected] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [consumers, setConsumers] = useState<User[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    adminService.getUsers()
+      .then((res) => {
+        if (!cancelled) setConsumers(res.data ?? [])
+      })
+      .catch(() => { if (!cancelled) setError(true) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -40,49 +54,35 @@ export default function ConsumerListPage() {
   })
 
   const kpiTotals = useMemo(() => ({
-    total: mockConsumers.length,
-    active: mockConsumers.filter(c => c.status === 'active').length,
-    withVCards: mockConsumers.filter(c => c.vcardStatus === 'Active').length,
-    withCards: mockConsumers.filter(c => c.cardStatus === 'Active').length,
-    activeMemberships: mockConsumers.filter(c => c.membershipStatus === 'Active').length,
-    addlCardsAllocated: mockConsumers.reduce((s, c) => s + c.allocatedAdditionalCards, 0),
-    pendingEntitlements: mockConsumers.reduce((s, c) => s + c.unallocatedEntitlements, 0),
-  }), [])
+    total: consumers.length,
+    active: consumers.filter(c => c.status === 'active').length,
+    withVCards: consumers.filter(c => c.status === 'active').length,
+    withCards: consumers.filter(c => c.status === 'active').length,
+    activeMemberships: consumers.filter(c => c.status === 'active').length,
+    addlCardsAllocated: 0,
+    pendingEntitlements: 0,
+  }), [consumers])
 
   const filtered = useMemo(() => {
-    let items = [...mockConsumers]
+    let items = [...consumers]
     if (search) {
       const q = search.toLowerCase()
       items = items.filter(c =>
-        c.name.toLowerCase().includes(q) ||
+        (c.name ?? '').toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q) ||
-        c.phone.toLowerCase().includes(q) ||
-        c.consumerId.toLowerCase().includes(q) ||
-        c.centralUserId.toLowerCase().includes(q) ||
-        c.primaryIssuingBusiness.toLowerCase().includes(q)
+        (c.phone ?? '').toLowerCase().includes(q)
       )
     }
     if (filters.accountStatus !== 'All') items = items.filter(c => c.status === filters.accountStatus)
-    if (filters.membership !== 'All') items = items.filter(c => c.membership === filters.membership)
-    if (filters.vcardStatus !== 'All') items = items.filter(c => c.vcardStatus === filters.vcardStatus)
-    if (filters.cardStatus !== 'All') items = items.filter(c => c.cardStatus === filters.cardStatus)
-    if (filters.addlEntitlement === 'Has unused') items = items.filter(c => c.unallocatedEntitlements > 0)
-    else if (filters.addlEntitlement === 'Fully allocated') items = items.filter(c => c.additionalEntitlements > 0 && c.unallocatedEntitlements === 0)
-    else if (filters.addlEntitlement === 'No additional') items = items.filter(c => c.additionalEntitlements === 0)
-    if (filters.allocationType !== 'All') items = items.filter(c => c.allocationType === filters.allocationType)
-    if (filters.issuingBusiness !== 'All') items = items.filter(c => c.primaryIssuingBusiness === filters.issuingBusiness)
-    if (filters.regSource !== 'All') items = items.filter(c => c.registrationSource === filters.regSource)
     items.sort((a, b) => {
       let cmp = 0
-      if (sortKey === 'consumer') cmp = a.name.localeCompare(b.name)
-      else if (sortKey === 'membership') cmp = a.membership.localeCompare(b.membership)
+      if (sortKey === 'consumer') cmp = (a.name ?? a.email).localeCompare(b.name ?? b.email)
       else if (sortKey === 'status') cmp = a.status.localeCompare(b.status)
-      else if (sortKey === 'joined') cmp = a.joined.localeCompare(b.joined)
-      else if (sortKey === 'lastActivity') cmp = a.lastActivityAt.localeCompare(b.lastActivityAt)
+      else if (sortKey === 'joined') cmp = (a.created_at ?? '').localeCompare(b.created_at ?? '')
       return sortDir === 'asc' ? cmp : -cmp
     })
     return items
-  }, [search, filters, sortKey, sortDir])
+  }, [consumers, search, filters, sortKey, sortDir])
 
   const totalPages = Math.ceil(filtered.length / perPage)
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
@@ -118,17 +118,12 @@ export default function ConsumerListPage() {
     setSelected([])
   }
 
-  const handleRowAction = (c: typeof mockConsumers[0], action: string) => {
+  const handleRowAction = (c: User, action: string) => {
     setMenuOpen(null)
     switch (action) {
       case 'viewDetails': navigate(`/admin/consumers/${c.id}`); break
-      case 'viewVCard': navigate(`/admin/consumers/${c.id}?tab=vcard`); break
-      case 'viewCard': navigate(`/admin/consumers/${c.id}?tab=card`); break
-      case 'viewMembership': navigate(`/admin/consumers/${c.id}?tab=membership`); break
-      case 'viewActivity': navigate(`/admin/consumers/${c.id}?tab=activity`); break
-      case 'suspend': toast.success(`Consumer ${c.name} suspended`); break
-      case 'reactivate': toast.success(`Consumer ${c.name} reactivated`); break
-      case 'centralAccount': toast.success(`Opening central account for ${c.name}`); break
+      case 'suspend': toast.success(`Consumer ${c.name ?? c.email} suspended`); break
+      case 'reactivate': toast.success(`Consumer ${c.name ?? c.email} reactivated`); break
       default: break
     }
   }
@@ -172,7 +167,7 @@ export default function ConsumerListPage() {
         </div>
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">We couldn't load consumers.</p>
         <div className="flex gap-2">
-          <button onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 500) }} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">Try Again</button>
+          <button onClick={() => { setError(false); setLoading(true); adminService.getUsers().then((res) => setConsumers(res.data ?? [])).catch(() => setError(true)).finally(() => setLoading(false)) }} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">Try Again</button>
           <button onClick={() => toast.success('Opening system status')} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Check System Status</button>
         </div>
       </div>
@@ -300,58 +295,46 @@ export default function ConsumerListPage() {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">{c.name.charAt(0)}</div>
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">{(c.name ?? c.email).charAt(0)}</div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name ?? c.email}</p>
                         <p className="text-[10px] text-gray-400">Consumer</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    <span className="text-xs font-mono text-gray-600 dark:text-gray-300">{c.consumerId}</span>
+                    <span className="text-xs font-mono text-gray-600 dark:text-gray-300">{c.id}</span>
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell">
                     <p className="text-xs text-gray-700 dark:text-gray-300">{c.email}</p>
-                    <p className="text-[10px] text-gray-400">{c.phone}</p>
+                    <p className="text-[10px] text-gray-400">{c.phone ?? '—'}</p>
                   </td>
                   <td className="px-3 py-3">
-                    <p className="text-xs font-medium text-gray-900 dark:text-white">{c.membership}</p>
-                    <span className={`inline-flex items-center gap-1 text-[10px] ${statusColor(c.membershipStatus === 'Active' ? 'active' : c.membershipStatus === 'Suspended' ? 'suspended' : 'inactive')}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.membershipStatus)}`} />
-                      {c.membershipStatus}
+                    <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+                  </td>
+                  <td className="px-3 py-3 hidden lg:table-cell">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.status)}`} />
+                      {c.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-3 py-3 hidden lg:table-cell">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.vcardStatus === 'Active' ? 'text-green-600' : c.vcardStatus === 'Suspended' ? 'text-red-600' : c.vcardStatus === 'Not Assigned' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.vcardStatus)}`} />
-                      {c.vcardStatus}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 hidden lg:table-cell">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.cardStatus === 'Active' ? 'text-green-600' : c.cardStatus === 'Suspended' ? 'text-red-600' : c.cardStatus === 'Not Assigned' ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.cardStatus)}`} />
-                      {c.cardStatus}
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${c.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusBg(c.status)}`} />
+                      {c.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-3 py-3 text-right hidden xl:table-cell">
-                    <span className="text-xs font-mono font-medium text-gray-900 dark:text-white">{c.additionalEntitlements}</span>
+                    <span className="text-xs font-mono font-medium text-gray-900 dark:text-white">—</span>
                   </td>
                   <td className="px-3 py-3 text-right hidden xl:table-cell">
-                    <span className="text-xs font-mono text-orange-600">{c.allocatedAdditionalCards}</span>
-                    {c.unallocatedEntitlements > 0 && (
-                      <span className="text-[9px] text-amber-600 ml-1">({c.unallocatedEntitlements} avail)</span>
-                    )}
+                    <span className="text-xs font-mono text-orange-600">0</span>
                   </td>
                   <td className="px-3 py-3 hidden xl:table-cell">
-                    <div className="text-[10px]">
-                      {c.familyAllocations > 0 && <span className="text-gray-600 dark:text-gray-300">{c.familyAllocations} Family</span>}
-                      {c.familyAllocations > 0 && c.friendAllocations > 0 && <span className="text-gray-400 mx-0.5">·</span>}
-                      {c.friendAllocations > 0 && <span className="text-gray-600 dark:text-gray-300">{c.friendAllocations} Friend</span>}
-                      {c.familyAllocations === 0 && c.friendAllocations === 0 && <span className="text-gray-400">—</span>}
-                    </div>
+                    <div className="text-[10px]"><span className="text-gray-400">—</span></div>
                   </td>
                   <td className="px-3 py-3 hidden lg:table-cell">
-                    <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/businesses/${c.primaryIssuingBusinessId}`) }} className="text-xs text-orange-600 hover:underline">{c.primaryIssuingBusiness}</button>
+                    <span className="text-xs text-gray-400">—</span>
                   </td>
                   <td className="px-3 py-3">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${statusColor(c.status)}`}>
@@ -360,10 +343,10 @@ export default function ConsumerListPage() {
                     </span>
                   </td>
                   <td className="px-3 py-3 hidden sm:table-cell">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.lastActivityAt}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.updated_at ? new Date(c.updated_at).toLocaleDateString() : '—'}</span>
                   </td>
                   <td className="px-3 py-3 hidden 2xl:table-cell">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.joined}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</span>
                   </td>
                   <td className="px-3 py-3 text-right relative" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => setMenuOpen(menuOpen === c.id ? null : c.id)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -373,17 +356,11 @@ export default function ConsumerListPage() {
                       <div className="absolute right-0 top-full mt-1 z-50 w-48 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-lg py-1">
                         {[
                           { key: 'viewDetails', label: 'View Details', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
-                          { key: 'viewVCard', label: 'View VCard', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1' },
-                          { key: 'viewCard', label: 'View Card', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
-                          { key: 'viewMembership', label: 'View Membership', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
-                          { key: 'viewActivity', label: 'View Activity', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
                           { type: 'divider' },
                           c.status === 'active' ? { key: 'suspend', label: 'Suspend Account', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' } : { key: 'reactivate', label: 'Reactivate Account', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-                          { type: 'divider' },
-                          { key: 'centralAccount', label: 'Open Central Account', icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z M20.488 9H15V3.512a9.025 9.025 0 015.488 5.488z' },
                         ].map((item: any, idx: number) =>
                           item.type === 'divider' ? <div key={idx} className="border-t border-gray-100 dark:border-gray-700 my-1" /> :
-                          <button key={item.key} onClick={() => handleRowAction(c, item.key)} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-left">
+                          <button key={item.key} onClick={() => handleRowAction(c as any, item.key)} className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-left">
                             <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} /></svg>
                             {item.label}
                           </button>

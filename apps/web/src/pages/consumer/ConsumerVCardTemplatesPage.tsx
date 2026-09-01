@@ -1,19 +1,29 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockTemplates } from '../../services/mockData'
 import { MembershipLimitCard } from '../../components/membership/MembershipLimitCard'
 import { loadMembershipPricing } from '../../services/membershipPricingStore'
 import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
+import api from '../../services/api'
+import type { AdminTemplate } from '../../types'
 
 const MOCK_CLAIMED_TEMPLATE_IDS = ['1', '4', '9', '13']
 const CONSUMER_PLAN: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' = 'Bronze'
 
 export default function ConsumerVCardTemplatesPage() {
   const pricingState = useMemo(() => loadMembershipPricing(), [])
-  const claimedTemplates = mockTemplates.filter((t) => MOCK_CLAIMED_TEMPLATE_IDS.includes(t.id))
+  const [templates, setTemplates] = useState<AdminTemplate[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/templates').then((r) => setTemplates(r.data as AdminTemplate[])).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const claimedTemplates = templates.filter((t) => MOCK_CLAIMED_TEMPLATE_IDS.includes(t.id))
   const conVCardLimit = parseLimit(getRuleValue(pricingState, CONSUMER_PLAN, 'Consumer VCards'))
   const atLimit = conVCardLimit !== null && conVCardLimit !== Infinity && claimedTemplates.length >= conVCardLimit
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div>

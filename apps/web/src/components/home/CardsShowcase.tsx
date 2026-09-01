@@ -1,8 +1,33 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { mockCardDesigns } from '../../services/mockData'
+import api from '../../services/api'
+import type { AdminTemplate } from '../../types'
 import PreviewModal from '../common/PreviewModal'
 import type { PreviewCardData } from '../common/PreviewModal'
+
+interface CardDesign {
+  id: string
+  name: string
+  type: 'Business' | 'Consumer'
+  style: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  layout: string
+}
+
+function mapTemplateToCardDesign(t: AdminTemplate): CardDesign {
+  return {
+    id: t.id,
+    name: t.name,
+    type: t.is_consumer ? 'Consumer' : 'Business',
+    style: t.category || 'Default',
+    primaryColor: t.primary_color || '#FF5C00',
+    secondaryColor: t.secondary_color || '#FF8A50',
+    accentColor: t.primary_color || '#FF5C00',
+    layout: t.bg_style || 'gradient',
+  }
+}
 
 const CARD_DATA = [
   { name: 'GreenLeaf Coffee', owner: 'Sarah Johnson', title: 'Founder & CEO', phone: '+1 (555) 234-5678', email: 'sarah@greenleaf.com', website: 'greenleaf.com', logo: '☕' },
@@ -22,7 +47,7 @@ const CONSUMER_DATA = [
   { name: 'Chris Taylor', owner: 'Chris Taylor', title: 'Musician', phone: '+1 (555) 444-5555', email: 'chris@taylor.music', website: 'christaylor.music', logo: '🎵' },
 ]
 
-function BusinessCard({ data, card, onPreview }: { data: typeof CARD_DATA[0]; card: typeof mockCardDesigns[0]; onPreview: (c: PreviewCardData) => void }) {
+function BusinessCard({ data, card, onPreview }: { data: typeof CARD_DATA[0]; card: CardDesign; onPreview: (c: PreviewCardData) => void }) {
   return (
     <div className="w-[320px] h-[190px] rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 flex-shrink-0 relative group cursor-pointer"
       style={{ background: `linear-gradient(135deg, ${card.primaryColor}, ${card.secondaryColor})` }}
@@ -109,12 +134,22 @@ export default function CardsShowcase() {
   const [activeTab, setActiveTab] = useState<'business' | 'consumer'>('business')
   const [isPaused, setIsPaused] = useState(false)
   const [previewCard, setPreviewCard] = useState<PreviewCardData | null>(null)
+  const [allCards, setAllCards] = useState<CardDesign[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const animRef = useRef<number | undefined>(undefined)
   const posRef = useRef(0)
 
-  const businessCards = mockCardDesigns.filter((c) => c.type === 'Business')
-  const consumerCards = mockCardDesigns.filter((c) => c.type === 'Consumer')
+  useEffect(() => {
+    api.get('/templates', { params: { category: 'card-design' } })
+      .then((res) => {
+        const templates: AdminTemplate[] = res.data.data || res.data
+        setAllCards(templates.map(mapTemplateToCardDesign))
+      })
+      .catch(() => {})
+  }, [])
+
+  const businessCards = allCards.filter((c) => c.type === 'Business')
+  const consumerCards = allCards.filter((c) => c.type === 'Consumer')
   const cards = activeTab === 'business' ? businessCards : consumerCards
   const cardData = activeTab === 'business' ? CARD_DATA : CONSUMER_DATA
 

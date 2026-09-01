@@ -1,9 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockCardDesigns } from '../services/mockData'
+import api from '../services/api'
+import type { AdminTemplate } from '../types'
 import PreviewModal from '../components/common/PreviewModal'
 import type { PreviewCardData } from '../components/common/PreviewModal'
+
+interface CardDesign {
+  id: string
+  name: string
+  type: 'Business' | 'Consumer'
+  style: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  layout: string
+  usage: number
+  created: string
+}
+
+function mapTemplateToCardDesign(t: AdminTemplate): CardDesign {
+  return {
+    id: t.id,
+    name: t.name,
+    type: t.is_consumer ? 'Consumer' : 'Business',
+    style: t.category || 'Default',
+    primaryColor: t.primary_color || '#FF5C00',
+    secondaryColor: t.secondary_color || '#FF8A50',
+    accentColor: t.primary_color || '#FF5C00',
+    layout: t.bg_style || 'gradient',
+    usage: t.usage || 0,
+    created: t.created || '',
+  }
+}
 
 type Tab = 'all' | 'business' | 'consumer'
 
@@ -14,23 +43,33 @@ export default function CardsPage() {
   const [search, setSearch] = useState('')
   const [layoutFilter, setLayoutFilter] = useState('all')
   const [previewCard, setPreviewCard] = useState<PreviewCardData | null>(null)
+  const [allCards, setAllCards] = useState<CardDesign[]>([])
+
+  useEffect(() => {
+    api.get('/templates', { params: { category: 'card-design' } })
+      .then((res) => {
+        const templates: AdminTemplate[] = res.data.data || res.data
+        setAllCards(templates.map(mapTemplateToCardDesign))
+      })
+      .catch(() => {})
+  }, [])
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'all', label: 'All Cards', count: mockCardDesigns.length },
-    { key: 'business', label: 'Business', count: mockCardDesigns.filter((c) => c.type === 'Business').length },
-    { key: 'consumer', label: 'Consumer', count: mockCardDesigns.filter((c) => c.type === 'Consumer').length },
+    { key: 'all', label: 'All Cards', count: allCards.length },
+    { key: 'business', label: 'Business', count: allCards.filter((c) => c.type === 'Business').length },
+    { key: 'consumer', label: 'Consumer', count: allCards.filter((c) => c.type === 'Consumer').length },
   ]
 
-  const layouts = [...new Set(mockCardDesigns.map((c) => c.layout))]
+  const layouts = [...new Set(allCards.map((c) => c.layout))]
 
-  const filtered = mockCardDesigns.filter((c) => {
+  const filtered = allCards.filter((c) => {
     const matchTab = tab === 'all' || c.type.toLowerCase() === tab
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.style.toLowerCase().includes(search.toLowerCase())
     const matchLayout = layoutFilter === 'all' || c.layout === layoutFilter
     return matchTab && matchSearch && matchLayout
   })
 
-  const openPreview = (c: typeof mockCardDesigns[0]) => {
+  const openPreview = (c: CardDesign) => {
     setPreviewCard({
       id: c.id, name: c.name, type: c.type as 'Business' | 'Consumer',
       style: c.style, layout: c.layout, primaryColor: c.primaryColor,

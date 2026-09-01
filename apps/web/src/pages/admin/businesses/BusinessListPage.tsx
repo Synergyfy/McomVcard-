@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockBusinesses } from '../../../services/mockData'
 import { getFeaturedIds, toggleFeatured } from '../../../services/participatingBusinesses'
 
 const PAGE_SIZES = [25, 50, 100]
@@ -36,22 +35,32 @@ function lastActivityLabel(hoursAgo: number): string {
   return `${Math.floor(hoursAgo / 24)} days ago`
 }
 
-const bizData = mockBusinesses.map((b) => {
+interface ApiBusiness {
+  id: string
+  name: string
+  owner?: string
+  email?: string
+  phone?: string
+  status?: string
+  plan?: string
+  created_at?: string
+  [key: string]: any
+}
+
+function mapBizData(b: ApiBusiness) {
   const planMap: Record<string, string> = { Free: 'Free', Starter: 'Bronze', Business: 'Silver', Enterprise: 'Enterprise' }
-  const membership = planMap[b.plan] || 'Bronze'
-  const hasVCard = b.status === 'verified'
-  const hasCard = b.cards > 0
-  const businessVCard: string = hasVCard ? 'Active' : (b.status === 'pending' ? 'Not Created' : b.status === 'suspended' ? 'Suspended' : 'Inactive')
-  const businessCard: string = hasCard ? 'Active' : (b.status === 'pending' ? 'Not Created' : b.status === 'suspended' ? 'Suspended' : 'Inactive')
-  const consumerVCardsUsed = Math.floor(Math.random() * 200) + 20
-  const consumerVCardsTotal = b.plan === 'Free' ? 10 : b.plan === 'Starter' ? 100 : b.plan === 'Business' ? 500 : 1000
-  const consumerCardsUsed = Math.floor(Math.random() * 180) + 10
-  const consumerCardsTotal = b.plan === 'Free' ? 5 : b.plan === 'Starter' ? 50 : b.plan === 'Business' ? 500 : 1000
-  const hoursAgo = Math.floor(Math.random() * 336)
-  const membershipStatus = b.status === 'suspended' ? 'Expired' : b.status === 'pending' ? 'Pending' : 'Active'
-  const lowVCardAlloc = consumerVCardsTotal > 0 && (consumerVCardsUsed / consumerVCardsTotal) >= 0.8
-  const lowCardAlloc = consumerCardsTotal > 0 && (consumerCardsUsed / consumerCardsTotal) >= 0.8
-  const requiresAttention = businessVCard === 'Not Created' || businessCard === 'Not Created' || b.status === 'suspended' || lowVCardAlloc || lowCardAlloc || membershipStatus === 'Expired'
+  const membership = planMap[b.plan ?? ''] || 'Bronze'
+  const status = b.status ?? 'pending'
+  const hasVCard = status === 'verified'
+  const businessVCard: string = hasVCard ? 'Active' : (status === 'pending' ? 'Not Created' : status === 'suspended' ? 'Suspended' : 'Inactive')
+  const businessCard: string = hasVCard ? 'Active' : (status === 'pending' ? 'Not Created' : status === 'suspended' ? 'Suspended' : 'Inactive')
+  const consumerVCardsUsed = 0
+  const consumerVCardsTotal = 100
+  const consumerCardsUsed = 0
+  const consumerCardsTotal = 50
+  const hoursAgo = 0
+  const membershipStatus = status === 'suspended' ? 'Expired' : status === 'pending' ? 'Pending' : 'Active'
+  const requiresAttention = businessVCard === 'Not Created' || businessCard === 'Not Created' || status === 'suspended'
 
   return {
     ...b,
@@ -71,15 +80,15 @@ const bizData = mockBusinesses.map((b) => {
     vcardPercent: consumerVCardsTotal > 0 ? Math.round((consumerVCardsUsed / consumerVCardsTotal) * 100) : 0,
     cardPercent: consumerCardsTotal > 0 ? Math.round((consumerCardsUsed / consumerCardsTotal) * 100) : 0,
   }
-})
+}
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: string | undefined }) {
   const colors: Record<string, string> = {
     verified: 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400',
     pending: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
     suspended: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400',
   }
-  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>{status}</span>
+  return <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colors[status ?? ''] || 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>{status ?? '—'}</span>
 }
 
 function EntityBadge({ val }: { val: string }) {
@@ -117,6 +126,7 @@ function SkeletonKPI() {
 }
 
 export default function BusinessListPage() {
+  const [bizData, setBizData] = useState<ReturnType<typeof mapBizData>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
@@ -147,8 +157,19 @@ export default function BusinessListPage() {
   const [featuredFilter, setFeaturedFilter] = useState('All')
 
   useEffect(() => {
-    const t = setTimeout(() => { setLoading(false) }, 600)
-    return () => clearTimeout(t)
+    let cancelled = false
+    setLoading(true)
+    fetch('/api/admin/businesses')
+      .then((r) => r.json())
+      .then((res) => {
+        if (!cancelled) {
+          const raw = res?.data ?? res ?? []
+          setBizData(Array.isArray(raw) ? raw.map(mapBizData) : [])
+        }
+      })
+      .catch(() => { if (!cancelled) setError(true) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   const activeFilters = useMemo(() => {
@@ -188,9 +209,9 @@ export default function BusinessListPage() {
       items = items.filter(b =>
         b.name.toLowerCase().includes(q) ||
         b.businessId.toLowerCase().includes(q) ||
-        b.owner.toLowerCase().includes(q) ||
-        b.email.toLowerCase().includes(q) ||
-        b.phone.includes(q)
+        (b.owner ?? '').toLowerCase().includes(q) ||
+        (b.email ?? '').toLowerCase().includes(q) ||
+        (b.phone ?? '').includes(q)
       )
     }
     if (kpiFilter === 'Active') items = items.filter(b => b.status === 'verified')
@@ -224,18 +245,16 @@ export default function BusinessListPage() {
     items.sort((a, b) => {
       let cmp = 0
       if (sortKey === 'name') cmp = a.name.localeCompare(b.name)
-      else if (sortKey === 'owner') cmp = a.owner.localeCompare(b.owner)
+      else if (sortKey === 'owner') cmp = (a.owner ?? '').localeCompare(b.owner ?? '')
       else if (sortKey === 'membership') cmp = a.membership.localeCompare(b.membership)
-      else if (sortKey === 'status') cmp = a.status.localeCompare(b.status)
+      else if (sortKey === 'status') cmp = (a.status ?? '').localeCompare(b.status ?? '')
       else if (sortKey === 'vcard') cmp = a.businessVCard.localeCompare(b.businessVCard)
       else if (sortKey === 'card') cmp = a.businessCard.localeCompare(b.businessCard)
       else if (sortKey === 'consumerVCards') cmp = a.vcardPercent - b.vcardPercent
       else if (sortKey === 'consumerCards') cmp = a.cardPercent - b.cardPercent
       else if (sortKey === 'lastActivity') cmp = a.hoursAgo - b.hoursAgo
       else if (sortKey === 'joined') {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        const parse = (s: string) => { const [m, y] = s.split(' '); return parseInt(y) * 12 + months.indexOf(m) }
-        cmp = parse(a.joined) - parse(b.joined)
+        cmp = (a.created_at ?? '').localeCompare(b.created_at ?? '')
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -312,12 +331,12 @@ export default function BusinessListPage() {
         </div>
       </td>
       <td className="px-3 py-3">
-        <Link to={`/admin/businesses/${b.id}`} className="text-sm text-gray-700 dark:text-gray-300 hover:text-orange-600">{b.owner}</Link>
+        <Link to={`/admin/businesses/${b.id}`} className="text-sm text-gray-700 dark:text-gray-300 hover:text-orange-600">{b.owner ?? '—'}</Link>
         <p className="text-[10px] text-gray-400">User: U-{String(b.id).padStart(5, '0')}</p>
       </td>
       <td className="px-3 py-3 hidden xl:table-cell">
-        <p className="text-sm text-gray-700 dark:text-gray-300">{b.email}</p>
-        <p className="text-[11px] text-gray-400">{b.phone}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300">{b.email ?? '—'}</p>
+        <p className="text-[11px] text-gray-400">{b.phone ?? '—'}</p>
       </td>
       <td className="px-3 py-3">
         <Link to={`/admin/businesses/${b.id}`} className="hover:opacity-80"><EntityBadge val={b.businessVCard} /></Link>
@@ -436,8 +455,8 @@ export default function BusinessListPage() {
         </div>
       )}
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div><span className="text-[11px] text-gray-500">Owner</span><p className="text-gray-700 dark:text-gray-300">{b.owner}</p></div>
-        <div><span className="text-[11px] text-gray-500">Contact</span><p className="text-gray-700 dark:text-gray-300">{b.email}</p><p className="text-[11px] text-gray-400">{b.phone}</p></div>
+        <div><span className="text-[11px] text-gray-500">Owner</span><p className="text-gray-700 dark:text-gray-300">{b.owner ?? '—'}</p></div>
+        <div><span className="text-[11px] text-gray-500">Contact</span><p className="text-gray-700 dark:text-gray-300">{b.email ?? '—'}</p><p className="text-[11px] text-gray-400">{b.phone ?? '—'}</p></div>
         <div><span className="text-[11px] text-gray-500">Membership</span><div className="flex items-center gap-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${b.membership === 'Enterprise' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'}`}>{b.membership}</span><span className={`text-[10px] ${b.membershipStatus === 'Active' ? 'text-green-500' : 'text-red-400'}`}>{b.membershipStatus}</span></div></div>
         <div><span className="text-[11px] text-gray-500">Biz VCard</span><EntityBadge val={b.businessVCard} /></div>
         <div><span className="text-[11px] text-gray-500">Biz Card</span><EntityBadge val={b.businessCard} /></div>
@@ -459,7 +478,7 @@ export default function BusinessListPage() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Unable to Load Businesses</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">We couldn't retrieve the business list right now.</p>
         <div className="flex gap-3">
-          <button onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 600) }} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">Try Again</button>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600">Try Again</button>
           <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Refresh</button>
         </div>
       </div>

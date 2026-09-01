@@ -1,9 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { mockTemplates, mockClaimedTemplates } from '../../../services/mockData'
-import type { VCard } from '../../../types'
-
-const BUSINESS_ID = '1'
+import { userService } from '../../../services/user'
+import type { VCard, Template } from '../../../types'
 
 interface Props { vcard: VCard; onUpdate: (v: VCard) => void }
 
@@ -11,14 +9,18 @@ export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
   const [selectedId, setSelectedId] = useState<string>(String(vcard.template_id || 0))
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [allPublished, setAllPublished] = useState<Template[]>([])
 
-  const claimedIds = mockClaimedTemplates.filter((c) => c.business_id === BUSINESS_ID).map((c) => String(c.template_id))
-  const claimedTemplates = mockTemplates.filter((t) => claimedIds.includes(String(t.id)))
-  const allPublished = mockTemplates.filter((t) => t.status === 'published')
-  const categories = [...new Set(allPublished.map((t) => t.category))]
+  useEffect(() => {
+    userService.getTemplates()
+      .then((templates) => setAllPublished(templates.filter((t) => t.status === 'published')))
+      .catch(console.error)
+  }, [])
+
+  const categories = [...new Set(allPublished.map((t) => t.category ?? ''))]
 
   const filtered = allPublished.filter((t) => {
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || (t.category ?? '').toLowerCase().includes(search.toLowerCase())
     const matchCategory = categoryFilter === 'all' || t.category === categoryFilter
     return matchSearch && matchCategory
   })
@@ -31,7 +33,7 @@ export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">vCard Templates</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Choose a template for your vCard. {claimedTemplates.length} templates are already claimed.</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Choose a template for your vCard.</p>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -59,9 +61,6 @@ export default function VCardEditTemplatesTab({ vcard, onUpdate }: Props) {
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shadow">
                     <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   </div>
-                )}
-                {claimedIds.includes(t.id) && (
-                  <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-green-500 text-white">Claimed</div>
                 )}
               </div>
               <div className="p-2.5">

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
 import InputField from '../../../components/auth/InputField'
 import type { Currency } from '../../../types'
-import { mockCurrencies } from '../../../services/mockData'
 
 const featureGroups = [
   {
@@ -70,7 +69,7 @@ export default function PlanEditPage() {
   const [serverError, setServerError] = useState('')
 
   useEffect(() => {
-    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies(mockCurrencies))
+    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies([]))
     if (!id) return
     adminService.getPlan(String(id))
       .then((p) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockVcards, mockTemplates } from '../../../services/mockData'
+import { userService } from '../../../services/user'
 import type { VCard } from '../../../types'
 import type { ReactNode } from 'react'
 
@@ -67,28 +67,28 @@ export default function VCardEditPage() {
     description: '', email: '', phone: '', location: '', website: '',
     status: 0,
   })
+  const [template, setTemplate] = useState<{ primary_color?: string; secondary_color?: string; category?: string } | null>(null)
 
   useEffect(() => {
     if (!id) return
-    const found = mockVcards.find((v) => v.id === id)
-    if (found) {
-      setVcard(found)
-      setPreviewForm({
-        name: found.name, url_slug: found.url_slug, occupation: found.occupation || '',
-        description: found.description || '', email: found.email || '',
-        phone: found.phone || '', location: found.location || '', website: found.website || '',
-        status: found.status,
+    setLoading(true)
+    Promise.all([
+      userService.getVcard(id),
+      userService.getTemplates().catch(() => []),
+    ])
+      .then(([found, templates]) => {
+        setVcard(found)
+        setPreviewForm({
+          name: found.name, url_slug: found.url_slug, occupation: found.occupation || '',
+          description: found.description || '', email: found.email || '',
+          phone: found.phone || '', location: found.location || '', website: found.website || '',
+          status: found.status,
+        })
+        const t = templates.find((t: { id: number | string }) => String(t.id) === String(found.template_id))
+        if (t) setTemplate(t)
       })
-    } else {
-      setVcard({
-        id: id || '1', user_id: 1, name: 'My vCard', url_slug: `my-vcard-${id}`,
-        occupation: 'Professional', description: 'My digital business card',
-        email: 'hello@example.com', phone: '+1 234 567 890', location: 'New York, NY',
-        website: 'https://example.com', template_id: 1, status: 1,
-        created_at: '2026-01-15', updated_at: '2026-07-15',
-      })
-    }
-    setLoading(false)
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [id])
 
   if (loading) return (
@@ -98,7 +98,6 @@ export default function VCardEditPage() {
   )
   if (!vcard) return null
 
-  const template = mockTemplates.find((t) => t.id === String(vcard.template_id))
   const primaryColor = template?.primary_color || '#FF5C00'
   const secondaryColor = template?.secondary_color || '#FF8A50'
 

@@ -8,7 +8,6 @@ import type {
   WithdrawTransaction, Country, Language, TranslationEntry, CouponCode, FrontCMS,
   EmailTemplate, ActivityLog, NewsletterCampaign, FaqItem, AdminBooking,
 } from '../types'
-import * as mock from './mockData'
 
 const api = axios.create({
   baseURL: '/api',
@@ -24,66 +23,6 @@ api.interceptors.request.use((config) => {
 
 // Auto-refresh on 401 — swap HttpOnly cookie for fresh JWT, retry once.
 attach401Retry(api)
-
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (!err.response) {
-      const url = err.config?.url || ''
-      if (url.startsWith('/admin/')) {
-        return Promise.resolve({ data: getMockForUrl(url) })
-      }
-    }
-    return Promise.reject(err)
-  }
-)
-
-function getMockForUrl(url: string): any {
-  if (url.includes('/admin/admins')) return { data: [], total: 0 }
-  if (url.includes('/admin/users')) return { data: mock.mockUsers, total: mock.mockUsers.length }
-  if (url.includes('/admin/vcards')) return { data: mock.mockVcards, total: mock.mockVcards.length }
-  if (url.includes('/admin/plans') && !url.includes('subscribed') && !url.includes('cash')) return { data: mock.mockPlans, total: mock.mockPlans.length }
-  if (url.includes('/admin/subscribed-plans')) return { data: mock.mockSubscribedPlans, total: mock.mockSubscribedPlans.length }
-  if (url.includes('/admin/cash-payments')) return { data: mock.mockCashPayments, total: mock.mockCashPayments.length }
-  if (url.includes('/admin/affiliate-users')) return { data: mock.mockAffiliateUsers, total: mock.mockAffiliateUsers.length }
-  if (url.includes('/admin/affiliate-transactions')) return { data: mock.mockAffiliateTransactions, total: mock.mockAffiliateTransactions.length }
-  if (url.includes('/admin/withdraw-transactions')) return { data: mock.mockWithdrawTransactions, total: mock.mockWithdrawTransactions.length }
-  if (url.includes('/admin/countries')) return { data: mock.mockCountries, total: mock.mockCountries.length }
-  if (url.includes('/admin/languages')) {
-    if (url.includes('/translations')) return mock.mockTranslations
-    return { data: mock.mockLanguages, total: mock.mockLanguages.length }
-  }
-  if (url.includes('/admin/coupon-codes')) return { data: mock.mockCouponCodes, total: mock.mockCouponCodes.length }
-  if (url.includes('/admin/faqs')) return mock.mockFaqs
-  if (url.includes('/admin/front-cms')) return mock.mockFrontCMS
-  if (url.includes('/admin/email-templates')) return { data: mock.mockEmailTemplates, total: mock.mockEmailTemplates.length }
-  if (url.includes('/admin/templates')) return { data: mock.mockTemplates, total: mock.mockTemplates.length }
-  if (url.includes('/admin/activity-logs')) return { data: mock.mockActivityLogs, total: mock.mockActivityLogs.length }
-  if (url.includes('/admin/newsletter')) return { data: mock.mockNewsletterCampaigns, total: mock.mockNewsletterCampaigns.length }
-  if (url.includes('/admin/enquiries')) return mock.mockEnquiries
-  if (url.includes('/admin/subscribers')) return mock.mockSubscribers
-  if (url.includes('/admin/currencies')) return mock.mockCurrencies
-  if (url.includes('/admin/testimonials')) return mock.mockTestimonials
-  if (url.includes('/admin/features')) return mock.mockFrontFeatures
-  if (url.includes('/admin/about-us')) return mock.mockAboutUs
-  if (url.includes('/admin/settings')) return {}
-  if (url.includes('/admin/dashboard')) return {
-    total_users: mock.mockUsers.length,
-    total_vcards: mock.mockVcards.length,
-    total_plans: mock.mockPlans.length,
-    total_enquiries: mock.mockEnquiries.length,
-    total_subscribers: mock.mockSubscribers.length,
-    total_testimonials: mock.mockTestimonials.length,
-    recent_users: mock.mockUsers.slice(0, 5),
-    recent_vcards: mock.mockVcards.slice(0, 5),
-    monthly_users: [],
-    monthly_vcards: [],
-  }
-  if (url.includes('/admin/roles')) return mock.mockUsers
-  if (url.includes('/admin/all-currencies')) return mock.mockCurrencies
-  if (url.includes('/admin/bookings')) return { data: mock.mockAdminBookings, total: mock.mockAdminBookings.length }
-  return { data: [], total: 0 }
-}
 
 export const adminService = {
   // Dashboard
@@ -122,14 +61,31 @@ export const adminService = {
     return res.data
   },
 
+  // Businesses
+  async getAdminBusiness(id: string): Promise<any> {
+    const res = await api.get(`/admin/businesses/${id}`)
+    return res.data
+  },
+
   // vCards
   async getVcards(params?: Record<string, any>): Promise<{ data: VCard[]; total: number }> {
     const res = await api.get('/admin/cards', { params })
     return res.data
   },
 
+  async getAdminCard(id: string): Promise<any> {
+    const res = await api.get(`/admin/cards/${id}`)
+    return res.data
+  },
+
   async deleteVcard(id: string): Promise<void> {
     await api.delete(`/admin/cards/${id}`)
+  },
+
+  // Public Templates
+  async getPublicTemplates(): Promise<Template[]> {
+    const res = await api.get('/templates')
+    return res.data
   },
 
   // Plans

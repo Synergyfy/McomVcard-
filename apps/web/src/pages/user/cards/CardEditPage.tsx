@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockCardDesigns } from '../../../services/mockData'
+import { userService } from '../../../services/user'
 
 const LAYOUTS = ['split', 'centered', 'header', 'minimal', 'bold', 'diagonal'] as const
 const COLOR_PRESETS = ['#0F172A', '#D4AF37', '#FFFFFF', '#0D9488', '#F0FDFA', '#DC2626', '#1F2937', '#7C3AED', '#EC4899', '#059669', '#FEF3C7', '#2563EB', '#06B6D4', '#92400E', '#FFFBEB', '#18181B', '#FAFAFA', '#E11D48', '#14B8A6', '#0EA5E9', '#10B981', '#B45309', '#8B5CF6', '#EF4444', '#F59E0B']
@@ -28,18 +28,32 @@ interface CustomField {
 
 export default function CardEditPage() {
   const { id } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === id)
   const navigate = useNavigate()
+  const [design, setDesign] = useState<{ id: string; name: string; type: string; style: string; status: string; primaryColor: string; secondaryColor: string; accentColor: string; layout: string; usage: number } | null>(null)
+
+  useEffect(() => {
+    if (!id) return
+    userService.getVcard(id)
+      .then((card) => {
+        setDesign({
+          id: String(card.id), name: card.name || 'Business Card', type: 'Business',
+          style: card.occupation || 'Professional', status: 'Active',
+          primaryColor: '#0F172A', secondaryColor: '#D4AF37', accentColor: '#FFFFFF',
+          layout: 'split', usage: 0,
+        })
+      })
+      .catch(() => {})
+  }, [id])
 
   const [businessName, setBusinessName] = useState('GreenLeaf Coffee')
   const [title, setTitle] = useState('Premium Coffee & Pastries')
   const [phone, setPhone] = useState('+1 (555) 123-4567')
   const [email, setEmail] = useState('hello@greenleaf.com')
   const [description, setDescription] = useState('Artisan coffee shop serving organic, locally-sourced beverages and fresh pastries.')
-  const [primaryColor, setPrimaryColor] = useState(design?.primaryColor || '#0F172A')
-  const [secondaryColor, setSecondaryColor] = useState(design?.secondaryColor || '#D4AF37')
-  const [accentColor, setAccentColor] = useState(design?.accentColor || '#FFFFFF')
-  const [layout, setLayout] = useState(design?.layout || 'split')
+  const [primaryColor, setPrimaryColor] = useState('#0F172A')
+  const [secondaryColor, setSecondaryColor] = useState('#D4AF37')
+  const [accentColor, setAccentColor] = useState('#FFFFFF')
+  const [layout, setLayout] = useState('split')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([
     { id: 1, label: 'Website', value: 'greenleaf.com' },
