@@ -1,4 +1,4 @@
-import { Plan, PlanFeature, PlanRule, PlanTierPricing, PricingSections, AnnualDiscount } from '../entities/plan.entity'
+import { Plan, PlanFeature, PlanRule, PlanTierPricing, PricingSections, AnnualDiscount, PlanConfiguration } from '../entities/plan.entity'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class PlanFeatureResponseDto {
@@ -130,6 +130,36 @@ export class PlanResponseDto {
   @ApiProperty({ example: 'active' })
   status!: string
 
+  @ApiPropertyOptional({ example: { quotas: { maxVCards: 50 }, featureFlags: { customDomains: true } } })
+  configuration!: PlanConfiguration | null
+
+  @ApiProperty({ enum: ['STANDARD', 'TRIAL', 'SEASONAL'], example: 'STANDARD' })
+  type!: string
+
+  @ApiPropertyOptional({ example: 'uuid' })
+  seasonId!: string | null
+
+  @ApiProperty({ example: false })
+  isDefault!: boolean
+
+  @ApiPropertyOptional({ example: 'price_123' })
+  stripeMonthlyPriceId!: string | null
+
+  @ApiPropertyOptional({ example: 'price_456' })
+  stripeQuarterlyPriceId!: string | null
+
+  @ApiPropertyOptional({ example: 'price_789' })
+  stripeAnnualPriceId!: string | null
+
+  @ApiPropertyOptional({ example: 'P-123' })
+  paypalMonthlyPlanId!: string | null
+
+  @ApiPropertyOptional({ example: 'P-456' })
+  paypalQuarterlyPlanId!: string | null
+
+  @ApiPropertyOptional({ example: 'P-789' })
+  paypalAnnualPlanId!: string | null
+
   @ApiProperty({ example: '2024-01-15T10:30:00.000Z' })
   createdAt!: Date
 
@@ -202,6 +232,16 @@ export class PlanResponseDto {
     dto.annualDiscount = entity.annualDiscount || { type: 'months', value: 2 }
     dto.currency = entity.currency
     dto.status = entity.status
+    dto.configuration = entity.configuration
+    dto.type = entity.type
+    dto.seasonId = entity.seasonId
+    dto.isDefault = entity.isDefault
+    dto.stripeMonthlyPriceId = entity.stripeMonthlyPriceId
+    dto.stripeQuarterlyPriceId = entity.stripeQuarterlyPriceId
+    dto.stripeAnnualPriceId = entity.stripeAnnualPriceId
+    dto.paypalMonthlyPlanId = entity.paypalMonthlyPlanId
+    dto.paypalQuarterlyPlanId = entity.paypalQuarterlyPlanId
+    dto.paypalAnnualPlanId = entity.paypalAnnualPlanId
     dto.createdAt = entity.createdAt
     dto.updatedAt = entity.updatedAt
     return dto

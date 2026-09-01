@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { authService } from '../services/auth'
+import { mcomService, type SsoCompleteResult } from '../services/mcom'
 import { tokenStore } from '../services/tokenStore'
 import type { User, LoginData, RegisterData } from '../types'
 
@@ -14,6 +15,10 @@ interface AuthContextValue {
   updateUser: (user: User) => void
   impersonate: (userId: string) => Promise<void>
   stopImpersonating: () => Promise<void>
+  loginWithMcom: (options?: { card?: string; business?: string; redirect?: string }) => Promise<void>
+  completeMcomCallback: (code: string, state: string) => Promise<SsoCompleteResult>
+  completeMcomHandshake: (token: string) => Promise<{ user: User; role?: string | null }>
+  refreshMcomStatus: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -120,6 +125,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsImpersonating(false)
   }, [setStoredUser])
 
+  const loginWithMcom = useCallback(
+    async (options?: { card?: string; business?: string; redirect?: string }) => {
+      // The API generates + stores the OAuth `state` in an HttpOnly cookie and
+      // returns the Central authorize URL; the browser is redirected there.
+      await mcomService.startLogin(options?.card, options?.business, options?.redirect)
+    },
+    [],
+  )
+
+  const completeMcomCallback = useCallback(
+    async (code: string, state: string) => {
+      const result = await mcomService.completeLogin(code, state)
+      setStoredUser(result.user)
+      return result
+    },
+    [setStoredUser],
+  )
+
+  const completeMcomHandshake = useCallback(
+    async (token: string) => {
+      const result = await mcomService.completeHandshake(token)
+      setStoredUser(result.user)
+      return result
+    },
+    [setStoredUser],
+  )
+
+  const refreshMcomStatus = useCallback(async () => {
+    const user = await mcomService.refreshSession()
+    setStoredUser(user)
+  }, [setStoredUser])
+
   return (
     <AuthContext.Provider
       value={{
@@ -133,6 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         impersonate,
         stopImpersonating,
+        loginWithMcom,
+        completeMcomCallback,
+        completeMcomHandshake,
+        refreshMcomStatus,
       }}
     >
       {children}

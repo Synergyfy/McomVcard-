@@ -456,3 +456,112 @@ Frontend:
 - **Backend tsc clean**; **migration 034 applied**.
 
 **Why:** The "Available campaigns" section in CampaignsPage was hardcoded mock data with no backend. This creates the `campaign_templates` table and endpoints so templates are admin-managed in the DB and the frontend fetches them in real time.
+
+---
+
+## 21. [BACKEND + FRONTEND] MCOM Solutions SSO + Billing Integration
+
+**Date:** 2026-08-27
+**Files changed:**
+- `apps/api/.env` / `.env.example` — `MCOM_SOLUTIONS_URL`, `MCOM_CLIENT_ID/SECRET`, `MCOM_HMAC_SECRET`, `MCOM_API_KEY`, `MCOM_WEBHOOK_SECRET`, `MCOM_PLATFORM_SLUG`, `MCOM_REDIRECT_URI`, `MCOM_SCOPES`, `MCOM_MEMBERSHIP_URL`
+- `apps/api/src/lib/config/validation.ts` — Joi schema for the new MCOM vars
+- `apps/api/src/migrations/1712000000035-AddMcomSsoFields.ts` (new) — applied; adds `mcom_*` columns to `users` (user id, membership level/status, `can_access_vcard`, encrypted access/refresh tokens)
+- `apps/api/src/modules/users/entities/user.entity.ts` — mirrored `mcom_*` columns
+- `apps/api/src/modules/mcom/` (new module) — `mcom.service.ts`, `mcom.controller.ts`, `mcom.module.ts`, `dto/sso-callback.dto.ts`
+- `apps/api/src/lib/utils/mcom-crypto.util.ts` (new) — AES-256-GCM envelope for Central tokens at rest
+- `apps/api/src/lib/utils/oauth-state-cookie.util.ts` (new) — CSRF `state` + post-login return-context cookies
+- `apps/api/src/lib/utils/dto/user-response.dto.ts` — exposes `permissions.can_access_vcard`, `membership_level`, `membership_status`
+- `apps/api/src/modules/auth/auth.service.ts` — JIT provisioning (`mcomProvisionAndIssue`), `syncMcomSession`, public `issueTokens`
+- `apps/api/src/app.module.ts` — registered `McomModule`
+- `apps/web/src/services/mcom.ts` (new) — SSO start/complete/refresh/status/config
+- `apps/web/src/contexts/AuthContext.tsx` — `loginWithMcom`, `completeMcomCallback`, `refreshMcomStatus`
+- `apps/web/src/pages/auth/LoginPage.tsx` — "Login with MCOM" button (card/business invite context preserved)
+- `apps/web/src/pages/auth/AuthCallbackPage.tsx` (new) + `/auth/callback` route
+- `apps/web/src/components/auth/RequireVcardAccess.tsx` (new) — gates `/b/*`, `/c/*`, `/user/*` behind `can_access_vcard`
+- `apps/web/src/types/index.ts` — `permissions`, `membership_level`, `membership_status` on `User`/`ApiUserResponse`
+- `apps/web/src/i18n/locales/en.json` — `auth.login_with_mcom`, `auth.or`
+
+**What:** OAuth 2.0 authorization-code SSO against MCOM Solutions Central (`http://localhost:3010/api/v1`). Backend `GET /auth/sso/login` issues a 32-byte CSRF `state` cookie + authorize URL; `POST /auth/sso/callback` validates state, exchanges the code (Basic-auth client credentials — Central's DTO forbids `client_secret` in the body), fetches `/auth/sso/userinfo` for dynamic permissions, JIT-provisions/upserts the local user by email, and issues a local JWT + refresh cookie. Also added `/auth/sso/refresh`, `/auth/sso/status?sync=1`, secret-free `/auth/sso/config`, and an HMAC-signed `/auth/sso/data/permissions` call to the Central data-sharing API. Central tokens are stored AES-256-GCM-encrypted. The frontend gates all business/consumer/user dashboards on `can_access_vcard === true` with an upgrade/access-denied screen.
+- **Verified**: migration 035 applied; API boots; authorize URL + state cookie correct; HMAC-signed request accepted by Central (404 = auth passed); web `tsc`+build clean; **no secrets in the client bundle** (`.env` is gitignored).
+
+**Why:** vCards authentication/billing is handled centrally at MCOM Solutions. This integrates the app into the Central SSO + billing ecosystem so access to the platform is controlled by the user's active MCOM package (`canAccess_vcard`), with server-side secrets and CSRF-safe OAuth state.
+
+---
+
+## 22. [BACKEND + FRONTEND] Aligned MCOM Integration with the Ecosystem Partner Service Spec
+
+**Date:** 2026-08-30
+**Files changed:**
+- `apps/api/src/migrations/1712000000038-CreateMcomWebhookEvents.ts`, `1712000000039-AddPlanTypeSeasonId.ts`, `1712000000040-AddMcomUserFields.ts` (new, applied)
+- `apps/api/src/lib/utils/mcom-webhook-signature.util.ts` (new)
+- `apps/api/src/modules/mcom/webhooks/*` (new — controller, service, entity)
+- `apps/api/src/modules/mcom/dto/mcom-webhook.dto.ts` (new)
+- `apps/api/src/modules/mcom/direct-handshake.controller.ts` (new)
+- `apps/api/src/modules/system-plans/system-seasons.controller.ts` (new)
+- `apps/api/src/main.ts` (rawBody), `apps/api/src/modules/mcom/*`, `apps/api/src/modules/auth/auth.service.ts`, `apps/api/src/modules/users/{users.service,entities/user.entity}.ts`, `apps/api/src/modules/plans/*`, `apps/api/src/modules/system-plans/*`, `apps/api/src/modules/seasons/seasons.service.ts`
+- `apps/web/src/pages/auth/SsoLoginPage.tsx` (new), `apps/web/src/App.tsx`, `apps/web/src/contexts/AuthContext.tsx`, `apps/web/src/services/{mcom,packages}.ts`
+- `.env` / `.env.example` / `lib/config/validation.ts`
+
+**What:**
+- **Inbound webhook receiver** (`POST /api/v1/mcom/webhook`): `rawBody: true` in main.ts; verifies `X-Mcom-Webhook-Signature: sha256=<hex>` over the raw bytes with `MCOM_WEBHOOK_SECRET` (timing-safe); handles `package.created/renewed/cancelled/expired/payment.failed` by flipping `mcom_can_access_vcard` / membership status on the linked local user; idempotent via a `mcom_webhook_events` ledger (SHA-256 of the raw body, unique PK) so retried deliveries never double-apply. Body is parsed manually (not `@Body()`) so additive MCOM fields never 400 a signed delivery. `@SkipThrottle()` exempts it from the global limiter.
+- **Direct Dashboard Handshake** (`GET /api/v1/auth/sso-login?token=`): verifies the shared-secret JWT (`SSO_SECRET`, issuer `mcom-central`, ~60s TTL), JIT-provisions/updates the local user, issues a local session. Frontend `/sso-login` page + `completeMcomHandshake` context helper.
+- **Route versioning**: SSO + packages controllers moved under `v1/` (`/api/v1/auth/sso/*`, `/api/v1/mcom/packages/*`) and all frontend service calls updated.
+- **Env rename**: `MCOM_API_KEY` → `MCOM_SOLUTION_API_KEY` (validation, guard, tests, env files); added `SSO_SECRET`.
+- **HMAC signing → spec scheme** (§6.1): both MCOM clients now sign `"{serviceId}:{timestamp}"` and send `X-Service-Id` / `X-Timestamp` / `X-Signature` (was body-signed `X-Mcom-Client-ID`/`X-Mcom-Signature`).
+- **Plan `type`/`seasonId`**: persisted on plans (migration + entity + DTOs) and round-tripped through the `/system/plans` connector (no longer hardcoded `STANDARD`).
+- **`GET /api/v1/system/seasons`**: API-key-guarded active-seasons endpoint for the connector.
+- **User model**: `mcom_membership_tier` + `mcom_token_expires_at` columns; `expiresIn` now threaded from token exchange/refresh and stored.
+- **Wallet provider** accepted in `InitiatePurchaseDto` (`stripe | paypal | wallet`, backend only).
+
+**Verified:** api+web builds clean; all mcom/system-plans/auth suites pass; migrations 038–040 applied; live curl: webhook valid-sig 200 → bad-sig 401 → duplicate `alreadyProcessed:true` → additive-fields 200; handshake valid JWT 200 (user provisioned) → bad token 401; `/v1/system/seasons` 200 with key / 401 without; `/v1/system/plans/schema` + `/v1/mcom/packages/plans` 200. Test data cleaned up. Pre-existing `businesses/cards` service spec DI failures remain (untouched, fail on missing MembershipRepository mock).
+
+---
+
+## 23. [BACKEND + FRONTEND] SetupIntent support for trial/£0 plans + surfaced MCOM payment errors
+
+**Date:** 2026-08-30
+**Files changed:**
+- `apps/api/src/modules/mcom/packages/dto/confirm-purchase.dto.ts` — `paymentIntentId` now optional; added optional `setupIntentId`
+- `apps/api/src/modules/mcom/packages/mcom-packages.service.ts` — `confirmStripe` forwards `setupIntentId` or `paymentIntentId` (exactly one required); `bearerRequest` now surfaces Central's raw `message` on 401/403/400/500
+- `apps/web/src/services/packages.ts` — `InitiateResult.type` (`payment` | `setup`); `confirmStripe` accepts `paymentIntentId?` / `setupIntentId?`
+- `apps/web/src/pages/business/PlanCheckoutPage.tsx` — Stripe `PaymentForm` branches to `stripe.confirmSetup` (SetupIntent) when Central returns `type: "setup"` (trial / £0 plans); confirm sends `setupIntentId`
+
+**What:** MCOM Solutions diagnosed the payment `initiate` 401 as a JWT-secret divergence on their side (`SSO_JWT_SECRET` vs `JWT_SECRET` in Passport) and fixed it. They also confirmed Central accepts both PaymentIntents (`pi_…`) and SetupIntents (`seti_…`) on `/payment/platform/stripe/confirm`, auto-detected by prefix. This change:
+- Lets the partner confirm trial/£0 plans (which Central initiates as a SetupIntent) by running the correct Stripe client call and forwarding `setupIntentId`.
+- Enforces that exactly one of `paymentIntentId`/`setupIntentId` is present (400 otherwise).
+- Surfaces Central's real error message on payment failures instead of the generic "MCOM Solutions rejected the request (401)" wrapper.
+
+**Verified:** api + web builds clean; mcom/system-plans suites pass (41 tests); live: confirm with neither id → 400 "A paymentIntentId or setupIntentId is required"; confirm with `setupIntentId` → passes validation and proceeds (MCOM-linkage 400 expected for a non-SSO test user). Test user cleaned up. Full paid + trial checkout to be exercised in the browser against the fixed Central.
+
+---
+
+## 24. [BACKEND] Reverted HMAC signing to the Console body-signed scheme (fixes "Unknown service ID: mcom-vcard")
+
+**Date:** 2026-08-30
+**Files changed:**
+- `apps/api/src/modules/mcom/mcom.service.ts` — `request()` signs the raw body and sends `X-Mcom-Client-ID` + `X-Mcom-Signature: sha256=<hex>` (Console-registered app scheme)
+- `apps/api/src/modules/mcom/mcom-wallet.service.ts` — same revert (`sign()` over the JSON body; keeps `X-Idempotency-Key`)
+- `apps/api/src/modules/mcom/mcom-wallet.service.spec.ts` — signing assertions reverted to match
+
+**What:** While testing in-app checkout, `POST /mcom/packages/purchase/confirm` failed with `MCOM Central rejected the request (401): Unknown service ID: mcom-vcard`. Root cause found in MCOM Solutions' `data-sharing/guards/hmac-auth.guard.ts` + `wallet/guards/wallet-hmac.guard.ts`:
+- Central supports **two** HMAC schemes. The **legacy** scheme (`X-Service-Id`/`X-Timestamp`/`X-Signature`, message `serviceId:timestamp`) only whitelists a fixed set (`mcom-rewards`, `mcom-spin`, `mcom-mall`, `mcom-audit`, `mcom-expo`) — **`mcom-vcard` is not in it**, so it is rejected with "Unknown service ID".
+- Console-registered apps like `mcom-vcard` must use the **new** scheme: `X-Mcom-Client-ID: <client_id>` + `X-Mcom-Signature: sha256=<HMAC-SHA256(rawBody, secret)>`. Secret resolves from the registered client's `hmacSecret` (Tier 1) → `MCOM_VMCARD_SECRET` env (Tier 2) → `SSO_API_SECRET` (Tier 3).
+- Entry #22 switched both partner clients to the spec's legacy scheme; this reverts them to the body-signed scheme Central actually requires. Note the spec's §6.1 describes the legacy scheme, which does not cover vcard — the new scheme is the correct contract for this platform.
+
+**Verified:** api build clean; mcom suites pass (28 tests). Live vs Central: `GET /api/v1/data/user/:id/permissions` with the new-scheme signature now passes HmacAuthGuard (returns `404 User not found` instead of "Unknown service ID"); wallet partner route passes WalletHmacGuard (500 = post-auth internal, not an HMAC rejection). Payment confirm + entitlement sync (`canAccessVcard` → fetchPermissions) should now complete end-to-end.
+
+---
+
+## 25. [BACKEND + FRONTEND] Real "My Plan" UI driven by the MCOM-purchased package
+
+**Date:** 2026-08-30
+**Files changed:**
+- `apps/api/src/modules/mcom/mcom.service.ts` — `McomUserPackage` now carries optional `expiresAt` / `amount` / `currency` / `billingCycle`
+- `apps/api/src/modules/mcom/mcom.controller.ts` — `resolveActivePlan` (returned by `/v1/auth/sso/status` as `active_plan`) enriched with `monthlyPrice` / `quarterlyPrice` / `annualPrice` (Pro tier) and the package `expiresAt`
+- `apps/web/src/services/mcom.ts` — added `ActivePlan` type + `active_plan` on `SsoStatusResponse`
+- `apps/web/src/components/business/MyPlanCard.tsx` (new) — "My Plan" card: plan name/level, price, trial/expiry, features, quota + feature-flag summary, Upgrade/Details CTAs; loading, error and empty ("no active plan → view plans") states; calls `mcomService.getStatus(true)`
+- `apps/web/src/pages/business/MembershipPage.tsx`, `apps/web/src/pages/business/MyBusinessPage.tsx` — mounted `MyPlanCard`
+
+**What:** Before, the business "current plan" UIs were hardcoded mock (`mockMembership.plan` = "Gold Pro") or the local memberships table; the real MCOM-purchased package (`active_plan`) was computed by the backend but never rendered. Now `/b/membership` and the business dashboard show the actual MCOM VCard plan (name, level, price, trial/expiry, features, quotas/flags) with a graceful empty state linking to the proxied checkout.
+
+**Verified:** api + web builds clean; mcom suites pass (14 tests for service+packages); live `GET /v1/auth/sso/status` returns `{ ...permissions, active_plan: null }` for a non-MCOM user (graceful) and the enriched shape when a package resolves. Test user cleaned up.

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { QueryFailedError, Repository } from 'typeorm'
 import { ConfigService } from '@nestjs/config'
 import * as bcrypt from 'bcryptjs'
+import * as crypto from 'crypto'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
 import { RolesService } from '../roles/roles.service'
@@ -11,6 +12,8 @@ import { AffiliatesService } from '../affiliates/affiliates.service'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
+import { encryptMcomToken } from '../../lib/utils/mcom-crypto.util'
+import { User } from '../users/entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { EmailVerificationService } from '../email-verification/email-verification.service'
 
@@ -26,6 +29,29 @@ interface TokenMeta {
 interface PasswordResetJwt {
   sub: string
   type: 'password_reset'
+}
+
+/** Normalized MCOM Central profile used for JIT provisioning. */
+export interface McomUserInfo {
+  sub: string
+  email: string
+  firstName?: string | null
+  lastName?: string | null
+  name?: string | null
+  phone?: string | null
+  membershipLevel?: string | null
+  membershipTier?: string | null
+  membershipStatus?: string | null
+  permissions?: Record<string, boolean>
+}
+
+/** Identity carried by the shared-JWT Direct Dashboard Handshake (spec §3.3). */
+export interface DirectHandshakeJwt {
+  userId: string
+  email: string
+  firstName?: string
+  lastName?: string
+  role?: string
 }
 
 @Injectable()
@@ -276,7 +302,153 @@ export class AuthService {
   }
 
 
-  private async issueTokens(userId: string, meta?: TokenMeta) {
+  // ── MCOM Solutions SSO ─────────────────────────────────────────────────────
+
+  /**
+   * Just-In-Time (JIT) user provisioning from a MCOM Central profile.
+   * Upserts the local user by email, stamps the MCOM linkage/permissions, then
+   * issues a local session (JWT + refresh token). Never trusts client-supplied
+   * roles — the default USER role is assigned on first creation.
+   */
+async mcomProvisionAndIssue(
+    userInfo: McomUserInfo,
+    mcomAccessToken: string,
+    mcomRefreshToken: string,
+    meta?: TokenMeta,
+    accessTokenExpiresIn?: number,
+  ) {
+    const email = userInfo.email?.trim().toLowerCase()
+    if (!email) throw new BadRequestException('MCOM profile is missing an email')
+
+    let user = await this.usersService.findByEmail(email)
+
+    const platformSlug = this.config.get('MCOM_PLATFORM_SLUG') || 'vcard'
+    const permissionKey = `canAccess_${platformSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    const permissions = userInfo.permissions ?? {}
+    const canAccessVcard = permissions[permissionKey] === true || permissions.can_access_vcard === true
+
+    const patch: Partial<User> = {
+      firstName: userInfo.firstName ?? userInfo.name?.split(' ')[0] ?? null,
+      lastName: userInfo.lastName ?? (userInfo.name?.split(' ').slice(1).join(' ') || null),
+      phone: userInfo.phone ?? null,
+      isVerified: true,
+      status: 'active',
+      mcomUserId: userInfo.sub,
+      mcomMembershipLevel: userInfo.membershipLevel ?? null,
+      mcomMembershipTier: userInfo.membershipTier ?? null,
+      mcomMembershipStatus: userInfo.membershipStatus ?? null,
+      mcomCanAccessVcard: canAccessVcard,
+      mcomAccessToken: encryptMcomToken(mcomAccessToken),
+      mcomRefreshToken: encryptMcomToken(mcomRefreshToken),
+      mcomTokenExpiresAt: this.tokenExpiry(accessTokenExpiresIn),
+      mcomTokensUpdatedAt: new Date(),
+    }
+
+    if (user) {
+      user = (await this.usersService.update(user.id, patch)) ?? user
+    } else {
+      const hashed = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
+      const saved = await this.usersService.create({ email, passwordHash: hashed, ...patch })
+
+      await this.rolesService.ensureDefaultRole()
+      await this.rolesService.assignDefaultRole(saved.id)
+      user = saved
+    }
+
+    const auth = await this.issueTokens(user.id, meta)
+
+    return {
+      accessToken: auth.accessToken,
+      refreshToken: auth.refreshToken,
+      user: UserResponseDto.fromEntity(user),
+    }
+  }
+
+  /**
+   * Persist freshly synchronized Central profile state for an MCOM-linked user
+   * (used after /auth/sso/refresh and /auth/sso/status?sync=1).
+   */
+async syncMcomSession(
+    userId: string,
+    mcomAccessToken: string,
+    userInfo: McomUserInfo,
+    accessTokenExpiresIn?: number,
+  ): Promise<UserResponseDto> {
+    const user = await this.usersService.findById(userId)
+    if (!user) throw new UnauthorizedException('Authentication required')
+
+    const platformSlug = this.config.get('MCOM_PLATFORM_SLUG') || 'vcard'
+    const permissionKey = `canAccess_${platformSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    const permissions = userInfo.permissions ?? {}
+    const canAccessVcard = permissions[permissionKey] === true || permissions.can_access_vcard === true
+
+    const updated = (await this.usersService.update(userId, {
+      firstName: userInfo.firstName ?? userInfo.name?.split(' ')[0] ?? null,
+      lastName: userInfo.lastName ?? (userInfo.name?.split(' ').slice(1).join(' ') || null),
+      phone: userInfo.phone ?? null,
+      mcomUserId: userInfo.sub,
+      mcomMembershipLevel: userInfo.membershipLevel ?? null,
+      mcomMembershipTier: userInfo.membershipTier ?? null,
+      mcomMembershipStatus: userInfo.membershipStatus ?? null,
+      mcomCanAccessVcard: canAccessVcard,
+      mcomAccessToken: encryptMcomToken(mcomAccessToken),
+      mcomTokenExpiresAt: this.tokenExpiry(accessTokenExpiresIn),
+      mcomTokensUpdatedAt: new Date(),
+    })) ?? user
+
+    return UserResponseDto.fromEntity(updated)
+  }
+
+  private tokenExpiry(expiresIn?: number): Date | null {
+    if (!expiresIn || !Number.isFinite(expiresIn) || expiresIn <= 0) return null
+    return new Date(Date.now() + expiresIn * 1000)
+  }
+
+  /**
+   * Just-In-Time (JIT) provisioning from the Direct Dashboard Handshake
+   * (spec §3.3). MCOM Central signs a short-lived JWT with a shared secret
+   * (`SSO_SECRET`) and redirects the browser here with `?token=...`. The
+   * identity is upserted by email and a local session is issued.
+   *
+   * Unlike the OAuth flow, the handshake carries NO Central OAuth tokens, so a
+   * handshake-provisioned user cannot proxy payments until they complete a
+   * full SSO authorization.
+   */
+  async provisionFromHandshake(identity: DirectHandshakeJwt, meta?: TokenMeta) {
+    const email = identity.email?.trim().toLowerCase()
+    if (!email) throw new BadRequestException('MCOM handshake token is missing an email')
+
+    let user = await this.usersService.findByEmail(email)
+
+    const patch: Partial<User> = {
+      firstName: identity.firstName ?? null,
+      lastName: identity.lastName ?? null,
+      isVerified: true,
+      status: 'active',
+      mcomUserId: identity.userId,
+    }
+
+    if (user) {
+      user = (await this.usersService.update(user.id, patch)) ?? user
+    } else {
+      const hashed = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
+      const saved = await this.usersService.create({ email, passwordHash: hashed, ...patch })
+
+      await this.rolesService.ensureDefaultRole()
+      await this.rolesService.assignDefaultRole(saved.id)
+      user = saved
+    }
+
+    const auth = await this.issueTokens(user.id, meta)
+
+    return {
+      accessToken: auth.accessToken,
+      refreshToken: auth.refreshToken,
+      user: UserResponseDto.fromEntity(user),
+    }
+  }
+
+  async issueTokens(userId: string, meta?: TokenMeta) {
     const roles = await this.rolesService.getRoleNamesForUser(userId)
     const accessToken = this.jwtService.sign({ user_id: userId, roles })
     const { token } = await this.createRefreshToken(userId, meta)

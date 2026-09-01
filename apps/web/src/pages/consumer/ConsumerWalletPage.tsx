@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
 import { consumerWishlistService } from '../../services/consumerWishlist'
 import api from '../../services/api'
+import { businessService, type Wallet, type WalletTransaction } from '../../services/businessApi'
 import BottomSheet from '../../components/business/primitives/BottomSheet'
 import FundCardSheet from '../../components/consumer/wallet/FundCardSheet'
 import ErrorState from '../../components/common/ErrorState'
@@ -15,8 +16,9 @@ type WalletKey = 'giftCards' | 'vouchers' | 'coupons' | 'deals' | 'cashback' | '
 
 export default function ConsumerWalletPage() {
     const [wallet, setWallet] = useState<{ balance: number; points: number; cashback: number; giftCards: number; coupons: number; vouchers: number; pending?: number; locked?: number } | null>(null)
+    const [centralWallet, setCentralWallet] = useState<Wallet | null>(null)
     const [cardBalance, setCardBalance] = useState(0)
-    const [transactions, setTransactions] = useState<{ action: string; time: string; type: string; actor: string; source: string; status: string }[]>([])
+    const [transactions, setTransactions] = useState<WalletTransaction[]>([])
     const [fundOpen, setFundOpen] = useState(false)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
@@ -37,9 +39,16 @@ export default function ConsumerWalletPage() {
             api.get('/campaigns/nearby').then((r) => r.data as NearbyOffer[]).catch(() => [] as NearbyOffer[]),
         ])
             .then(([w, b, a, wish, redeem, offers]) => {
+            businessService.getWallet(),
+            businessService.getWalletTransactions(),
+            consumerService.getCardBalance(),
+            consumerWishlistService.getWishlist(),
+        ])
+            .then(([w, cw, txs, b, wish]) => {
                 setWallet(w)
+                setCentralWallet(cw)
+                setTransactions(txs || [])
                 setCardBalance(b)
-                setTransactions(a || [])
                 setWishCount(wish.length)
                 setRedeemItems(redeem)
                 setNearbyOffers(offers)
@@ -116,19 +125,18 @@ export default function ConsumerWalletPage() {
         wishlist: { title: 'My Wishlist', rows: [{ label: 'Saved items', value: wishCount.toString() }], cta: 'View Wishlist' },
     }
 
-    const pending = wallet.pending ?? 0
-    const locked = wallet.locked ?? 0
-    const available = Math.max(0, wallet.balance - pending - locked)
+    const centralBalance = centralWallet?.balance ?? 0
+    const centralAvailable = centralWallet?.available_balance ?? centralBalance
+    const centralPending = Math.max(0, centralBalance - centralAvailable)
 
-    const txMeta = (t: { action: string; type: string }): { cat: string; color: string; bg: string } => {
-        const a = t.action.toLowerCase()
-        if (a.includes('allocat') || a.includes('additional card')) return { cat: 'Allocation', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' }
-        if (a.includes('send') || a.includes('transfer')) return { cat: 'Transfer', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' }
-        if (a.includes('spent') || a.includes('purchase') || a.includes('tap') || t.type === 'nfc') return { cat: 'Spending', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' }
-        if (a.includes('fund') || a.includes('added £') || a.includes('top up')) return { cat: 'Funding', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' }
-        if (a.includes('redeem')) return { cat: 'Redemption', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-900/20' }
-        return { cat: 'Other', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800' }
+    const txMeta = (t: WalletTransaction): { cat: string; color: string; bg: string } => {
+        if (t.type === 'CREDIT') return { cat: 'Funding', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' }
+        if (t.type === 'DEBIT') return { cat: 'Spending', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' }
+        return { cat: t.category || 'Other', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800' }
     }
+
+    const txAction = (t: WalletTransaction): string =>
+        t.description || (t.type === 'CREDIT' ? 'Wallet credit' : 'Wallet debit')
 
     return (
         <div className="space-y-4 pb-2">
@@ -139,22 +147,24 @@ export default function ConsumerWalletPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Everything you can use</p>
             </div>
 
-            {/* Wallet balance — separate from card balance */}
+            {/* Wallet balance — separate from card balance. Sourced from the centralized MCOM Wallet. */}
             <section className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Wallet balance</p>
-                <p className="text-4xl font-extrabold mt-1 text-gray-900 dark:text-white">£{wallet.balance.toFixed(2)}</p>
+                <p className="text-4xl font-extrabold mt-1 text-gray-900 dark:text-white">
+                    {centralBalance.toFixed(2)} <span className="text-base font-semibold text-gray-400 dark:text-gray-500">MCOM</span>
+                </p>
                 <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                         <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">Available</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">£{available.toFixed(2)}</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{centralAvailable.toFixed(2)} MCOM</p>
                     </div>
                     <div>
-                        <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">Pending / locked</p>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">£{(pending + locked).toFixed(2)}</p>
+                        <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">Held</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{centralPending.toFixed(2)} MCOM</p>
                     </div>
                 </div>
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-3">
-                    Wallet balance is separate from your card balance, E-Card value and reward points.
+                    MCOM credits held in your centralized MCOM Wallet — separate from your card balance, E-Card value and reward points.
                 </p>
             </section>
 
@@ -264,22 +274,24 @@ export default function ConsumerWalletPage() {
                 </div>
                 {transactions.length > 0 ? (
                     <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm divide-y divide-gray-50 dark:divide-gray-800">
-                        {transactions.slice(0, 8).map((t, i) => {
+                        {transactions.slice(0, 8).map((t) => {
                             const meta = txMeta(t)
+                            const time = new Date(t.created_at).toLocaleString()
+                            const source = t.category || 'MCOM Wallet'
                             return (
-                                <div key={i} className="flex items-center gap-3 p-4">
+                                <div key={t.id} className="flex items-center gap-3 p-4">
                                     <span className={`w-9 h-9 rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>
                                         <svg className={`w-4 h-4 ${meta.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                         </svg>
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{t.action}</p>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500">{t.time} · {t.source}</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{txAction(t)}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500">{time} · {source}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${meta.bg} ${meta.color}`}>{meta.cat}</span>
-                                        <span className={`text-[10px] font-semibold ${t.status === 'Successful' ? 'text-emerald-500' : 'text-gray-400'}`}>{t.status}</span>
+                                        <span className="text-[10px] font-semibold text-emerald-500">Successful</span>
                                     </div>
                                 </div>
                             )

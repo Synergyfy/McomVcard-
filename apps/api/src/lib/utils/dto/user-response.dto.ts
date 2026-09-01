@@ -38,6 +38,20 @@ export class UserResponseDto {
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   updated_at!: Date
 
+  // ── MCOM Solutions Central Hub linkage ──
+  @ApiProperty({
+    description: 'Dynamic platform access permissions synchronized from MCOM Central',
+    example: { can_access_vcard: true },
+    nullable: true,
+  })
+  permissions!: Record<string, boolean> | null
+
+  @ApiProperty({ example: 'Gold', nullable: true, description: 'MCOM membership level (Central) or null for local accounts' })
+  membership_level!: string | null
+
+  @ApiProperty({ example: 'active', nullable: true, description: 'MCOM membership status (Central) or null for local accounts' })
+  membership_status!: string | null
+
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto()
 
@@ -53,6 +67,9 @@ export class UserResponseDto {
     dto.theme_mode = user.themeMode
     dto.created_at = user.createdAt
     dto.updated_at = user.updatedAt
+    dto.permissions = { can_access_vcard: user.mcomCanAccessVcard === true }
+    dto.membership_level = user.mcomMembershipLevel ?? null
+    dto.membership_status = user.mcomMembershipStatus ?? null
 
     return dto
   }

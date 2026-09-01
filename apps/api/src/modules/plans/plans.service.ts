@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { Plan, PlanFeature, PlanRule, PlanTierPricing, PlanTierPricingMap, PricingSections, AnnualDiscount } from './entities/plan.entity'
+import { Plan, PlanFeature, PlanRule, PlanTierPricing, PlanTierPricingMap, PricingSections, AnnualDiscount, PlanConfiguration } from './entities/plan.entity'
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto'
 import { PlanResponseDto } from './dto/plan-response.dto'
 
@@ -26,11 +26,22 @@ export class PlansService {
       throw new BadRequestException(`Invalid audience. Must be one of: ${PLAN_AUDIENCES.join(', ')}`)
     }
 
-    const existing = await this.planRepository.findOne({
-      where: { level: dto.level, audience: dto.audience },
-    })
-    if (existing) {
-      throw new BadRequestException(`Plan with level ${dto.level} and audience ${dto.audience} already exists`)
+    // Plans are identified by their free-form `name` (matching Mall/Rewards).
+    // `level`/`audience` are metadata, so duplicates are only rejected on name.
+    if (dto.name) {
+      const existing = await this.planRepository.findOne({
+        where: { name: dto.name },
+      })
+      if (existing) {
+        throw new BadRequestException(`Plan with name "${dto.name}" already exists`)
+      }
+    } else {
+      const existing = await this.planRepository.findOne({
+        where: { level: dto.level, audience: dto.audience },
+      })
+      if (existing) {
+        throw new BadRequestException(`Plan with level ${dto.level} and audience ${dto.audience} already exists`)
+      }
     }
 
     const plan = this.planRepository.create({
@@ -47,6 +58,16 @@ export class PlansService {
       annualDiscount: (dto.annualDiscount ?? { type: 'months', value: 2 }) as AnnualDiscount,
       currency: dto.currency ?? 'GBP',
       status: 'active',
+      type: dto.type ?? 'STANDARD',
+      seasonId: dto.seasonId ?? null,
+      configuration: (dto.configuration ?? null) as Plan['configuration'],
+      isDefault: dto.isDefault ?? false,
+      stripeMonthlyPriceId: dto.stripeMonthlyPriceId ?? null,
+      stripeQuarterlyPriceId: dto.stripeQuarterlyPriceId ?? null,
+      stripeAnnualPriceId: dto.stripeAnnualPriceId ?? null,
+      paypalMonthlyPlanId: dto.paypalMonthlyPlanId ?? null,
+      paypalQuarterlyPlanId: dto.paypalQuarterlyPlanId ?? null,
+      paypalAnnualPlanId: dto.paypalAnnualPlanId ?? null,
     })
 
     const saved = await this.planRepository.save(plan)
@@ -71,7 +92,10 @@ export class PlansService {
   }
 
   async findByLevelAndAudience(level: PlanLevel, audience: PlanAudience): Promise<PlanResponseDto> {
-    const plan = await this.planRepository.findOne({ where: { level, audience } })
+    const plan = await this.planRepository.findOne({
+      where: { level, audience },
+      order: { sortOrder: 'ASC' },
+    })
     if (!plan) {
       throw new NotFoundException(`Plan with level ${level} and audience ${audience} not found`)
     }
@@ -95,6 +119,16 @@ export class PlansService {
     if (dto.annualDiscount !== undefined) plan.annualDiscount = dto.annualDiscount as AnnualDiscount
     if (dto.currency !== undefined) plan.currency = dto.currency
     if (dto.status !== undefined) plan.status = dto.status
+    if (dto.type !== undefined) plan.type = dto.type
+    if (dto.seasonId !== undefined) plan.seasonId = dto.seasonId ?? null
+    if (dto.configuration !== undefined) plan.configuration = dto.configuration as PlanConfiguration
+    if (dto.isDefault !== undefined) plan.isDefault = dto.isDefault
+    if (dto.stripeMonthlyPriceId !== undefined) plan.stripeMonthlyPriceId = dto.stripeMonthlyPriceId ?? null
+    if (dto.stripeQuarterlyPriceId !== undefined) plan.stripeQuarterlyPriceId = dto.stripeQuarterlyPriceId ?? null
+    if (dto.stripeAnnualPriceId !== undefined) plan.stripeAnnualPriceId = dto.stripeAnnualPriceId ?? null
+    if (dto.paypalMonthlyPlanId !== undefined) plan.paypalMonthlyPlanId = dto.paypalMonthlyPlanId ?? null
+    if (dto.paypalQuarterlyPlanId !== undefined) plan.paypalQuarterlyPlanId = dto.paypalQuarterlyPlanId ?? null
+    if (dto.paypalAnnualPlanId !== undefined) plan.paypalAnnualPlanId = dto.paypalAnnualPlanId ?? null
 
     const saved = await this.planRepository.save(plan)
     return PlanResponseDto.fromEntity(saved)
@@ -130,6 +164,8 @@ export class PlansService {
           annualDiscount: { type: 'months', value: 2 } as AnnualDiscount,
           currency: 'GBP',
           status: 'active',
+          configuration: null,
+          isDefault: level === 'Bronze',
         })
 
         const saved = await this.planRepository.save(plan)
