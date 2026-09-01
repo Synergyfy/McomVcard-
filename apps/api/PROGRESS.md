@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-31 (session: Complete mock-to-API migration — wallet transfers, wishlist sharing, usage stats)
+> Last updated: 2026-09-01 (session: 5 admin entity modules created — ActivityLog admin wiring, Newsletter, Subscriber, Country, CouponCode with entities/services/DTOs/modules/controllers)
 > Working branch: `logic`
-> Latest commits: `50c5793` (feat: complete mock-to-API migration), `a87ea3e` (feat: connect remaining mock services), `c58337a` (feat(api): add missing backend endpoints)
+> Latest commits: `7ce9c2a` (feat(api): replace 7 stubbed admin modules), `50c5793` (feat: complete mock-to-API migration), `a87ea3e` (feat: connect remaining mock services)
 
 ---
 
@@ -617,8 +617,23 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - `pnpm exec tsc --noEmit` — 0 errors (API + web)
 - `pnpm test` — 155 passed, 4 suites
 
-### Remaining
-- `admin.ts` — Uses mockData as fallback for some admin pages (acceptable for now)
+### Remaining (Low Priority)
+- `admin-admins` — Admin user management (stubbed)
+- `admin-activity-logs` — Activity log viewing (stubbed)
+- `admin-newsletter` — Newsletter management (stubbed)
+- `admin-subscribers` — Subscriber management (stubbed)
+- `admin-subscribed-plans` — Subscribed plans (stubbed)
+- `admin-cash-payments` — Cash payments (stubbed)
+- `admin-withdraw-transactions` — Withdrawals (stubbed)
+- `admin-bookings` — Bookings (stubbed)
+- `admin-countries` — Countries (stubbed)
+- `admin-coupon-codes` — Coupon codes (stubbed)
+- `admin-affiliate-transactions` — Affiliate transactions (stubbed)
+- `admin-affiliate-users` — Affiliate users (stubbed)
+- `admin-about-us` — About us content (stubbed)
+- `admin-front-cms` — Front CMS content (stubbed)
+- `admin-system` — Cache clearing (stubbed)
+- Frontend: 52 pages still using mock data (admin, business, consumer, user sections)
 - `wishlist_shares` table needs TypeORM migration (auto-sync in dev)
 - `wishlist_items.fulfilled_by` column needs migration (auto-sync in dev)
 
@@ -645,6 +660,84 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - **consumer.ts** — All 10+ methods now call real API endpoints (getFamilyCards, getShareContent, getCardActivity, getNearbyOffers, getExchangeItems, getRedeemItems, getNotifications, getProfileByEmail)
 - **FindBusinessPage.tsx** — Updated to use async getParticipatingIndustries/getParticipatingCities
 - Files created: `public.decorator.ts`, `nearby-offer-response.dto.ts`, `redeemable-item-response.dto.ts`, `card-activity-response.dto.ts`, `exchange-item-response.dto.ts`, `user-basic-response.dto.ts`, `family-card-response.dto.ts`, `share-content-response.dto.ts`, `language.entity.ts`, `translation.entity.ts`, `languages.module.ts`, `languages.service.ts`, `users.controller.ts`, `user-actions.service.ts`
+
+---
+
+## Session 2026-09-01 — Final 3 Admin Modules Replaced ✅
+
+### Completed
+- **FrontCMS entity + module (admin-front-cms)**: New `front_cms` table entity (`id` UUID PK, `key` varchar unique, `value` text, `group` varchar default `'general'`, `created_at`/`updated_at`). `CmsModule` with `FrontCmsService` (`findByGroup`, `getByKey`, `set`, `setBulk`). `AdminFrontCMSController` updated from stub to real service — endpoints: `GET /admin/front-cms` (list/filter by group), `GET /admin/front-cms/:id`, `POST /admin/front-cms`, `PATCH /admin/front-cms/:id`, `DELETE /admin/front-cms/:id`, `POST /admin/front-cms/bulk` (bulk upsert by group). DTOs: `CreateFrontCmsDto`, `UpdateFrontCmsDto`, `BulkUpdateFrontCmsDto`, `FrontCmsResponseDto`.
+- **AdminAffiliateTransactionsController**: Updated from stub to real service using `AffiliatesService.listAllTransactions(status?)` and `updateTransactionStatus(id, dto)`. Removed `@Get(':id')` and `@Delete(':id')` (not supported by service; transaction management is status-update only). Added `AffiliatesModule` import to `AdminModule`.
+- **AdminAffiliateUsersController**: Updated from stub to real service using `AffiliatesService.listAll()`. Returns enriched affiliate list with `user_name`, `user_email`, referral counts, earnings. Removed `@Get(':id')`, `@Patch(':id')`, `@Delete(':id')` (service only exposes `listAll()`). Added `AffiliatesModule` import to `AdminModule`.
+
+### Files Created
+- `src/modules/cms/entities/front-cms.entity.ts`
+- `src/modules/cms/dto/front-cms.dto.ts`
+- `src/modules/cms/front-cms.service.ts`
+- `src/modules/cms/cms.module.ts`
+
+### Files Modified
+- `src/modules/admin/admin-front-cms.controller.ts` — stub → real service
+- `src/modules/admin/admin-affiliate-transactions.controller.ts` — stub → real service
+- `src/modules/admin/admin-affiliate-users.controller.ts` — stub → real service
+- `src/modules/admin/admin.module.ts` — added `CmsModule`, `AffiliatesModule` imports
+
+### Verified
+- `tsc --noEmit` clean (only pre-existing error in `admin-withdraw-transactions.controller.ts`)
+- All admin modules now use real database services
+
+---
+
+## Session 2026-09-01 — 5 Admin Entity Modules ✅
+
+### New Files Created
+
+**Newsletter Module** (`modules/newsletter/`):
+- `entities/newsletter-campaign.entity.ts` — NewsletterCampaign entity (id, name, subject, body, status, sent_count, scheduled_at, timestamps)
+- `entities/subscriber.entity.ts` — Subscriber entity (id, email unique, name, status, subscribed_at, unsubscribed_at, timestamps)
+- `dto/newsletter-campaign.dto.ts` — CreateNewsletterCampaignDto, UpdateNewsletterCampaignDto
+- `dto/subscriber.dto.ts` — CreateSubscriberDto, UpdateSubscriberDto
+- `newsletter.service.ts` — findAll/findOne/create/update/remove/send with pagination, search, status filter
+- `subscribers.service.ts` — findAll/findOne/create/remove/unsubscribe with pagination, search, status filter
+- `newsletter.module.ts` — NewsletterModule (exports both services)
+
+**Countries Module** (`modules/countries/`):
+- `entities/country.entity.ts` — Country entity (id, code unique, name, phone_code, flag_emoji, is_active, timestamps)
+- `dto/country.dto.ts` — CreateCountryDto, UpdateCountryDto
+- `countries.service.ts` — findAll/findOne/create/update/remove with pagination, search, active filter, unique code check
+- `countries.module.ts` — CountriesModule
+
+**Coupon Codes Module** (`modules/coupon-codes/`):
+- `entities/coupon-code.entity.ts` — CouponCode entity (id, code unique, discount_type, discount_value, max_uses, used_count, expires_at, is_active, timestamps)
+- `dto/coupon-code.dto.ts` — CreateCouponCodeDto, UpdateCouponCodeDto
+- `coupon-codes.service.ts` — findAll/findOne/create/update/remove/validate with pagination, search, active filter, unique code check
+- `coupon-codes.module.ts` — CouponCodesModule
+
+### Modified Files
+
+- `modules/activity/activity.service.ts` — Added findAll(), findOne(), findByBusiness(), findByUser(), remove() admin methods
+- `modules/admin/admin-activity-logs.controller.ts` — Replaced stub with real ActivityService
+- `modules/admin/admin-newsletter.controller.ts` — Replaced stub with real NewsletterService + DTOs
+- `modules/admin/admin-subscribers.controller.ts` — Replaced stub with real SubscribersService + DTOs
+- `modules/admin/admin-countries.controller.ts` — Replaced stub with real CountriesService + DTOs
+- `modules/admin/admin-coupon-codes.controller.ts` — Replaced stub with real CouponCodesService + DTOs + validate endpoint
+- `modules/admin/admin.module.ts` — Registered ActivityModule, NewsletterModule, CountriesModule, CouponCodesModule + entities in TypeOrmModule.forFeature
+
+### Endpoints Added
+
+| Controller | Endpoints |
+|------------|-----------|
+| AdminActivityLogsController | GET /admin/activity-logs (paginated+search+filter), GET /admin/activity-logs/:id, DELETE /admin/activity-logs/:id |
+| AdminNewsletterController | GET/POST /admin/newsletter, GET/PATCH/DELETE /admin/newsletter/:id, POST /admin/newsletter/:id/send |
+| AdminSubscribersController | GET/POST /admin/subscribers, GET/DELETE /admin/subscribers/:id, POST /admin/subscribers/:id/unsubscribe |
+| AdminCountriesController | GET/POST /admin/countries, GET/PATCH/DELETE /admin/countries/:id |
+| AdminCouponCodesController | GET/POST /admin/coupon-codes, GET/PATCH/DELETE /admin/coupon-codes/:id, GET /admin/coupon-codes/:id/validate |
+
+### Verified
+- `tsc --noEmit` — clean (0 errors)
+- All controllers use real TypeORM services with proper DI
+- All DTOs use class-validator + Swagger decorators
+- All endpoints documented with @ApiBody, @ApiOkResponse, @ApiCreatedResponse, @ApiNotFoundResponse, etc.
 
 ---
 

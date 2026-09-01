@@ -6,6 +6,10 @@ import { RolesModule } from '../roles/roles.module'
 import { PlansModule } from '../plans/plans.module'
 import { LanguagesModule } from '../languages/languages.module'
 import { CurrenciesModule } from '../currencies/currencies.module'
+import { ActivityModule } from '../activity/activity.module'
+import { NewsletterModule } from '../newsletter/newsletter.module'
+import { CountriesModule } from '../countries/countries.module'
+import { CouponCodesModule } from '../coupon-codes/coupon-codes.module'
 import { AdminController } from './admin.controller'
 import { AdminUsersController } from './admin-users.controller'
 import { AdminBusinessesController } from './admin-businesses.controller'
@@ -69,6 +73,11 @@ import { VoucherTransaction } from '../vouchers/entities/voucher-transaction.ent
 import { Campaign } from '../campaigns/entities/campaign.entity'
 import { Offer } from '../campaigns/entities/offer.entity'
 import { Coupon } from '../campaigns/entities/coupon.entity'
+import { ActivityLog } from '../activity/entities/activity-log.entity'
+import { NewsletterCampaign } from '../newsletter/entities/newsletter-campaign.entity'
+import { Subscriber } from '../newsletter/entities/subscriber.entity'
+import { Country } from '../countries/entities/country.entity'
+import { CouponCode } from '../coupon-codes/entities/coupon-code.entity'
 
 @Module({
   imports: [
@@ -84,6 +93,10 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     SettingsModule,
     FeaturesModule,
     TestimonialsModule,
+    ActivityModule,
+    NewsletterModule,
+    CountriesModule,
+    CouponCodesModule,
     TypeOrmModule.forFeature([
       User,
       Business,
@@ -105,6 +118,11 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
       Campaign,
       Offer,
       Coupon,
+      ActivityLog,
+      NewsletterCampaign,
+      Subscriber,
+      Country,
+      CouponCode,
     ]),
   ],
   controllers: [

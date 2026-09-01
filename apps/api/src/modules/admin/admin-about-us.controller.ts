@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common'
 import {
   ApiTags,
   ApiBearerAuth,
@@ -9,7 +9,6 @@ import {
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiBadRequestResponse,
-  ApiQuery,
   ApiBody,
   ApiParam,
   ApiExtraModels,
@@ -18,6 +17,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { AboutUsService } from '../about-us/about-us.service'
+import { CreateAboutUsDto, UpdateAboutUsDto } from '../about-us/dto/about-us.dto'
 
 @ApiTags('admin-about-us')
 @ApiExtraModels(ApiResponse)
@@ -26,24 +27,16 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/about-us')
 export class AdminAboutUsController {
+  constructor(private readonly aboutUsService: AboutUsService) {}
+
   @Get()
   @ApiOperation({ summary: 'List all about us entries (Admin only)' })
   @ApiOkResponse({ description: 'List of about us entries' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   async findAll() {
-    return ApiResponse.success([], 'About us entries retrieved', 200)
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Create an about us entry (Admin only)' })
-  @ApiBody({ schema: { properties: { title: { type: 'string' }, content: { type: 'string' }, order: { type: 'number' } } } })
-  @ApiCreatedResponse({ description: 'About us entry created' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  @ApiBadRequestResponse({ description: 'Invalid input' })
-  async create(@Body() body: any) {
-    return ApiResponse.success({ id: 'placeholder', ...body }, 'About us entry created', 201)
+    const result = await this.aboutUsService.findAll()
+    return ApiResponse.success(result, 'About us entries retrieved', 200)
   }
 
   @Get(':id')
@@ -54,20 +47,34 @@ export class AdminAboutUsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'About us entry not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.success({ id, title: 'About Us', content: 'Content', order: 1 }, 'About us entry retrieved', 200)
+    const result = await this.aboutUsService.findOne(id)
+    return ApiResponse.success(result, 'About us entry retrieved', 200)
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create an about us entry (Admin only)' })
+  @ApiBody({ type: CreateAboutUsDto })
+  @ApiCreatedResponse({ description: 'About us entry created' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async create(@Body() dto: CreateAboutUsDto) {
+    const result = await this.aboutUsService.create(dto)
+    return ApiResponse.success(result, 'About us entry created', 201)
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an about us entry (Admin only)' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ schema: { properties: { title: { type: 'string' }, content: { type: 'string' }, order: { type: 'number' } } } })
+  @ApiBody({ type: UpdateAboutUsDto })
   @ApiOkResponse({ description: 'About us entry updated' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'About us entry not found' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'About us entry updated', 200)
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateAboutUsDto) {
+    const result = await this.aboutUsService.update(id, dto)
+    return ApiResponse.success(result, 'About us entry updated', 200)
   }
 
   @Delete(':id')
@@ -78,6 +85,7 @@ export class AdminAboutUsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'About us entry not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.aboutUsService.remove(id)
     return ApiResponse.message('About us entry deleted', 200)
   }
 }
