@@ -2,9 +2,9 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-08-31 (session: Remaining mock services connected — participatingBusinesses, exchange items, profile by email, all consumer.ts TODOs)
+> Last updated: 2026-08-31 (session: Complete mock-to-API migration — wallet transfers, wishlist sharing, usage stats)
 > Working branch: `logic`
-> Latest commits: `c58337a` (feat(api): add missing backend endpoints for frontend-API integration), `d345091` (feat: frontend-API integration), `d3c3d1e` (feat(cards): Phase 5 Milestone D)
+> Latest commits: `50c5793` (feat: complete mock-to-API migration), `a87ea3e` (feat: connect remaining mock services), `c58337a` (feat(api): add missing backend endpoints)
 
 ---
 
@@ -618,9 +618,9 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - `pnpm test` — 155 passed, 4 suites
 
 ### Remaining
-- `familyCards.ts` — Full family card management (wishlists, fund transfers, gift cards) needs new backend endpoints
-- `membershipResources.ts` — Static resource definitions with mock usage counts (display-only, low priority)
 - `admin.ts` — Uses mockData as fallback for some admin pages (acceptable for now)
+- `wishlist_shares` table needs TypeORM migration (auto-sync in dev)
+- `wishlist_items.fulfilled_by` column needs migration (auto-sync in dev)
 
 ### Completed (2026-08-31)
 - **GET /cards/:id/activity** — Card activity feed (last 50 activity logs by business, returns action/time/type/status/value)
@@ -634,6 +634,13 @@ Guard hardening: `@Roles('ADMIN')` added to review moderation, voucher vendor CR
 - **GET /users/me/business-permissions** — Role-based permissions (is_admin, owned_businesses, can_manage_*)
 - **Language + Translation entities** — Full CRUD with real DB storage
 - **@Public() decorator** — Skip JWT guard on public endpoints
+- **POST /wallet/transfer** — Atomic cross-wallet fund transfer (debit sender, credit recipient)
+- **POST /wallet/allocate-to-child** — Fund child card allocation from parent wallet
+- **POST /wishlists/:id/share** — Share wishlist by email with view/fulfill permission
+- **GET /wishlists/shared-with-me** — List wishlists shared with me
+- **POST /wishlists/:id/items/:itemId/fulfill** — Mark item fulfilled + wallet debit
+- **GET /users/me/usage-stats** — Real usage counts for pricing/entitlements UI
+- **WishlistShare entity** + `fulfilled_by` column on wishlist_items
 - **participatingBusinesses.ts** — Rewritten to call GET /businesses/directory (real API)
 - **consumer.ts** — All 10+ methods now call real API endpoints (getFamilyCards, getShareContent, getCardActivity, getNearbyOffers, getExchangeItems, getRedeemItems, getNotifications, getProfileByEmail)
 - **FindBusinessPage.tsx** — Updated to use async getParticipatingIndustries/getParticipatingCities

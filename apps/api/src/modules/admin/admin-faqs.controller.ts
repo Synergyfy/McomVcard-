@@ -18,6 +18,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { RolesGuard } from '../roles/guards/roles.guard'
 import { Roles } from '../roles/decorators/roles.decorator'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { FaqsService } from '../faqs/faqs.service'
+import { CreateFaqDto, UpdateFaqDto, ReorderFaqDto } from '../faqs/dto/faq.dto'
 
 @ApiTags('admin-faqs')
 @ApiExtraModels(ApiResponse)
@@ -26,27 +28,28 @@ import { ApiResponse } from '../../lib/utils/api-response'
 @ApiBearerAuth()
 @Controller('admin/faqs')
 export class AdminFaqsController {
+  constructor(private readonly faqsService: FaqsService) {}
+
   @Get()
   @ApiOperation({ summary: 'List all FAQs (Admin only)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'search', required: false, type: String })
   @ApiOkResponse({ description: 'List of FAQs' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
-  async findAll(@Query() query: any) {
-    return ApiResponse.success({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } }, 'FAQs retrieved', 200)
+  async findAll() {
+    const faqs = await this.faqsService.findAll()
+    return ApiResponse.success(faqs, 'FAQs retrieved', 200)
   }
 
   @Post()
   @ApiOperation({ summary: 'Create an FAQ (Admin only)' })
-  @ApiBody({ schema: { properties: { question: { type: 'string' }, answer: { type: 'string' }, category: { type: 'string' }, order: { type: 'number' } } } })
+  @ApiBody({ type: CreateFaqDto })
   @ApiCreatedResponse({ description: 'FAQ created' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
-  async create(@Body() body: any) {
-    return ApiResponse.success({ id: 'placeholder', ...body }, 'FAQ created', 201)
+  async create(@Body() dto: CreateFaqDto) {
+    const faq = await this.faqsService.create(dto)
+    return ApiResponse.success(faq, 'FAQ created', 201)
   }
 
   @Get(':id')
@@ -57,20 +60,22 @@ export class AdminFaqsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'FAQ not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return ApiResponse.success({ id, question: 'How do I sign up?', answer: 'Click register...', category: 'General', order: 1 }, 'FAQ retrieved', 200)
+    const faq = await this.faqsService.findOne(id)
+    return ApiResponse.success(faq, 'FAQ retrieved', 200)
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an FAQ (Admin only)' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiBody({ schema: { properties: { question: { type: 'string' }, answer: { type: 'string' }, category: { type: 'string' }, order: { type: 'number' } } } })
+  @ApiBody({ type: UpdateFaqDto })
   @ApiOkResponse({ description: 'FAQ updated' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'FAQ not found' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
-  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'FAQ updated', 200)
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateFaqDto) {
+    const faq = await this.faqsService.update(id, dto)
+    return ApiResponse.success(faq, 'FAQ updated', 200)
   }
 
   @Delete(':id')
@@ -81,6 +86,19 @@ export class AdminFaqsController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'FAQ not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.faqsService.remove(id)
     return ApiResponse.message('FAQ deleted', 200)
+  }
+
+  @Post('reorder')
+  @ApiOperation({ summary: 'Reorder FAQs by providing ordered IDs' })
+  @ApiBody({ type: ReorderFaqDto })
+  @ApiOkResponse({ description: 'FAQs reordered' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async reorder(@Body() dto: ReorderFaqDto) {
+    const faqs = await this.faqsService.reorder(dto.ids)
+    return ApiResponse.success(faqs, 'FAQs reordered', 200)
   }
 }

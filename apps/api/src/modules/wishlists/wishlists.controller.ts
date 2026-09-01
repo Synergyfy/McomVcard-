@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -9,6 +9,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
   getSchemaPath,
@@ -50,7 +51,8 @@ export class WishlistsController {
 
   @Get('wishlists')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List my wishlists', description: 'Returns the authenticated user\'s wishlists (newest first), each with its ordered items.' })
+  @ApiOperation({ summary: 'List my wishlists', description: 'Returns the authenticated user\'s wishlists (newest first), each with its ordered items. Optionally filter by name.' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter wishlists by name (case-insensitive LIKE match)' })
   @ApiOkResponse({
     description: 'Wishlists list',
     schema: {
@@ -65,8 +67,8 @@ export class WishlistsController {
     },
   })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  async listMyWishlists(@CurrentUser() user: UserResponseDto) {
-    return this.wishlistsService.listForUser(user.id)
+  async listMyWishlists(@CurrentUser() user: UserResponseDto, @Query('name') name?: string) {
+    return this.wishlistsService.listForUser(user.id, name)
   }
 
   @Get('wishlists/:id')

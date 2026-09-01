@@ -5,6 +5,7 @@ import { UsersModule } from '../users/users.module'
 import { RolesModule } from '../roles/roles.module'
 import { PlansModule } from '../plans/plans.module'
 import { LanguagesModule } from '../languages/languages.module'
+import { CurrenciesModule } from '../currencies/currencies.module'
 import { AdminController } from './admin.controller'
 import { AdminUsersController } from './admin-users.controller'
 import { AdminBusinessesController } from './admin-businesses.controller'
@@ -41,6 +42,12 @@ import { AdminNewsletterController } from './admin-newsletter.controller'
 import { AdminBookingsController } from './admin-bookings.controller'
 import { AdminSystemController } from './admin-system.controller'
 import { AdminVcardsController } from './admin-vcards.controller'
+import { EnquiriesModule } from '../enquiries/enquiries.module'
+import { FaqsModule } from '../faqs/faqs.module'
+import { EmailTemplatesModule } from '../email-templates/email-templates.module'
+import { SettingsModule } from '../settings/settings.module'
+import { FeaturesModule } from '../features/features.module'
+import { TestimonialsModule } from '../testimonials/testimonials.module'
 
 import { User } from '../users/entities/user.entity'
 import { Business } from '../businesses/entities/business.entity'
@@ -70,6 +77,13 @@ import { Coupon } from '../campaigns/entities/coupon.entity'
     RolesModule,
     PlansModule,
     LanguagesModule,
+    CurrenciesModule,
+    EnquiriesModule,
+    FaqsModule,
+    EmailTemplatesModule,
+    SettingsModule,
+    FeaturesModule,
+    TestimonialsModule,
     TypeOrmModule.forFeature([
       User,
       Business,

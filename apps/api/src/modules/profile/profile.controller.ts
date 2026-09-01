@@ -171,46 +171,6 @@ export class ProfileController {
   }
 
 
-  @Get('business-permissions')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get business permissions for the authenticated user', description: 'Returns the user\'s role flags, owned businesses, and derived permission booleans.' })
-  @ApiOkResponse({
-    description: 'Business permissions',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponse) },
-        {
-          properties: {
-            data: {
-              type: 'object',
-              properties: {
-                is_admin: { type: 'boolean', example: false },
-                owned_businesses: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', format: 'uuid' },
-                      name: { type: 'string', example: 'Acme Corp' },
-                      slug: { type: 'string', example: 'acme-corp' },
-                    },
-                  },
-                },
-                can_manage_cards: { type: 'boolean', example: true },
-                can_manage_businesses: { type: 'boolean', example: true },
-              },
-            },
-          },
-        },
-      ],
-    },
-  })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  async getBusinessPermissions(@CurrentUser() user: UserResponseDto) {
-    return this.profileService.getBusinessPermissions(user.id)
-  }
-
-
   @Get('usage-stats')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get usage statistics for the authenticated user', description: 'Returns real usage counts across all resource types for the current user, including card counts, child-card allocations, and total wallet balance of linked children.' })
