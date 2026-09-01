@@ -1,8 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockConsumers } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
+
+interface ActivityItem {
+  type: string
+  action: string
+  time: string
+  status?: string
+  actor?: string
+  source?: string
+}
+
+interface RewardItem {
+  id: string | number
+  reward: string
+  points: number
+  status: string
+}
+
+interface ShareContentItem {
+  id: string | number
+  title: string
+  status: string
+  availableUntil: string
+  source: string
+}
+
+interface AdditionalCard {
+  id: string | number
+  name: string
+  relationship: string
+  status: string
+  locked?: boolean
+  allocatedAt?: string
+}
+
+interface SavedCard {
+  business: string
+  [key: string]: unknown
+}
 
 const TABS = ['Overview', 'Consumer VCard', 'Consumer Card', 'Membership & Entitlements', 'Activity', 'Account & Integrations']
 
@@ -77,8 +115,9 @@ function LoadingSkeleton() {
 export default function ConsumerProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [c, setConsumer] = useState<any>(null)
   const [tab, setTab] = useState('Overview')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showActions, setShowActions] = useState(false)
@@ -93,8 +132,41 @@ export default function ConsumerProfilePage() {
   const [activityFilter, setActivityFilter] = useState('all')
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false)
 
-  const c = mockConsumers.find(x => x.id === String(id))
-  if (!c) {
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    setError(false)
+    adminService.getUser(String(id))
+      .then((user) => {
+        setConsumer({
+          ...user,
+          consumerId: user.id,
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+          status: user.status || 'active',
+          joined: user.created_at || new Date().toISOString(),
+          lastActivityAt: user.updated_at || new Date().toISOString(),
+          recentActivity: [],
+          membership: 'Bronze',
+          membershipStatus: 'Active',
+          vcardStatus: 'Not Assigned',
+          cardStatus: 'Not Assigned',
+          primaryIssuingBusiness: '—',
+          primaryIssuingBusinessId: null,
+          businessCount: 0,
+          registrationSource: 'Direct',
+          stats: { scans: 0 },
+          rewardHistory: [],
+          allocatedAdditionalCards: 0,
+          additionalEntitlements: 0,
+          unallocatedEntitlements: 0,
+          familyAllocations: 0,
+          friendAllocations: 0,
+        })
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [id])
+  if (!loading && !error && !c) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
@@ -121,6 +193,8 @@ export default function ConsumerProfilePage() {
   }
 
   if (loading) return <LoadingSkeleton />
+
+  if (!c) return null
 
   const formatDate = (d: string) => d
   const lastActivity = c.recentActivity.length > 0 ? c.recentActivity[0].time : c.lastActivityAt
@@ -362,7 +436,7 @@ export default function ConsumerProfilePage() {
                       <EmptySection title="No Activity Yet" desc="There is no recorded activity for this account." />
                     ) : (
                       <div className="space-y-0">
-                        {c.recentActivity.slice(0, 6).map((a, i) => {
+                        {c.recentActivity.slice(0, 6).map((a: ActivityItem, i: number) => {
                           const dotColors: Record<string, string> = { reward: 'bg-purple-400', earn: 'bg-green-400', referral: 'bg-orange-400', card: 'bg-blue-400', nfc: 'bg-teal-400', booking: 'bg-indigo-400', milestone: 'bg-yellow-400', alert: 'bg-red-400', profile: 'bg-gray-400' }
                           return (
                             <div key={i} className="flex items-start gap-2.5 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
@@ -584,7 +658,7 @@ export default function ConsumerProfilePage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {c.rewardHistory.slice(0, 3).map((r) => (
+                              {c.rewardHistory.slice(0, 3).map((r: RewardItem) => (
                                 <tr key={r.id} className="border-b border-gray-50 dark:border-gray-700/50">
                                   <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{c.primaryIssuingBusiness}</td>
                                   <td className="px-2 py-1.5 text-gray-500">{r.reward}</td>
@@ -618,7 +692,7 @@ export default function ConsumerProfilePage() {
                             <InfoRow label="Update Frequency" value={['Daily', 'Weekly', 'Seasonal', 'Campaign-Based'][Math.floor(Math.random() * 4)]} />
                             <InfoRow label="Last Updated" value={c.recentActivity.length > 0 ? c.recentActivity[0].time : '—'} />
                             <InfoRow label="Total Scans" value={`${c.stats.scans}`} />
-                            <InfoRow label="Last Scan" value={c.recentActivity.find(a => a.type === 'nfc' || a.type === 'card')?.time || c.lastActivityAt} />
+                            <InfoRow label="Last Scan" value={c.recentActivity.find((a: ActivityItem) => a.type === 'nfc' || a.type === 'card')?.time || c.lastActivityAt} />
                           </div>
                         </div>
                       </div>
@@ -735,7 +809,7 @@ export default function ConsumerProfilePage() {
                         <EmptySection title="No Activity Yet" desc="There is no recorded activity for this VCard." />
                       ) : (
                         <div className="space-y-0">
-                          {c.recentActivity.slice(0, 5).map((a, i) => {
+                          {c.recentActivity.slice(0, 5).map((a: ActivityItem, i: number) => {
                             const dotColors: Record<string, string> = { reward: 'bg-purple-400', earn: 'bg-green-400', referral: 'bg-orange-400', card: 'bg-blue-400', nfc: 'bg-teal-400', booking: 'bg-indigo-400', milestone: 'bg-yellow-400', alert: 'bg-red-400', profile: 'bg-gray-400' }
                             return (
                               <div key={i} className="flex items-start gap-2.5 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
@@ -1011,7 +1085,7 @@ export default function ConsumerProfilePage() {
                       <EmptySection title="No shareable content available" desc="No shareable content is currently available for this consumer's Card." />
                     ) : (
                       <div className="space-y-3">
-                        {c.shareContent.map((sc) => (
+                        {c.shareContent.map((sc: ShareContentItem) => (
                           <div key={sc.id} className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{sc.title}</p>
@@ -1024,7 +1098,7 @@ export default function ConsumerProfilePage() {
                             <button onClick={() => toast.success(`Previewing: ${sc.title}`)} className="px-2.5 py-1 rounded-lg bg-orange-500 text-white text-[9px] font-semibold hover:bg-orange-600 shrink-0">Preview</button>
                           </div>
                         ))}
-                        {c.shareContent.some(sc => sc.source === 'External Platform') && (
+                        {c.shareContent.some((sc: ShareContentItem) => sc.source === 'External Platform') && (
                           <div className="bg-amber-50 dark:bg-amber-500/5 rounded-lg p-2.5 flex items-center gap-2">
                             <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <p className="text-[9px] text-amber-700 dark:text-amber-400">Some share content comes from external platforms. Integration status: <strong>Coming Soon</strong>.</p>
@@ -1112,7 +1186,7 @@ export default function ConsumerProfilePage() {
                             <td className="px-2 py-1.5"><span className="text-green-600 font-medium">Active</span></td>
                             <td className="px-2 py-1.5"><span className="text-gray-400">—</span></td>
                           </tr>
-                          {c.additionalCards.map((ac) => (
+                          {c.additionalCards.map((ac: AdditionalCard) => (
                             <tr key={ac.id} className="border-b border-gray-50 dark:border-gray-700/50">
                               <td className="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-300">{`Subcard ${ac.id}`}</td>
                               <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{ac.name}</td>
@@ -1128,7 +1202,7 @@ export default function ConsumerProfilePage() {
                               </td>
                               <td className="px-2 py-1.5">
                                 {ac.locked ? (
-                                  <button onClick={() => { setOverrideCardId(ac.id); setShowOverrideModal(true) }} className="text-orange-600 hover:underline text-[9px]">Override</button>
+                                   <button onClick={() => { setOverrideCardId(String(ac.id)); setShowOverrideModal(true) }} className="text-orange-600 hover:underline text-[9px]">Override</button>
                                 ) : (
                                   <span className="text-gray-400 text-[9px]">—</span>
                                 )}
@@ -1211,7 +1285,7 @@ export default function ConsumerProfilePage() {
                       <EmptySection title="No Card activity recorded yet" desc="No Card activity has been recorded yet." />
                     ) : (
                       <div className="space-y-0">
-                        {c.cardActivity.slice(0, 6).map((a, i) => {
+                        {c.cardActivity.slice(0, 6).map((a: ActivityItem, i: number) => {
                           const typeDots: Record<string, string> = { card: 'bg-blue-400', nfc: 'bg-teal-400', reward: 'bg-purple-400', referral: 'bg-orange-400', alert: 'bg-red-400', milestone: 'bg-yellow-400' }
                           return (
                             <div key={i} className="flex items-start gap-2.5 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
@@ -1342,7 +1416,7 @@ export default function ConsumerProfilePage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">This allocation is locked. Admin override requires a reason and will be recorded in the audit log.</p>
                         <div className="mb-3">
                           <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Card</label>
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{c.additionalCards.find(ac => ac.id === overrideCardId)?.name || `Subcard ${overrideCardId}`}</p>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{c.additionalCards.find((ac: AdditionalCard) => ac.id === overrideCardId)?.name || `Subcard ${overrideCardId}`}</p>
                         </div>
                         <div className="mb-4">
                           <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Override Reason</label>
@@ -1629,7 +1703,7 @@ export default function ConsumerProfilePage() {
                           <td className="px-2 py-1.5"><span className="text-green-600 font-medium">Active</span></td>
                           <td className="px-2 py-1.5 text-gray-400">—</td>
                         </tr>
-                        {c.additionalCards.map((ac) => (
+                        {c.additionalCards.map((ac: AdditionalCard) => (
                           <tr key={ac.id} className="border-b border-gray-50 dark:border-gray-700/50">
                             <td className="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-300">{`Card ${ac.id}`}</td>
                             <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300">{ac.name}</td>
@@ -1681,7 +1755,7 @@ export default function ConsumerProfilePage() {
                       <span className="text-xs font-bold text-gray-900 dark:text-white">Family</span>
                     </div>
                     <p className="text-[10px] text-gray-500">{c.familyAllocations} allocated</p>
-                    {c.familyAllocations > 0 ? c.additionalCards.filter(ac => ac.relationship === 'Family').map(ac => (
+                    {c.familyAllocations > 0 ? c.additionalCards.filter((ac: AdditionalCard) => ac.relationship === 'Family').map((ac: AdditionalCard) => (
                       <div key={ac.id} className="flex items-center gap-1.5 text-[10px] mt-0.5">
                         <span className="text-gray-700 dark:text-gray-300">{ac.name}</span>
                         <span className="text-green-600">Active</span>
@@ -1695,7 +1769,7 @@ export default function ConsumerProfilePage() {
                       <span className="text-xs font-bold text-gray-900 dark:text-white">Friends</span>
                     </div>
                     <p className="text-[10px] text-gray-500">{c.friendAllocations} allocated</p>
-                    {c.friendAllocations > 0 ? c.additionalCards.filter(ac => ac.relationship === 'Friend').map(ac => (
+                    {c.friendAllocations > 0 ? c.additionalCards.filter((ac: AdditionalCard) => ac.relationship === 'Friend').map((ac: AdditionalCard) => (
                       <div key={ac.id} className="flex items-center gap-1.5 text-[10px] mt-0.5">
                         <span className="text-gray-700 dark:text-gray-300">{ac.name}</span>
                         <span className="text-green-600">Active</span>
@@ -1779,7 +1853,7 @@ export default function ConsumerProfilePage() {
                   <EmptySection title="No entitlement history recorded yet" desc="No entitlement or allocation history has been recorded yet." />
                 ) : (
                   <div className="space-y-0">
-                    {c.cardActivity.slice(0, 5).map((a, i) => {
+                    {c.cardActivity.slice(0, 5).map((a: ActivityItem, i: number) => {
                       const typeDots: Record<string, string> = { card: 'bg-blue-400', nfc: 'bg-teal-400', reward: 'bg-purple-400', referral: 'bg-orange-400', alert: 'bg-red-400', milestone: 'bg-yellow-400' }
                       return (
                         <div key={i} className="flex items-start gap-2.5 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
@@ -1800,7 +1874,7 @@ export default function ConsumerProfilePage() {
                         </div>
                       )
                     })}
-                    {c.recentActivity.slice(0, 3).map((a, i) => {
+                    {c.recentActivity.slice(0, 3).map((a: ActivityItem, i: number) => {
                       const dotColors: Record<string, string> = { reward: 'bg-purple-400', earn: 'bg-green-400', referral: 'bg-orange-400', card: 'bg-blue-400', nfc: 'bg-teal-400', booking: 'bg-indigo-400', milestone: 'bg-yellow-400', alert: 'bg-red-400', profile: 'bg-gray-400' }
                       return (
                         <div key={`ra-${i}`} className="flex items-start gap-2.5 py-2 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
@@ -1926,8 +2000,8 @@ export default function ConsumerProfilePage() {
                 {(() => {
                   const t: Record<string, number> = {}
                   const ct: Record<string, number> = {}
-                  c.recentActivity.forEach(a => { t[a.type] = (t[a.type] || 0) + 1 })
-                  c.cardActivity.forEach(a => { ct[a.type] = (ct[a.type] || 0) + 1 })
+                  c.recentActivity.forEach((a: ActivityItem) => { t[a.type] = (t[a.type] || 0) + 1 })
+                  c.cardActivity.forEach((a: ActivityItem) => { ct[a.type] = (ct[a.type] || 0) + 1 })
                   const memberEvents = (t['milestone'] || 0) + (t['alert'] || 0)
                   const rewardEvents = (t['reward'] || 0) + (ct['reward'] || 0) + (t['earn'] || 0) + (t['referral'] || 0)
                   const vcardEvents = (t['profile'] || 0)
@@ -1982,8 +2056,8 @@ export default function ConsumerProfilePage() {
                   const catDots: Record<string, string> = { reward: 'bg-amber-400', membership: 'bg-emerald-400', vcard: 'bg-orange-400', card: 'bg-purple-400', qr: 'bg-blue-400', admin: 'bg-red-400', external: 'bg-gray-400' }
                   const catLabels: Record<string, string> = { reward: 'Reward', membership: 'Membership', vcard: 'VCard', card: 'Card', qr: 'QR', admin: 'Admin', external: 'External Platform' }
                   const events = [
-                    ...c.recentActivity.map((a, i) => ({ id: `ra-${i}`, action: a.action, time: a.time, category: catMap[a.type] || 'other', status: 'Completed' as const, actor: 'System' as const, source: 'MCOMVCard' as const })),
-                    ...c.cardActivity.map((a, i) => ({ id: `ca-${i}`, action: a.action, time: a.time, category: catMap[a.type] || 'other', status: a.status as string, actor: a.actor, source: a.source })),
+                    ...c.recentActivity.map((a: ActivityItem, i: number) => ({ id: `ra-${i}`, action: a.action, time: a.time, category: catMap[a.type] || 'other', status: 'Completed' as const, actor: 'System' as const, source: 'MCOMVCard' as const })),
+                    ...c.cardActivity.map((a: ActivityItem, i: number) => ({ id: `ca-${i}`, action: a.action, time: a.time, category: catMap[a.type] || 'other', status: a.status as string, actor: a.actor, source: a.source })),
                   ].filter(e => activityFilter === 'all' || e.category === activityFilter)
                     .sort((a, b) => new Date(b.time.replace(/(\d+)(st|nd|rd|th)/, '$1')).getTime() - new Date(a.time.replace(/(\d+)(st|nd|rd|th)/, '$1')).getTime())
 
@@ -2179,7 +2253,7 @@ export default function ConsumerProfilePage() {
                               <td className="px-2 py-1.5 text-gray-500">{c.joined}</td>
                             </tr>
                             {/* Derived business rows from savedCards */}
-                            {c.savedCards.filter(sc => sc.business !== c.primaryIssuingBusiness).map((sc, i) => (
+                            {c.savedCards.filter((sc: SavedCard) => sc.business !== c.primaryIssuingBusiness).map((sc: SavedCard, i: number) => (
                               <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30"
                                 onClick={() => toast.success(`Navigating to ${sc.business}`)}>
                                 <td className="px-2 py-1.5 text-orange-600 font-medium hover:underline">{sc.business}</td>

@@ -1,12 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
-import { mockAdminBookings, mockVcards } from '../../../services/mockData'
-import type { AdminBooking } from '../../../types'
+import { userService } from '../../../services/user'
+import type { AdminBooking, VCard } from '../../../types'
 
 const BUSINESS_ID = 1
-const myVcards = mockVcards.filter((v) => v.user_id === BUSINESS_ID)
-const allBookingsInit = mockAdminBookings.filter((b) => b.business_id === BUSINESS_ID)
 
 type Tab = 'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'setup'
 
@@ -14,8 +12,19 @@ export default function AppointmentsPage() {
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [bookings, setBookings] = useState<AdminBooking[]>(allBookingsInit)
+  const [bookings, setBookings] = useState<AdminBooking[]>([])
+  const [myVcards, setMyVcards] = useState<VCard[]>([])
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      userService.getAppointments(String(BUSINESS_ID)).catch(() => []),
+      userService.getVcards().catch(() => []),
+    ]).then(([appts, cards]) => {
+      setBookings(Array.isArray(appts) ? appts as unknown as AdminBooking[] : [])
+      setMyVcards(Array.isArray(cards) ? cards : [])
+    }).catch(console.error)
+  }, [])
 
   const types = [...new Set(bookings.map((b) => b.type))]
 

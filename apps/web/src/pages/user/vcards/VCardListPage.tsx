@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockVcards } from '../../../services/mockData'
+import { userService } from '../../../services/user'
 import type { VCard } from '../../../types'
 import VCardPreviewModal from '../../../components/common/VCardPreviewModal'
 import { MembershipLimitCard } from '../../../components/membership/MembershipLimitCard'
@@ -13,8 +13,6 @@ import { MOCK, toBizTemplate, type BizVCardTemplate } from '../../admin/card-man
 import { buildPublishedSections } from '../../admin/card-management/BusinessVCardWorkspace'
 import { loadUserTemplatesByType, type StoredSection } from '../../../services/vcardTemplateStore'
 
-const BUSINESS_ID = 1
-
 type MainTab = 'vcards' | 'templates'
 
 export default function VCardListPage() {
@@ -23,11 +21,15 @@ export default function VCardListPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [previewVcard, setPreviewVcard] = useState<VCard | null>(null)
   const [previewTemplate, setPreviewTemplate] = useState<BizVCardTemplate | null>(null)
+  const [myVcards, setMyVcards] = useState<VCard[]>([])
+
+  useEffect(() => {
+    userService.getVcards().then(setMyVcards).catch(console.error)
+  }, [])
 
   /* ── data ── */
   const pricingState = loadMembershipPricing()
   const planLevel = getPlanLevelFromName(mockBusinessProfile.membership)
-  const myVcards = mockVcards.filter((v) => v.user_id === BUSINESS_ID)
   const bizVCardLimit = parseLimit(getRuleValue(pricingState, planLevel, 'Business VCards'))
   const atBizVCardLimit = bizVCardLimit !== null && bizVCardLimit !== Infinity && myVcards.length >= bizVCardLimit
 

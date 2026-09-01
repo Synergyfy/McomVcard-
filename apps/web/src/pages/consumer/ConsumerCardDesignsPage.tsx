@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockCardDesigns } from '../../services/mockData'
-import type { MockConsumer } from '../../services/mockData'
 import { MembershipLimitCard } from '../../components/membership/MembershipLimitCard'
 import { loadMembershipPricing } from '../../services/membershipPricingStore'
 import { getRuleValue, parseLimit } from '../../services/membershipEnforcement'
-import { consumerService } from '../../services/consumer'
+import { consumerService, type ConsumerProfile } from '../../services/consumer'
 import { parseMembership } from '../../services/consumerMembership'
+import api from '../../services/api'
 
 const MOCK_CLAIMED_CARD_IDS = ['5', '6', '7', '8']
 
@@ -26,37 +25,67 @@ interface ClaimedCardData {
   title: string
 }
 
+interface CardDesign {
+  id: string; name: string; type: string; style: string
+  primaryColor: string; secondaryColor: string; accentColor: string
+  layout: string; status: string; usage: number; created: string
+}
+
 export default function ConsumerCardDesignsPage() {
   const navigate = useNavigate()
   const [flipCardId, setFlipCardId] = useState<string | null>(null)
   const [claimedData, setClaimedData] = useState<Record<string, ClaimedCardData>>({})
-  const [profile, setProfile] = useState<MockConsumer | null>(null)
+  const [profile, setProfile] = useState<ConsumerProfile | null>(null)
+  const [cardDesigns, setCardDesigns] = useState<CardDesign[]>([])
+  const [loading, setLoading] = useState(true)
 
   const pricingState = useMemo(() => loadMembershipPricing(), [])
-  const claimedCards = mockCardDesigns.filter((c) => MOCK_CLAIMED_CARD_IDS.includes(c.id))
+  const claimedCards = cardDesigns.filter((c) => MOCK_CLAIMED_CARD_IDS.includes(c.id))
   const membershipLevel = profile ? parseMembership(profile.membership).level : 'Bronze'
   const conCardLimit = parseLimit(getRuleValue(pricingState, membershipLevel, 'Consumer Cards'))
   const atLimit = conCardLimit !== null && conCardLimit !== Infinity && claimedCards.length >= conCardLimit
 
   useEffect(() => {
-    consumerService.getProfile().then((p) => {
-      setProfile(p)
-      setClaimedData(
-        Object.fromEntries(
-          MOCK_CLAIMED_CARD_IDS.map((id) => [
-            id,
-            {
-              designId: id,
-              name: p.name,
-              phone: p.phone,
-              email: p.email,
-              title: DEFAULT_CARD_TITLES[id] || 'MCOM Card',
-            },
-          ]),
-        ),
-      )
-    }).catch(() => {})
+    Promise.all([
+      consumerService.getProfile(),
+      api.get('/templates', { params: { category: 'card-design' } }).then((r) => {
+        const data = r.data as Record<string, unknown>[]
+        return data.map((t) => ({
+          id: String(t.id),
+          name: String(t.name || ''),
+          type: String(t.category || 'Consumer'),
+          style: String(t.category || ''),
+          primaryColor: String(t.primary_color || '#0F172A'),
+          secondaryColor: String(t.secondary_color || '#D4AF37'),
+          accentColor: String(t.accent_color || '#FFFFFF'),
+          layout: String(t.layout || 'split'),
+          status: String(t.status || 'active'),
+          usage: Number(t.usage || 0),
+          created: String(t.created || ''),
+        })) as CardDesign[]
+      }).catch(() => [] as CardDesign[]),
+    ])
+      .then(([p, designs]) => {
+        setProfile(p)
+        setCardDesigns(designs)
+        setClaimedData(
+          Object.fromEntries(
+            MOCK_CLAIMED_CARD_IDS.map((id) => [
+              id,
+              {
+                designId: id,
+                name: p.name,
+                phone: p.phone,
+                email: p.email,
+                title: DEFAULT_CARD_TITLES[id] || 'MCOM Card',
+              },
+            ]),
+          ),
+        )
+      }).catch(() => {}).finally(() => setLoading(false))
   }, [])
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
 
   return (
     <div>

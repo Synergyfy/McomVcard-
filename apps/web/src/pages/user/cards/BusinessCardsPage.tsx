@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { MembershipLimitCard } from '../../../components/membership/MembershipLimitCard'
 import { loadMembershipPricing } from '../../../services/membershipPricingStore'
 import { getRuleValue, parseLimit, getPlanLevelFromName } from '../../../services/membershipEnforcement'
 import { mockBusinessProfile } from '../../../services/businessStore'
-import { mockClaimedCards } from '../../../services/mockData'
+import { userService } from '../../../services/user'
 import { CardPreviewModal, buildMockFaces } from '../../../components/admin/CardPreview'
 import { MOCK, toRow, type CardRow } from '../../admin/card-management/BusinessCardTemplatesPage'
 import { loadCardTemplatesByType } from '../../../services/cardTemplateStore'
@@ -17,6 +17,19 @@ export default function BusinessCardsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [previewFor, setPreviewFor] = useState<{ row: CardRow; faces: never } | null>(null)
+  const [claimedCards, setClaimedCards] = useState<{ id: string | number; business_id: string; card_design_id: string | number; scans: number; active: boolean; claimed_at: string }[]>([])
+
+  useEffect(() => {
+    userService.getVcards()
+      .then((cards) => {
+        setClaimedCards(cards.map((c) => ({
+          id: c.id, business_id: String(c.user_id ?? BUSINESS_ID),
+          card_design_id: c.template_id ?? 0, scans: 0, active: !!c.status,
+          claimed_at: c.created_at ?? new Date().toISOString(),
+        })))
+      })
+      .catch(console.error)
+  }, [])
 
   const pricingState = loadMembershipPricing()
   const planLevel = getPlanLevelFromName(mockBusinessProfile.membership)
@@ -29,8 +42,6 @@ export default function BusinessCardsPage() {
   const availableRows = allRows.filter((r) => r.status === 'Published')
   const availableCategories = [...new Set(availableRows.map((r) => r.category))]
 
-  /* The business's own cards — the ones Admin has assigned to it. */
-  const claimedCards = mockClaimedCards.filter((c) => c.business_id === BUSINESS_ID)
   const cardName = (designId: string) => allRows.find((r) => r.id === designId)?.name ?? `Business Card #${designId}`
   const filteredAvailable = availableRows.filter((r) => {
     const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase())

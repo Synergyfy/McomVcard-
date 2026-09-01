@@ -1,24 +1,45 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CardFlip } from '../../../components/admin/BusinessCardPreview'
-import { mockCardDesigns, mockCardBusinesses } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
 
 const PAGE_SIZE = 8
 
 export default function CardDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === String(id))
+
+  const [design, setDesign] = useState<any>(null)
+  const [allBusinesses, setAllBusinesses] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    setError(false)
+    adminService.getAdminCard(String(id))
+      .then((card) => {
+        setDesign({
+          id: card.id,
+          name: card.name || card.slug || `Card ${String(card.id).slice(0, 8)}`,
+          style: card.type || 'Business',
+          type: card.type || 'Standard',
+          usage: card.stats?.scans || 0,
+          status: card.status || 'active',
+          layout: 'standard',
+          created: card.created_at || new Date().toISOString(),
+        })
+        setAllBusinesses(card.business ? [card.business] : [])
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [id])
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
-
-  const allBusinesses = useMemo(
-    () => mockCardBusinesses.filter((b) => String(b.cardDesignId) === String(id)),
-    [id],
-  )
 
   const filtered = useMemo(() => {
     let list = allBusinesses
@@ -34,7 +55,15 @@ export default function CardDetailPage() {
   const safePage = Math.min(page, totalPages)
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  if (!design) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error || !design) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 import { adminService } from '../../../services/admin'
-import { mockAdminBookings } from '../../../services/mockData'
 import type { AdminBooking } from '../../../types'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
@@ -20,16 +19,39 @@ const TYPE_ICONS: Record<string, string> = {
 
 export default function BookingListPage() {
   const navigate = useNavigate()
-  const [data, setData] = useState<AdminBooking[]>(mockAdminBookings)
+  const [data, setData] = useState<AdminBooking[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [typeFilter, setTypeFilter] = useState('All')
   const [page, setPage] = useState(1)
 
   useEffect(() => {
-    adminService.getBookings().then((res) => {
-      if (res.data?.length) setData(res.data)
-    }).catch(() => {})
+    let cancelled = false
+    adminService.getActivityLogs()
+      .then((res) => {
+        if (!cancelled) {
+          const logs = res.data ?? []
+          const bookings: AdminBooking[] = logs.map((log: any) => ({
+            id: String(log.id),
+            customer_name: log.admin_name ?? 'System',
+            customer_email: '',
+            business_id: 0,
+            business_name: log.module ?? 'System',
+            vcard_id: 0,
+            type: 'Appointment' as const,
+            date: log.created_at ? new Date(log.created_at).toISOString().split('T')[0] : '',
+            time: log.created_at ? new Date(log.created_at).toTimeString().slice(0, 5) : '',
+            duration_minutes: 0,
+            status: 'confirmed' as const,
+            amount: 0,
+            notes: log.description,
+            created_at: log.created_at ?? '',
+          }))
+          setData(bookings)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [])
 
   const filtered = useMemo(() => {

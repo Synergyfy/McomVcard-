@@ -1,14 +1,41 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 import { MiniCardPreview, CardFlip } from '../../../components/admin/BusinessCardPreview'
-import { mockCardDesigns } from '../../../services/mockData'
-import type { MockCardDesign } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-type CardDesign = MockCardDesign
+type CardDesign = {
+  id: string
+  name: string
+  type: 'Business' | 'Consumer'
+  style: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  layout: 'split' | 'centered' | 'header' | 'minimal' | 'bold' | 'diagonal'
+  status: 'active' | 'inactive' | 'archived'
+  usage: number
+  created: string
+}
+
+function mapVCardToDesign(v: any): CardDesign {
+  return {
+    id: String(v.id),
+    name: v.name ?? 'Unnamed',
+    type: 'Business',
+    style: v.occupation ?? 'Classic',
+    primaryColor: '#0F172A',
+    secondaryColor: '#D4AF37',
+    accentColor: '#FFFFFF',
+    layout: 'split',
+    status: v.status === 1 ? 'active' : 'inactive',
+    usage: 0,
+    created: v.created_at ? new Date(v.created_at).toLocaleString('en-US', { month: 'short', year: 'numeric' }) : '—',
+  }
+}
 
 const TABS = [
   { key: 'Business' as const, label: 'Business Cards', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
@@ -98,12 +125,22 @@ function EditDesignModal({ design, onClose, onSave }: { design: CardDesign; onCl
 
 export default function CardListPage() {
   const navigate = useNavigate()
-  const [data, setData] = useState(mockCardDesigns)
+  const [data, setData] = useState<CardDesign[]>([])
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'Business' | 'Consumer'>('Business')
   const [previewDesign, setPreviewDesign] = useState<CardDesign | null>(null)
   const [editDesign, setEditDesign] = useState<CardDesign | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ design: CardDesign; action: 'suspend' | 'archive' } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    adminService.getVcards()
+      .then((res) => {
+        if (!cancelled) setData((res.data ?? []).map(mapVCardToDesign))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const tabData = data.filter((d) => d.type === tab && d.status !== 'archived')
   const filtered = tabData.filter((d) => {
