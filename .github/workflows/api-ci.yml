@@ -40,10 +40,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: TypeScript check
-        run: pnpm -w -s -C apps/api exec tsc --noEmit
+        working-directory: apps/api
+        run: pnpm exec tsc --noEmit
 
       - name: Build
-        run: pnpm -w -s -C apps/api run build
+        working-directory: apps/api
+        run: pnpm run build
 
       - name: Run unit tests
         working-directory: apps/api
@@ -55,7 +57,7 @@ jobs:
           DB_USER: postgres
           DB_PASS: postgres
           DB_NAME: mcomvcard_test
-        run: pnpm test
+        run: pnpm run test
 
       - name: Run migrations
         working-directory: apps/api
