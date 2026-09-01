@@ -13,13 +13,13 @@ export class Template {
   @Column({ unique: true })
   slug!: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   path!: string | null
 
-  @Column({ name: 'preview_url', nullable: true })
+  @Column({ name: 'preview_url', type: 'text', nullable: true })
   previewUrl!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   category!: string | null
 
   @Column({ default: 'published' })

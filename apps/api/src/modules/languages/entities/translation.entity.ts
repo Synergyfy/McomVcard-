@@ -20,7 +20,7 @@ export class Translation {
   @Column({ type: 'text' })
   value!: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   context!: string | null
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

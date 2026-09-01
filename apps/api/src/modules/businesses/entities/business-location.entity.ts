@@ -13,16 +13,16 @@ export class BusinessLocation {
   @JoinColumn({ name: 'business_id' })
   business!: Business
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   address!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   city!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   state!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   country!: string | null
 
   @Column({ name: 'latitude', type: 'double precision', nullable: true })

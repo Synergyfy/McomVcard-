@@ -38,13 +38,13 @@ export class Business {
   @Column({ type: 'text', nullable: true })
   description!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   email!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   phone!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   website!: string | null
 
   @Column({ default: 'active' })
