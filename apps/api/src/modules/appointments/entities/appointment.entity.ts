@@ -27,7 +27,7 @@ export class Appointment {
   @Column({ name: 'customer_email' })
   customerEmail!: string
 
-  @Column({ name: 'customer_phone', nullable: true })
+  @Column({ name: 'customer_phone', type: 'text', nullable: true })
   customerPhone!: string | null
 
   @Column({ type: 'date' })
