@@ -26,7 +26,7 @@ export class User {
   @Column({ name: 'last_name', nullable: true })
   lastName!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   phone!: string | null
 
   @Column({ default: 'active' })

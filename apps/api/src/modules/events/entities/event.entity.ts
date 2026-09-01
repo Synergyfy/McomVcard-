@@ -59,7 +59,7 @@ export class Event {
   @Column({ default: 'UTC' })
   timezone!: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   location!: string | null
 
   @Column({ name: 'is_virtual', default: false })

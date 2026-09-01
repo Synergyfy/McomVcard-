@@ -3,7 +3,7 @@
     "module": "Node16",
     "declaration": true,
     "removeComments": true,
-    "emitDecoratorMetadata": false,
+    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2020",

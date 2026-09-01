@@ -30,7 +30,7 @@ export class RefreshToken {
   @Column({ name: 'user_agent', nullable: true })
   userAgent!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   ip!: string | null
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

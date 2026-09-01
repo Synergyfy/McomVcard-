@@ -78,7 +78,7 @@ export class Plan {
   @Column({ type: 'varchar', length: 20 })
   audience!: PlanAudience
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   name!: string | null
 
   @Column({ type: 'text', nullable: true })
