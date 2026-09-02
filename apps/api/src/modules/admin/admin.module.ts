@@ -30,6 +30,7 @@ import { AdminEnquiriesController } from './admin-enquiries.controller'
 import { AdminSubscribersController } from './admin-subscribers.controller'
 import { AdminSettingsController } from './admin-settings.controller'
 import { AdminAdminsController } from './admin-admins.controller'
+import { AdminsService } from './admins.service'
 import { AdminSubscribedPlansController } from './admin-subscribed-plans.controller'
 import { AdminCashPaymentsController } from './admin-cash-payments.controller'
 import { AdminAffiliateUsersController } from './admin-affiliate-users.controller'
@@ -52,8 +53,15 @@ import { EmailTemplatesModule } from '../email-templates/email-templates.module'
 import { SettingsModule } from '../settings/settings.module'
 import { FeaturesModule } from '../features/features.module'
 import { TestimonialsModule } from '../testimonials/testimonials.module'
+import { AboutUsModule } from '../about-us/about-us.module'
+import { AffiliatesModule } from '../affiliates/affiliates.module'
+import { CmsModule } from '../cms/cms.module'
+import { FinanceModule } from '../finance/finance.module'
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module'
 
 import { User } from '../users/entities/user.entity'
+import { UserRole } from '../roles/entities/user-role.entity'
+import { Role } from '../roles/entities/role.entity'
 import { Business } from '../businesses/entities/business.entity'
 import { Card } from '../cards/entities/card.entity'
 import { Template } from '../cards/entities/template.entity'
@@ -93,12 +101,19 @@ import { CouponCode } from '../coupon-codes/entities/coupon-code.entity'
     SettingsModule,
     FeaturesModule,
     TestimonialsModule,
+    AboutUsModule,
+    AffiliatesModule,
+    CmsModule,
+    FinanceModule,
+    SubscriptionsModule,
     ActivityModule,
     NewsletterModule,
     CountriesModule,
     CouponCodesModule,
     TypeOrmModule.forFeature([
       User,
+      UserRole,
+      Role,
       Business,
       Card,
       Template,
@@ -125,6 +140,7 @@ import { CouponCode } from '../coupon-codes/entities/coupon-code.entity'
       CouponCode,
     ]),
   ],
+  providers: [AdminsService],
   controllers: [
     AdminController,
     AdminUsersController,

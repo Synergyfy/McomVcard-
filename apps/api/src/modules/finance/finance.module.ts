@@ -22,16 +22,20 @@ import { CatalogService } from './catalog.service'
 import { GiftCard } from './entities/gift-card.entity'
 import { CashbackProgram } from './entities/cashback-program.entity'
 import { Business } from '../businesses/entities/business.entity'
+import { CashPaymentsService } from './cash-payments.service'
+import { CashPayment } from './entities/cash-payment.entity'
+import { WithdrawTransactionsService } from './withdraw-transactions.service'
+import { WithdrawTransaction } from './entities/withdraw-transaction.entity'
 
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([Wallet, WalletTransaction, ChildCard, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business]),
+    TypeOrmModule.forFeature([Wallet, WalletTransaction, ChildCard, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business, CashPayment, WithdrawTransaction]),
     McomModule,
     UsersModule,
   ],
   controllers: [WalletController, RewardsController, CashbackController, CatalogController],
-  providers: [WalletService, RewardsService, CashbackService, CatalogService],
-  exports: [WalletService, RewardsService, CashbackService, CatalogService],
+  providers: [WalletService, RewardsService, CashbackService, CatalogService, CashPaymentsService, WithdrawTransactionsService],
+  exports: [WalletService, RewardsService, CashbackService, CatalogService, CashPaymentsService, WithdrawTransactionsService],
 })
 export class FinanceModule {}
