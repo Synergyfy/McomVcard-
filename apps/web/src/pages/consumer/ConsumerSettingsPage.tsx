@@ -1,17 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockConsumers } from '../../services/mockData'
+import { consumerService, type ConsumerProfile } from '../../services/consumer'
 import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
 import { useAuth } from '../../contexts/AuthContext'
 
-const CONSUMER_ID = 1
-
 export default function ConsumerSettingsPage() {
-  const profile = mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
+  const [profile, setProfile] = useState<ConsumerProfile | null>(null)
+  const [loading, setLoading] = useState(true)
   const { logout } = useAuth()
+
+  useEffect(() => {
+    consumerService.getProfile().then(setProfile).catch(() => {}).finally(() => setLoading(false))
+  }, [])
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: profile.name, email: profile.email, phone: profile.phone, location: profile.location })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', location: '' })
   const [saved, setSaved] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'security' | 'notifications' | 'preferences' | 'privacy'>('profile')
 
@@ -19,6 +22,13 @@ export default function ConsumerSettingsPage() {
   const [pwNotice, setPwNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [pwSaving, setPwSaving] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+
+  useEffect(() => {
+    if (profile) setForm({ name: profile.name, email: profile.email, phone: profile.phone, location: profile.location })
+  }, [profile])
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (!profile) return <div className="text-center py-20 text-gray-500">Failed to load profile.</div>
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()

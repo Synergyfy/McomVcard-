@@ -1,13 +1,14 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import 'reflect-metadata'
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, Logger } from '@nestjs/common'
 import { AllExceptionsFilter } from './lib/common/filters/http-exception.filter'
 import { TransformInterceptor } from './lib/common/interceptors/transform.interceptor'
 import { setupSwagger } from './swagger'
 import { requestIdMiddleware } from './lib/common/middleware/request-id.middleware'
 import { httpLoggerMiddleware } from './lib/common/middleware/http-logger.middleware'
 import helmet from 'helmet'
+import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import { ConfigService } from '@nestjs/config'
 import { join } from 'path'
@@ -17,6 +18,7 @@ async function bootstrap() {
   // rawBody: true keeps the exact incoming bytes on req.rawBody so inbound
   // MCOM webhook signatures (HMAC over the raw payload) can be verified.
   const app = await NestFactory.create(AppModule, { rawBody: true })
+  const logger = new Logger('Bootstrap')
   app.setGlobalPrefix('api')
 
   // Serve uploaded media files (spec §45): bytes live on disk, metadata in DB.
@@ -38,6 +40,8 @@ async function bootstrap() {
   app.use(requestIdMiddleware)
   // request logging (request id must be set first)
   app.use(httpLoggerMiddleware)
+  // compression (gzip/deflate for large responses)
+  app.use(compression())
   // security headers
   app.use(helmet())
   // HttpOnly refresh-token cookie parsing
@@ -59,10 +63,24 @@ async function bootstrap() {
     setupSwagger(app)
   }
 
+  // Graceful shutdown: enable NestJS shutdown hooks for SIGTERM/SIGINT
+  app.enableShutdownHooks()
+
   const port = process.env.PORT ? Number(process.env.PORT) : 3001
   await app.listen(port)
-  // eslint-disable-next-line no-console
-  console.log(`API running on http://localhost:${port}/api`)
+  logger.log(`API running on http://localhost:${port}/api [${nodeEnv}]`)
 }
+
+// Process-level error handlers — prevent silent failures in production
+process.on('unhandledRejection', (reason: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('[UNHANDLED_REJECTION]', reason)
+})
+
+process.on('uncaughtException', (error: Error) => {
+  // eslint-disable-next-line no-console
+  console.error('[UNCAUGHT_EXCEPTION]', error)
+  process.exit(1)
+})
 
 bootstrap()

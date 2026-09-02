@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 import type { VCardTestimonial } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditTestimonialsTab({ vcardId }: Props) {
   const { t } = useTranslation()
@@ -23,7 +23,7 @@ export default function VCardEditTestimonialsTab({ vcardId }: Props) {
 
   const startEdit = (item?: VCardTestimonial) => {
     if (item) { setEditing(item); setForm({ name: item.name, description: item.description }) }
-    else { setEditing({ id: 0, vcard_id: vcardId } as VCardTestimonial); setForm({ name: '', description: '' }) }
+    else { setEditing({ id: '0', vcard_id: Number(vcardId) } as unknown as VCardTestimonial); setForm({ name: '', description: '' }) }
   }
 
   const cancelEdit = () => { setEditing(null); setForm({ name: '', description: '' }) }
@@ -34,15 +34,15 @@ export default function VCardEditTestimonialsTab({ vcardId }: Props) {
       const fd = new FormData()
       fd.append('name', form.name); fd.append('description', form.description)
       if (fileRef.current?.files?.[0]) fd.append('image', fileRef.current.files[0])
-      if (editing?.id) await userService.updateTestimonial(vcardId, editing.id, fd)
+      if (editing?.id && editing.id !== '0') await userService.updateTestimonial(editing.id, fd)
       else await userService.createTestimonial(vcardId, fd)
       cancelEdit(); fetch(); setMessage(t('user.saved'))
     } catch {}
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('user.confirm_delete'))) return
-    try { await userService.deleteTestimonial(vcardId, id); fetch() } catch {}
+    try { await userService.deleteTestimonial(id); fetch() } catch {}
   }
 
   if (loading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>

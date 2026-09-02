@@ -15,6 +15,14 @@ import { CardCentreControl } from './entities/card-centre-control.entity'
 import { Template } from './entities/template.entity'
 import { TemplateField } from './entities/template-field.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { MembershipBenefit } from '../memberships/entities/membership-benefit.entity'
+import { Benefit } from '../memberships/entities/benefit.entity'
+import { Season } from '../seasons/entities/season.entity'
+import { Wallet } from '../finance/entities/wallet.entity'
+import { RewardBalance } from '../finance/entities/reward-balance.entity'
+import { ActivityLog } from '../activity/entities/activity-log.entity'
 
 @Module({
   imports: [
@@ -31,6 +39,14 @@ import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
       Template,
       TemplateField,
       AnalyticsEvent,
+      Membership,
+      MembershipTier,
+      MembershipBenefit,
+      Benefit,
+      Season,
+      Wallet,
+      RewardBalance,
+      ActivityLog,
     ]),
   ],
   controllers: [CardsController, CardsPublicController],

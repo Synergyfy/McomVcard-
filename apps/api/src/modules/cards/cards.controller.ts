@@ -41,6 +41,7 @@ import { UpsertCentreControlDto } from './dto/upsert-centre-controls.dto'
 import { ApplyTemplateDto } from './dto/apply-template.dto'
 import { CardSectionResponseDto } from './dto/card-section-response.dto'
 import { CardCentreControlResponseDto } from './dto/card-centre-control-response.dto'
+import { CardActivityResponseDto } from './dto/card-activity-response.dto'
 
 @ApiTags('cards')
 @ApiExtraModels(
@@ -53,6 +54,7 @@ import { CardCentreControlResponseDto } from './dto/card-centre-control-response
   TemplateResponseDto,
   CardSectionResponseDto,
   CardCentreControlResponseDto,
+  CardActivityResponseDto,
 )
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -299,6 +301,26 @@ export class CardsController {
     return this.cardsService.getCustomization(id)
   }
 
+  @Patch('cards/:cardId/customization')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a card customization by card ID', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
+  @ApiBody({ type: UpdateCardCustomizationDto, examples: { default: { summary: 'Update customization', value: { primary_color: '#1e293b' } } } })
+  @ApiOkResponse({
+    description: 'Card customization updated',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { $ref: getSchemaPath(CardCustomizationResponseDto) } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own the parent card' })
+  @ApiNotFoundResponse({ description: 'Card customization not found' })
+  async updateCustomizationByCardId(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardCustomizationDto) {
+    return this.cardsService.updateCustomizationByCardId(cardId, user.id, body)
+  }
+
   @Patch('card-customizations/:customizationId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card customization', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
@@ -461,9 +483,9 @@ export class CardsController {
     return this.cardsService.getAccess(id)
   }
 
-  @Patch('card-access/:accessId')
+  @Patch('card-access/:cardId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a card access settings', description: 'Updates access settings. The settings must belong to a card the authenticated user owns.' })
+  @ApiOperation({ summary: 'Update a card access settings', description: 'Updates access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardAccessDto, examples: { default: { summary: 'Update access settings', value: { is_enabled: false } } } })
   @ApiOkResponse({
     description: 'Card access updated',
@@ -478,13 +500,13 @@ export class CardsController {
   @ApiForbiddenResponse({ description: 'You do not own the parent card' })
   @ApiNotFoundResponse({ description: 'Card access not found' })
   @ApiBadRequestResponse({ description: 'expires_at required for "until" expiry' })
-  async updateAccess(@Param('accessId', new ParseUUIDPipe()) accessId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardAccessDto) {
-    return this.cardsService.updateAccessByAccess(accessId, user.id, body)
+  async updateAccess(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto, @Body() body: UpdateCardAccessDto) {
+    return this.cardsService.updateAccessByCardId(cardId, user.id, body)
   }
 
-  @Delete('card-access/:accessId')
+  @Delete('card-access/:cardId')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a card access settings', description: 'Deletes access settings. The settings must belong to a card the authenticated user owns.' })
+  @ApiOperation({ summary: 'Delete a card access settings', description: 'Deletes access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
     description: 'Card access deleted',
     schema: {
@@ -497,8 +519,8 @@ export class CardsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'You do not own the parent card' })
   @ApiNotFoundResponse({ description: 'Card access not found' })
-  async removeAccess(@Param('accessId', new ParseUUIDPipe()) accessId: string, @CurrentUser() user: UserResponseDto) {
-    return this.cardsService.removeAccessByAccess(accessId, user.id)
+  async removeAccess(@Param('cardId', new ParseUUIDPipe()) cardId: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.removeAccessByCardId(cardId, user.id)
   }
 
   // ---- Templates (system-defined, read-only) ----
@@ -650,6 +672,33 @@ export class CardsController {
     return this.cardsService.getCardStats(id)
   }
 
+  // ---- Card activity feed ----
+
+  @Get('cards/:id/activity')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get card activity feed',
+    description: 'Returns the 50 most recent activity log entries for the business linked to this card.',
+  })
+  @ApiOkResponse({
+    description: 'Card activity feed',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(CardActivityResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  async getCardActivity(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.getCardActivity(id)
+  }
+
   // ---- Sections ----
 
   @Get('cards/:id/sections')
@@ -759,5 +808,37 @@ export class CardsController {
   @ApiForbiddenResponse({ description: 'You do not own this card' })
   async upsertCentreControls(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: UpsertCentreControlDto[]) {
     return this.cardsService.upsertCentreControls(id, user.id, body)
+  }
+
+  // ---- Consumer Store Card ----
+
+  @Get('cards/:id/store-data')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get consumer store card data',
+    description: 'Returns the composite store data for a consumer store card, including the card owner\'s membership tier/benefits, wallet balance, reward balance, and the current active season.',
+  })
+  @ApiOkResponse({ description: 'Store data retrieved' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Card not found' })
+  @ApiBadRequestResponse({ description: 'Card is not a consumer store card' })
+  async getStoreData(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.cardsService.getStoreData(id)
+  }
+
+  // ---- Template membership gating ----
+
+  @Get('templates/:id/access')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Check template membership access',
+    description: 'Checks whether the authenticated user\'s membership tier satisfies the template\'s required membership level. Returns allowed/denied with details.',
+  })
+  @ApiOkResponse({ description: 'Template access checked' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Template not found' })
+  @ApiForbiddenResponse({ description: 'Insufficient membership tier' })
+  async checkTemplateAccess(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto) {
+    return this.cardsService.checkTemplateAccess(id, user.id)
   }
 }

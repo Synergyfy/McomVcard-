@@ -8,7 +8,6 @@ import type {
   WithdrawTransaction, Country, Language, TranslationEntry, CouponCode, FrontCMS,
   EmailTemplate, ActivityLog, NewsletterCampaign, FaqItem, AdminBooking,
 } from '../types'
-import * as mock from './mockData'
 
 const api = axios.create({
   baseURL: '/api',
@@ -24,68 +23,6 @@ api.interceptors.request.use((config) => {
 
 // Auto-refresh on 401 — swap HttpOnly cookie for fresh JWT, retry once.
 attach401Retry(api)
-
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (!err.response) {
-      const url = err.config?.url || ''
-      if (url.startsWith('/admin/')) {
-        return Promise.resolve({ data: getMockForUrl(url) })
-      }
-    }
-    return Promise.reject(err)
-  }
-)
-
-function getMockForUrl(url: string): any {
-  if (url.includes('/admin/admins')) return { data: [], total: 0 }
-  if (url.includes('/admin/users')) return { data: mock.mockUsers, total: mock.mockUsers.length }
-  if (url.includes('/admin/vcards')) return { data: mock.mockVcards, total: mock.mockVcards.length }
-  if (url.includes('/admin/plans') && !url.includes('subscribed') && !url.includes('cash')) return { data: mock.mockPlans, total: mock.mockPlans.length }
-  if (url.includes('/admin/subscribed-plans')) return { data: mock.mockSubscribedPlans, total: mock.mockSubscribedPlans.length }
-  if (url.includes('/admin/cash-payments')) return { data: mock.mockCashPayments, total: mock.mockCashPayments.length }
-  if (url.includes('/admin/affiliate-users')) return { data: mock.mockAffiliateUsers, total: mock.mockAffiliateUsers.length }
-  if (url.includes('/admin/affiliate-transactions')) return { data: mock.mockAffiliateTransactions, total: mock.mockAffiliateTransactions.length }
-  if (url.includes('/admin/withdraw-transactions')) return { data: mock.mockWithdrawTransactions, total: mock.mockWithdrawTransactions.length }
-  if (url.includes('/admin/countries')) return { data: mock.mockCountries, total: mock.mockCountries.length }
-  if (url.includes('/admin/languages')) {
-    if (url.includes('/translations')) return mock.mockTranslations
-    return { data: mock.mockLanguages, total: mock.mockLanguages.length }
-  }
-  if (url.includes('/admin/coupon-codes')) return { data: mock.mockCouponCodes, total: mock.mockCouponCodes.length }
-  if (url.includes('/admin/faqs')) return mock.mockFaqs
-  if (url.includes('/admin/front-cms')) return mock.mockFrontCMS
-  if (url.includes('/admin/email-templates')) return { data: mock.mockEmailTemplates, total: mock.mockEmailTemplates.length }
-  if (url.includes('/admin/templates')) return { data: mock.mockTemplates, total: mock.mockTemplates.length }
-  if (url.includes('/admin/activity-logs')) return { data: mock.mockActivityLogs, total: mock.mockActivityLogs.length }
-  if (url.includes('/admin/newsletter')) return { data: mock.mockNewsletterCampaigns, total: mock.mockNewsletterCampaigns.length }
-  if (url.includes('/admin/enquiries')) return mock.mockEnquiries
-  if (url.includes('/admin/subscribers')) return mock.mockSubscribers
-  if (url.includes('/admin/currencies')) return mock.mockCurrencies
-  if (url.includes('/admin/testimonials')) return mock.mockTestimonials
-  if (url.includes('/admin/features')) return mock.mockFrontFeatures
-  if (url.includes('/admin/about-us')) return mock.mockAboutUs
-  if (url.includes('/admin/settings')) return {}
-  if (url.includes('/admin/dashboard')) return {
-    total_users: mock.mockUsers.length,
-    total_vcards: mock.mockVcards.length,
-    total_plans: mock.mockPlans.length,
-    total_enquiries: mock.mockEnquiries.length,
-    total_subscribers: mock.mockSubscribers.length,
-    total_testimonials: mock.mockTestimonials.length,
-    recent_users: mock.mockUsers.slice(0, 5),
-    recent_vcards: mock.mockVcards.slice(0, 5),
-    monthly_users: [],
-    monthly_vcards: [],
-  }
-  if (url.includes('/admin/roles')) return mock.mockUsers
-  if (url.includes('/admin/permissions')) return []
-  if (url.includes('/admin/permissions')) return []
-  if (url.includes('/admin/all-currencies')) return mock.mockCurrencies
-  if (url.includes('/admin/bookings')) return { data: mock.mockAdminBookings, total: mock.mockAdminBookings.length }
-  return { data: [], total: 0 }
-}
 
 export const adminService = {
   // Dashboard
@@ -111,7 +48,7 @@ export const adminService = {
   },
 
   async updateUser(id: string, data: Partial<User>): Promise<User> {
-    const res = await api.put(`/admin/users/${id}`, data)
+    const res = await api.patch(`/admin/users/${id}`, data)
     return res.data
   },
 
@@ -120,18 +57,35 @@ export const adminService = {
   },
 
   async impersonateUser(id: string): Promise<{ token: string }> {
-    const res = await api.post(`/admin/users/${id}/impersonate`)
+    const res = await api.post(`/admin/impersonate/${id}`)
+    return res.data
+  },
+
+  // Businesses
+  async getAdminBusiness(id: string): Promise<any> {
+    const res = await api.get(`/admin/businesses/${id}`)
     return res.data
   },
 
   // vCards
   async getVcards(params?: Record<string, any>): Promise<{ data: VCard[]; total: number }> {
-    const res = await api.get('/admin/vcards', { params })
+    const res = await api.get('/admin/cards', { params })
     return res.data
   },
 
-  async deleteVcard(id: number): Promise<void> {
-    await api.delete(`/admin/vcards/${id}`)
+  async getAdminCard(id: string): Promise<any> {
+    const res = await api.get(`/admin/cards/${id}`)
+    return res.data
+  },
+
+  async deleteVcard(id: string): Promise<void> {
+    await api.delete(`/admin/cards/${id}`)
+  },
+
+  // Public Templates
+  async getPublicTemplates(): Promise<Template[]> {
+    const res = await api.get('/templates')
+    return res.data
   },
 
   // Plans
@@ -140,7 +94,7 @@ export const adminService = {
     return res.data
   },
 
-  async getPlan(id: number): Promise<Plan> {
+  async getPlan(id: string): Promise<Plan> {
     const res = await api.get(`/admin/plans/${id}`)
     return res.data
   },
@@ -150,12 +104,12 @@ export const adminService = {
     return res.data
   },
 
-  async updatePlan(id: number, data: Partial<Plan> & { plan_feature?: Partial<PlanFeature> }): Promise<Plan> {
-    const res = await api.put(`/admin/plans/${id}`, data)
+  async updatePlan(id: string, data: Partial<Plan> & { plan_feature?: Partial<PlanFeature> }): Promise<Plan> {
+    const res = await api.patch(`/admin/plans/${id}`, data)
     return res.data
   },
 
-  async deletePlan(id: number): Promise<void> {
+  async deletePlan(id: string): Promise<void> {
     await api.delete(`/admin/plans/${id}`)
   },
 
@@ -170,12 +124,12 @@ export const adminService = {
     return res.data
   },
 
-  async updateTemplate(id: number, data: Partial<Template>): Promise<Template> {
-    const res = await api.put(`/admin/templates/${id}`, data)
+  async updateTemplate(id: string, data: Partial<Template>): Promise<Template> {
+    const res = await api.patch(`/admin/templates/${id}`, data)
     return res.data
   },
 
-  async deleteTemplate(id: number): Promise<void> {
+  async deleteTemplate(id: string): Promise<void> {
     await api.delete(`/admin/templates/${id}`)
   },
 
@@ -190,12 +144,12 @@ export const adminService = {
     return res.data
   },
 
-  async updateCurrency(id: number, data: Partial<Currency>): Promise<Currency> {
-    const res = await api.put(`/admin/currencies/${id}`, data)
+  async updateCurrency(id: string, data: Partial<Currency>): Promise<Currency> {
+    const res = await api.patch(`/admin/currencies/${id}`, data)
     return res.data
   },
 
-  async deleteCurrency(id: number): Promise<void> {
+  async deleteCurrency(id: string): Promise<void> {
     await api.delete(`/admin/currencies/${id}`)
   },
 
@@ -205,7 +159,7 @@ export const adminService = {
     return res.data
   },
 
-  async getRole(id: number): Promise<Role> {
+  async getRole(id: string): Promise<Role> {
     const res = await api.get(`/admin/roles/${id}`)
     return res.data
   },
@@ -215,18 +169,13 @@ export const adminService = {
     return res.data
   },
 
-  async updateRole(id: number, data: Partial<Role> & { permissions?: string[] }): Promise<Role> {
-    const res = await api.put(`/admin/roles/${id}`, data)
+  async updateRole(id: string, data: Partial<Role> & { permissions?: string[] }): Promise<Role> {
+    const res = await api.patch(`/admin/roles/${id}`, data)
     return res.data
   },
 
-  async deleteRole(id: number): Promise<void> {
+  async deleteRole(id: string): Promise<void> {
     await api.delete(`/admin/roles/${id}`)
-  },
-
-  async getPermissions(): Promise<Permission[]> {
-    const res = await api.get('/admin/permissions')
-    return res.data
   },
 
   // Testimonials
@@ -240,12 +189,12 @@ export const adminService = {
     return res.data
   },
 
-  async updateTestimonial(id: number, data: Partial<FrontTestimonial>): Promise<FrontTestimonial> {
-    const res = await api.put(`/admin/testimonials/${id}`, data)
+  async updateTestimonial(id: string, data: Partial<FrontTestimonial>): Promise<FrontTestimonial> {
+    const res = await api.patch(`/admin/testimonials/${id}`, data)
     return res.data
   },
 
-  async deleteTestimonial(id: number): Promise<void> {
+  async deleteTestimonial(id: string): Promise<void> {
     await api.delete(`/admin/testimonials/${id}`)
   },
 
@@ -260,12 +209,12 @@ export const adminService = {
     return res.data
   },
 
-  async updateFrontFeature(id: number, data: Partial<FrontFeature>): Promise<FrontFeature> {
-    const res = await api.put(`/admin/features/${id}`, data)
+  async updateFrontFeature(id: string, data: Partial<FrontFeature>): Promise<FrontFeature> {
+    const res = await api.patch(`/admin/features/${id}`, data)
     return res.data
   },
 
-  async deleteFrontFeature(id: number): Promise<void> {
+  async deleteFrontFeature(id: string): Promise<void> {
     await api.delete(`/admin/features/${id}`)
   },
 
@@ -275,8 +224,8 @@ export const adminService = {
     return res.data
   },
 
-  async updateAboutUs(id: number, data: Partial<AboutUs>): Promise<AboutUs> {
-    const res = await api.put(`/admin/about-us/${id}`, data)
+  async updateAboutUs(id: string, data: Partial<AboutUs>): Promise<AboutUs> {
+    const res = await api.patch(`/admin/about-us/${id}`, data)
     return res.data
   },
 
@@ -286,12 +235,12 @@ export const adminService = {
     return res.data
   },
 
-  async getEnquiry(id: number): Promise<Enquiry> {
+  async getEnquiry(id: string): Promise<Enquiry> {
     const res = await api.get(`/admin/enquiries/${id}`)
     return res.data
   },
 
-  async deleteEnquiry(id: number): Promise<void> {
+  async deleteEnquiry(id: string): Promise<void> {
     await api.delete(`/admin/enquiries/${id}`)
   },
 
@@ -301,7 +250,7 @@ export const adminService = {
     return res.data
   },
 
-  async deleteSubscriber(id: number): Promise<void> {
+  async deleteSubscriber(id: string): Promise<void> {
     await api.delete(`/admin/subscribers/${id}`)
   },
 
@@ -312,7 +261,7 @@ export const adminService = {
   },
 
   async updateGeneralSettings(data: Partial<DashboardMeta>): Promise<void> {
-    await api.put('/admin/settings/general', data)
+    await api.patch('/admin/settings/general', data)
   },
 
   async getEmailSettings(): Promise<EmailSetting> {
@@ -321,7 +270,7 @@ export const adminService = {
   },
 
   async updateEmailSettings(data: Partial<EmailSetting>): Promise<void> {
-    await api.put('/admin/settings/email', data)
+    await api.patch('/admin/settings/email', data)
   },
 
   async getPaymentSettings(): Promise<PaymentSetting> {
@@ -330,12 +279,12 @@ export const adminService = {
   },
 
   async updatePaymentSettings(data: Partial<PaymentSetting>): Promise<void> {
-    await api.put('/admin/settings/payment', data)
+    await api.patch('/admin/settings/payment', data)
   },
 
   // Currencies (for dropdowns)
   async getAllCurrencies(): Promise<Currency[]> {
-    const res = await api.get('/admin/all-currencies')
+    const res = await api.get('/admin/currencies')
     return res.data
   },
 
@@ -345,7 +294,7 @@ export const adminService = {
     const res = await api.get('/admin/admins', { params })
     return res.data
   },
-  async getAdmin(id: number): Promise<AdminUser> {
+  async getAdmin(id: string): Promise<AdminUser> {
     const res = await api.get(`/admin/admins/${id}`)
     return res.data
   },
@@ -353,11 +302,11 @@ export const adminService = {
     const res = await api.post('/admin/admins', data)
     return res.data
   },
-  async updateAdmin(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
-    const res = await api.put(`/admin/admins/${id}`, data)
+  async updateAdmin(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
+    const res = await api.patch(`/admin/admins/${id}`, data)
     return res.data
   },
-  async deleteAdmin(id: number): Promise<void> {
+  async deleteAdmin(id: string): Promise<void> {
     await api.delete(`/admin/admins/${id}`)
   },
   // Subscribed User Plans
@@ -365,8 +314,8 @@ export const adminService = {
     const res = await api.get('/admin/subscribed-plans', { params })
     return res.data
   },
-  async updateSubscribedUserPlan(id: number, data: Partial<SubscribedUserPlan>): Promise<SubscribedUserPlan> {
-    const res = await api.put(`/admin/subscribed-plans/${id}`, data)
+  async updateSubscribedUserPlan(id: string, data: Partial<SubscribedUserPlan>): Promise<SubscribedUserPlan> {
+    const res = await api.patch(`/admin/subscribed-plans/${id}`, data)
     return res.data
   },
   // Cash Payments
@@ -374,8 +323,8 @@ export const adminService = {
     const res = await api.get('/admin/cash-payments', { params })
     return res.data
   },
-  async updateCashPayment(id: number, data: Partial<CashPayment>): Promise<CashPayment> {
-    const res = await api.put(`/admin/cash-payments/${id}`, data)
+  async updateCashPayment(id: string, data: Partial<CashPayment>): Promise<CashPayment> {
+    const res = await api.patch(`/admin/cash-payments/${id}`, data)
     return res.data
   },
   // Affiliate Users
@@ -388,8 +337,8 @@ export const adminService = {
     const res = await api.get('/admin/affiliate-transactions', { params })
     return res.data
   },
-  async updateAffiliateTransaction(id: number, data: Partial<AffiliateTransaction>): Promise<AffiliateTransaction> {
-    const res = await api.put(`/admin/affiliate-transactions/${id}`, data)
+  async updateAffiliateTransaction(id: string, data: Partial<AffiliateTransaction>): Promise<AffiliateTransaction> {
+    const res = await api.patch(`/admin/affiliate-transactions/${id}`, data)
     return res.data
   },
   // Withdraw Transactions
@@ -397,8 +346,8 @@ export const adminService = {
     const res = await api.get('/admin/withdraw-transactions', { params })
     return res.data
   },
-  async updateWithdrawTransaction(id: number, data: Partial<WithdrawTransaction>): Promise<WithdrawTransaction> {
-    const res = await api.put(`/admin/withdraw-transactions/${id}`, data)
+  async updateWithdrawTransaction(id: string, data: Partial<WithdrawTransaction>): Promise<WithdrawTransaction> {
+    const res = await api.patch(`/admin/withdraw-transactions/${id}`, data)
     return res.data
   },
   // Countries
@@ -406,7 +355,7 @@ export const adminService = {
     const res = await api.get('/admin/countries', { params })
     return res.data
   },
-  async getCountry(id: number): Promise<Country> {
+  async getCountry(id: string): Promise<Country> {
     const res = await api.get(`/admin/countries/${id}`)
     return res.data
   },
@@ -414,11 +363,11 @@ export const adminService = {
     const res = await api.post('/admin/countries', data)
     return res.data
   },
-  async updateCountry(id: number, data: Partial<Country>): Promise<Country> {
-    const res = await api.put(`/admin/countries/${id}`, data)
+  async updateCountry(id: string, data: Partial<Country>): Promise<Country> {
+    const res = await api.patch(`/admin/countries/${id}`, data)
     return res.data
   },
-  async deleteCountry(id: number): Promise<void> {
+  async deleteCountry(id: string): Promise<void> {
     await api.delete(`/admin/countries/${id}`)
   },
   // Languages
@@ -426,7 +375,7 @@ export const adminService = {
     const res = await api.get('/admin/languages', { params })
     return res.data
   },
-  async getLanguage(id: number): Promise<Language> {
+  async getLanguage(id: string): Promise<Language> {
     const res = await api.get(`/admin/languages/${id}`)
     return res.data
   },
@@ -434,26 +383,26 @@ export const adminService = {
     const res = await api.post('/admin/languages', data)
     return res.data
   },
-  async updateLanguage(id: number, data: Partial<Language>): Promise<Language> {
-    const res = await api.put(`/admin/languages/${id}`, data)
+  async updateLanguage(id: string, data: Partial<Language>): Promise<Language> {
+    const res = await api.patch(`/admin/languages/${id}`, data)
     return res.data
   },
-  async deleteLanguage(id: number): Promise<void> {
+  async deleteLanguage(id: string): Promise<void> {
     await api.delete(`/admin/languages/${id}`)
   },
   async getTranslations(languageId: number): Promise<TranslationEntry[]> {
     const res = await api.get(`/admin/languages/${languageId}/translations`)
     return res.data
   },
-  async updateTranslation(languageId: number, id: number, data: Partial<TranslationEntry>): Promise<void> {
-    await api.put(`/admin/languages/${languageId}/translations/${id}`, data)
+  async updateTranslation(languageId: number, id: string, data: Partial<TranslationEntry>): Promise<void> {
+    await api.patch(`/admin/languages/${languageId}/translations/${id}`, data)
   },
   // Coupon Codes
   async getCouponCodes(params?: Record<string, any>): Promise<{ data: CouponCode[]; total: number }> {
     const res = await api.get('/admin/coupon-codes', { params })
     return res.data
   },
-  async getCouponCode(id: number): Promise<CouponCode> {
+  async getCouponCode(id: string): Promise<CouponCode> {
     const res = await api.get(`/admin/coupon-codes/${id}`)
     return res.data
   },
@@ -461,11 +410,11 @@ export const adminService = {
     const res = await api.post('/admin/coupon-codes', data)
     return res.data
   },
-  async updateCouponCode(id: number, data: Partial<CouponCode>): Promise<CouponCode> {
-    const res = await api.put(`/admin/coupon-codes/${id}`, data)
+  async updateCouponCode(id: string, data: Partial<CouponCode>): Promise<CouponCode> {
+    const res = await api.patch(`/admin/coupon-codes/${id}`, data)
     return res.data
   },
-  async deleteCouponCode(id: number): Promise<void> {
+  async deleteCouponCode(id: string): Promise<void> {
     await api.delete(`/admin/coupon-codes/${id}`)
   },
   // Front CMS
@@ -474,7 +423,7 @@ export const adminService = {
     return res.data
   },
   async updateFrontCMS(data: Partial<FrontCMS>): Promise<void> {
-    await api.put('/admin/front-cms', data)
+    await api.patch('/admin/front-cms', data)
   },
   async getFaqs(): Promise<FaqItem[]> {
     const res = await api.get('/admin/faqs')
@@ -484,11 +433,11 @@ export const adminService = {
     const res = await api.post('/admin/faqs', data)
     return res.data
   },
-  async updateFaq(id: number, data: Partial<FaqItem>): Promise<FaqItem> {
-    const res = await api.put(`/admin/faqs/${id}`, data)
+  async updateFaq(id: string, data: Partial<FaqItem>): Promise<FaqItem> {
+    const res = await api.patch(`/admin/faqs/${id}`, data)
     return res.data
   },
-  async deleteFaq(id: number): Promise<void> {
+  async deleteFaq(id: string): Promise<void> {
     await api.delete(`/admin/faqs/${id}`)
   },
   // Email Templates
@@ -496,12 +445,12 @@ export const adminService = {
     const res = await api.get('/admin/email-templates', { params })
     return res.data
   },
-  async getEmailTemplate(id: number): Promise<EmailTemplate> {
+  async getEmailTemplate(id: string): Promise<EmailTemplate> {
     const res = await api.get(`/admin/email-templates/${id}`)
     return res.data
   },
-  async updateEmailTemplate(id: number, data: Partial<EmailTemplate>): Promise<EmailTemplate> {
-    const res = await api.put(`/admin/email-templates/${id}`, data)
+  async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate> {
+    const res = await api.patch(`/admin/email-templates/${id}`, data)
     return res.data
   },
   // Activity Logs
@@ -518,7 +467,7 @@ export const adminService = {
     const res = await api.post('/admin/newsletter', data)
     return res.data
   },
-  async sendNewsletter(id: number): Promise<void> {
+  async sendNewsletter(id: string): Promise<void> {
     await api.post(`/admin/newsletter/${id}/send`)
   },
   // Bookings
@@ -526,15 +475,15 @@ export const adminService = {
     const res = await api.get('/admin/bookings', { params })
     return res.data
   },
-  async getBooking(id: number): Promise<AdminBooking> {
+  async getBooking(id: string): Promise<AdminBooking> {
     const res = await api.get(`/admin/bookings/${id}`)
     return res.data
   },
-  async updateBookingStatus(id: number, status: AdminBooking['status']): Promise<AdminBooking> {
-    const res = await api.put(`/admin/bookings/${id}`, { status })
+  async updateBookingStatus(id: string, status: AdminBooking['status']): Promise<AdminBooking> {
+    const res = await api.patch(`/admin/bookings/${id}`, { status })
     return res.data
   },
-  async deleteBooking(id: number): Promise<void> {
+  async deleteBooking(id: string): Promise<void> {
     await api.delete(`/admin/bookings/${id}`)
   },
   // System
@@ -548,9 +497,4 @@ export const adminService = {
 }
 
 // Re-export Permission type for use in roles
-export interface Permission {
-  id: number
-  name: string
-  display_name?: string
-  description?: string
-}
+

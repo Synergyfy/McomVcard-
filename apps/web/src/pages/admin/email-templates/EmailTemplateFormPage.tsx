@@ -14,7 +14,7 @@ export default function EmailTemplateFormPage() {
 
   useEffect(() => {
     if (!id) return
-    adminService.getEmailTemplate(Number(id)).then((data) => {
+    adminService.getEmailTemplate(String(id)).then((data) => {
       setForm({ subject: data.subject, body: data.body })
     })
   }, [id])
@@ -23,7 +23,7 @@ export default function EmailTemplateFormPage() {
     e.preventDefault()
     setSaving(true)
     try {
-      await adminService.updateEmailTemplate(Number(id), form)
+      await adminService.updateEmailTemplate(String(id), form)
       toast.success(t('common.updated'))
       navigate('/admin/email-templates')
     } catch (err: any) {

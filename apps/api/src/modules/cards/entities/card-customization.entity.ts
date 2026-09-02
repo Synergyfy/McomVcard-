@@ -13,22 +13,22 @@ export class CardCustomization {
   @JoinColumn({ name: 'card_id' })
   card!: Card
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   logo!: string | null
 
-  @Column({ name: 'hero_image', nullable: true })
+  @Column({ name: 'hero_image', type: 'text', nullable: true })
   heroImage!: string | null
 
-  @Column({ name: 'primary_color', nullable: true })
+  @Column({ name: 'primary_color', type: 'text', nullable: true })
   primaryColor!: string | null
 
-  @Column({ name: 'secondary_color', nullable: true })
+  @Column({ name: 'secondary_color', type: 'text', nullable: true })
   secondaryColor!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   font!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   layout!: string | null
 
   @Column({ type: 'jsonb', nullable: true })

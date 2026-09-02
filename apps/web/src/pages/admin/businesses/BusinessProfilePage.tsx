@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockBusinesses, type MockBusiness } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
 import { loadMembershipPricing } from '../../../services/membershipPricingStore'
 import { formatLimit, getPlanLevelFromName, rulesForContext } from '../../../services/membershipEnforcement'
 
@@ -11,164 +11,6 @@ const SUSPEND_REASONS = ['Policy violation', 'Inactive account', 'Payment issue'
 
 
 interface BizExtra { businessId: string; membership: string; membershipStatus: string; membershipStart: string; membershipRenewal: string; billingCycle: string; paymentStatus: string; autoRenewal: boolean; assignedBy: string; lastUpdated: string; planTier: string; planLevel: string; amountPaid: string; businessVCard: any; businessCard: any; consumerVCards: any[]; consumerCards: any[]; consumerVTotal: number; consumerCTotal: number; vcardsUsed: number; cardsUsed: number; totalConsumers: number; activeConsumers: number; consumersWithVCards: number; consumersWithCards: number; consumersWithFF: number; requiresAttention: boolean; lastActiveLabel: string; lastActiveFull: string; hoursAgo: number; centralUserId: string; centralEmail: string; lastSync: string; integrationStatus: Record<string,string>; activity: any[]; centralAccountId: string; localBusinessId: string; accountType: string; registrationSource: string; authenticationStatus: string; lastSuccessfulSync: string; lastAttemptedSync: string; syncStatus: string; syncError: string; accountStatus: string; ecosystemIds: Record<string, string>; integrations: any[]; integrationActivity: any[] }
-const bizData = mockBusinesses.map((b: any): MockBusiness & BizExtra => {
-  const planMap: Record<string, string> = { Free: 'Bronze Standard', Starter: 'Bronze Pro', Business: 'Silver Pro', Enterprise: 'Enterprise Pro' }
-  const membership = planMap[b.plan] || 'Bronze Standard'
-  const vcardActive = b.status === 'verified'
-  const cardActive = b.cards > 0
-  const hoursAgo = Math.floor(Math.random() * 336)
-  const relativeTime = (h: number) => h < 1 ? 'Just now' : h < 2 ? '1 hour ago' : h < 24 ? `${h}h ago` : h < 48 ? 'Yesterday' : `${Math.floor(h / 24)}d ago`
-  const formatDate = (d: string) => {
-    const months: Record<string, string> = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' }
-    const [m, y] = d.split(' ')
-    return `${y}-${months[m]}-01`
-  }
-  const consumerVTotal = b.plan === 'Free' ? 10 : b.plan === 'Starter' ? 100 : b.plan === 'Business' ? 500 : 1000
-  const consumerCTotal = b.plan === 'Free' ? 5 : b.plan === 'Starter' ? 50 : b.plan === 'Business' ? 500 : 1000
-  const vcardsUsed = Math.floor(Math.random() * Math.min(consumerVTotal, 30))
-  const cardsUsed = Math.floor(Math.random() * Math.min(consumerCTotal, 25))
-
-  return {
-    ...b,
-    businessId: `BUS-${String(b.id).padStart(6, '0')}`,
-    membership,
-    membershipStatus: b.status === 'suspended' ? 'Expired' : b.status === 'pending' ? 'Pending' : 'Active',
-    membershipStart: formatDate(b.joined),
-    membershipRenewal: '2026-10-01',
-    billingCycle: b.plan === 'Enterprise' ? 'Annual' : '90-Day',
-    paymentStatus: 'Paid',
-    autoRenewal: true,
-    assignedBy: 'System',
-    lastUpdated: relativeTime(Math.floor(Math.random() * 72)),
-    planTier: b.plan === 'Free' ? 'Starter' : b.plan === 'Starter' ? 'Professional' : b.plan === 'Business' ? 'Business' : 'Enterprise',
-    planLevel: b.plan === 'Free' ? 'Basic' : b.plan === 'Starter' ? 'Plus' : b.plan === 'Business' ? 'Pro' : 'Ultimate',
-    amountPaid: b.plan === 'Free' ? '$0' : b.plan === 'Starter' ? '$2,500' : b.plan === 'Business' ? '$8,000' : '$24,000',
-    businessVCard: vcardActive ? {
-      status: 'Active', id: `BVC-${String(b.id).padStart(6, '0')}`,
-      views: Math.floor(Math.random() * 5000) + 500, shares: Math.floor(Math.random() * 800) + 100,
-      scans: Math.floor(Math.random() * 1200) + 200,
-      url: `https://mcomvcard.com/biz/${b.name.toLowerCase().replace(/\s+/g, '-')}`,
-      preview: '/preview/vcard', created: b.joined, updated: relativeTime(Math.floor(Math.random() * 72)),
-      lastViewed: relativeTime(Math.floor(Math.random() * 24)),
-    } : { status: 'Not Created', id: '', views: 0, shares: 0, scans: 0, url: '', preview: '', created: '', updated: '', lastViewed: '' },
-    businessCard: cardActive ? {
-      status: 'Active', id: `BC-${String(b.id).padStart(6, '0')}`,
-      design: ['Premium Executive', 'Modern Tide', 'Bold Statement'][Math.floor(Math.random() * 3)],
-      scans: Math.floor(Math.random() * 3000) + 300,
-      url: `https://mcomvcard.com/card/${b.name.toLowerCase().replace(/\s+/g, '-')}`,
-      preview: '/preview/card', updated: relativeTime(Math.floor(Math.random() * 72)),
-    } : { status: 'Not Created', id: '', design: '', scans: 0, url: '', preview: '', updated: '' },
-    consumerVCards: Array.from({ length: vcardsUsed }, (_, i) => {
-      const vLevel = ['Standard', 'Premium', 'VIP'][Math.floor(Math.random() * 3)]
-      const vStatus = ['Active', 'Active', 'Active', 'Pending', 'Inactive'][Math.floor(Math.random() * 5)]
-      return {
-        id: 100 + i, consumer: ['Emma Rodriguez', 'Mike Patel', 'Sarah Wilson', 'Tom Baker', 'Sophie Laurent', 'David Kim', 'Anna Martinez', 'Oscar Hernandez', 'Lisa Thompson', 'James Chen'][i % 10],
-        consumerId: `CNS-${String(b.id).padStart(3, '0')}-${String(100 + i).padStart(4, '0')}`,
-        consumerEmail: `consumer${100 + i}@email.com`,
-        vcardId: `CVC-${String(b.id).padStart(3, '0')}-${String(i + 1).padStart(3, '0')}`,
-        level: vLevel,
-        allocationType: ['Reward', 'Campaign', 'Business Allocation', 'Promotional', 'Other'][Math.floor(Math.random() * 5)],
-        status: vStatus,
-        issued: `${Math.floor(Math.random() * 90) + 1}d ago`,
-        issuedDate: new Date(Date.now() - Math.floor(Math.random() * 90) * 86400000).toISOString().split('T')[0],
-        activatedDate: vStatus === 'Active' ? new Date(Date.now() - Math.floor(Math.random() * 60) * 86400000).toISOString().split('T')[0] : null,
-        familyMember: Math.random() > 0.7 ? { relation: ['Wife', 'Husband', 'Son', 'Daughter', 'Friend'][Math.floor(Math.random() * 5)], name: ['Mary', 'John', 'Alex', 'Lucy', 'Sam'][Math.floor(Math.random() * 5)], allocated: true, locked: Math.random() > 0.3 } : null,
-        eCard: Math.random() > 0.4 ? { enabled: true, value: [1, 2, 5, 10][Math.floor(Math.random() * 4)], status: ['Active', 'Active', 'Redeemed', 'Expired'][Math.floor(Math.random() * 4)], expiry: new Date(Date.now() + Math.floor(Math.random() * 365) * 86400000).toISOString().split('T')[0], remaining: Math.floor(Math.random() * 10) } : null,
-        allocationLocked: Math.random() > 0.6,
-        lastActivity: relativeTime(Math.floor(Math.random() * 72)),
-      }
-    }),
-    consumerCards: Array.from({ length: cardsUsed }, (_, i) => {
-      const cStatus = ['Active', 'Active', 'Active', 'Pending', 'Inactive', 'Suspended'][Math.floor(Math.random() * 6)]
-      const hasFF = Math.random() > 0.75
-      const addCards = hasFF ? Array.from({ length: Math.floor(Math.random() * 3) + 1 }, (_, j) => ({
-        id: 300 + i * 10 + j, name: ['Mary', 'John', 'Alex', 'Lucy', 'Sam', 'Ella', 'Max'][Math.floor(Math.random() * 7)], relation: j === 0 ? 'Family' : j === 1 ? 'Family' : 'Friend', cardId: `SUB-${String(b.id).padStart(3, '0')}-${String(i + 1).padStart(3, '0')}-${String(j + 1)}`, status: 'Active', eCard: Math.random() > 0.5 ? { enabled: true, value: [1, 2, 5][Math.floor(Math.random() * 3)], status: 'Active' } : null, allocationLocked: true,
-      })) : []
-      return {
-        id: 200 + i, consumer: ['Emma Rodriguez', 'James Chen', 'Sarah Wilson', 'Lisa Thompson', 'Sophie Laurent', 'David Kim', 'Mike Patel', 'Anna Martinez'][i % 8],
-        consumerId: `CNS-${String(b.id).padStart(3, '0')}-${String(200 + i).padStart(4, '0')}`,
-        consumerEmail: `consumer${200 + i}@email.com`,
-        cardId: `CC-${String(b.id).padStart(3, '0')}-${String(i + 1).padStart(3, '0')}`,
-        type: ['Loyalty', 'Rewards', 'Membership', 'Business'][Math.floor(Math.random() * 4)],
-        membershipLevel: ['Bronze', 'Silver', 'Gold', 'Platinum'][Math.floor(Math.random() * 4)],
-        allocationType: ['Reward', 'Campaign', 'Business Allocation', 'Promotional', 'Other'][Math.floor(Math.random() * 5)],
-        status: cStatus,
-        created: `${Math.floor(Math.random() * 90) + 1}d ago`,
-        issuedDate: new Date(Date.now() - Math.floor(Math.random() * 90) * 86400000).toISOString().split('T')[0],
-        activatedDate: cStatus === 'Active' ? new Date(Date.now() - Math.floor(Math.random() * 60) * 86400000).toISOString().split('T')[0] : null,
-        faceValue: ['$50', '$100', '$200', '$500'][Math.floor(Math.random() * 4)],
-        eCard: Math.random() > 0.3 ? { enabled: true, value: [1, 2, 5, 10, 25][Math.floor(Math.random() * 5)], status: ['Active', 'Active', 'Redeemed', 'Expired'][Math.floor(Math.random() * 4)], expiry: new Date(Date.now() + Math.floor(Math.random() * 365) * 86400000).toISOString().split('T')[0], remaining: Math.floor(Math.random() * 25) + 1, spendableAt: 'Participating Business', minSpend: ['$0', '$5', '$10'][Math.floor(Math.random() * 3)] } : null,
-        additionalCards: addCards.length > 0 ? addCards : null,
-        additionalEntitlement: addCards.length > 0 ? { total: 3, allocated: addCards.length, available: 3 - addCards.length } : null,
-        allocationLocked: Math.random() > 0.5,
-        lastActivity: relativeTime(Math.floor(Math.random() * 120)),
-      }
-    }),
-    consumerVTotal,
-    consumerCTotal,
-    vcardsUsed,
-    cardsUsed,
-    totalConsumers: vcardsUsed + cardsUsed,
-    activeConsumers: Math.floor((vcardsUsed + cardsUsed) * 0.7),
-    consumersWithVCards: vcardsUsed,
-    consumersWithCards: cardsUsed,
-    consumersWithFF: Math.floor((vcardsUsed + cardsUsed) * 0.15),
-    requiresAttention: !vcardActive || !cardActive || b.status === 'suspended',
-    lastActiveLabel: relativeTime(hoursAgo),
-    lastActiveFull: new Date(Date.now() - hoursAgo * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    hoursAgo,
-    centralUserId: `MCOM-${String(b.id).padStart(8, '0')}`,
-    centralEmail: b.owner_email || b.email,
-    lastSync: relativeTime(Math.floor(Math.random() * 60)),
-    integrationStatus: {
-      mcomSolutions: 'connected',
-      mcomRewards: 'coming-soon',
-      mcommallCashback: 'coming-soon',
-      mcomSpin: 'coming-soon',
-      fundOrDonate: 'coming-soon',
-    },
-    activity: [
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-001`, action: 'Business account created', time: b.joined, type: 'account', actor: 'System', actorType: 'System', actorName: 'System', consumer: '', ref: `BUS-${String(b.id).padStart(6, '0')}`, objectType: 'Business Account', objectId: `BUS-${String(b.id).padStart(6, '0')}`, description: 'Business account was created and registered on MCOMVCard.', previousValue: '', newValue: 'Active', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-002`, action: 'Business VCard created', time: relativeTime(336), type: 'vcard', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BVC-${String(b.id).padStart(6, '0')}`, objectType: 'Business VCard', objectId: `BVC-${String(b.id).padStart(6, '0')}`, description: 'Business VCard was created for the business.', previousValue: 'Not Created', newValue: 'Draft', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-003`, action: 'Membership plan activated', time: relativeTime(168), type: 'membership', actor: 'System', actorType: 'System', actorName: 'System', consumer: '', ref: '', objectType: 'Membership', objectId: `MEM-${String(b.id).padStart(6, '0')}`, description: `${membership} plan activated for the business.`, previousValue: 'None', newValue: membership, status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-004`, action: 'Business VCard updated', time: relativeTime(96), type: 'vcard', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BVC-${String(b.id).padStart(6, '0')}`, objectType: 'Business VCard', objectId: `BVC-${String(b.id).padStart(6, '0')}`, description: 'Business VCard content and settings were updated.', previousValue: '', newValue: '', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-005`, action: 'Business VCard published', time: relativeTime(72), type: 'vcard', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BVC-${String(b.id).padStart(6, '0')}`, objectType: 'Business VCard', objectId: `BVC-${String(b.id).padStart(6, '0')}`, description: 'Business VCard was published and is now visible to users.', previousValue: 'Draft', newValue: 'Published', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-006`, action: 'Business Card created', time: relativeTime(72), type: 'card', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BC-${String(b.id).padStart(6, '0')}`, objectType: 'Business Card', objectId: `BC-${String(b.id).padStart(6, '0')}`, description: 'Business Card was created.', previousValue: 'Not Created', newValue: 'Draft', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-007`, action: 'Card template assigned', time: relativeTime(72), type: 'card', actor: 'System', actorType: 'System', actorName: 'System', consumer: '', ref: `BC-${String(b.id).padStart(6, '0')}`, objectType: 'Business Card', objectId: `BC-${String(b.id).padStart(6, '0')}`, description: 'Business Card template was assigned.', previousValue: 'None', newValue: ['Premium Executive', 'Modern Tide', 'Bold Statement'][Math.floor(Math.random() * 3)], status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-008`, action: 'Consumer VCard issued', time: relativeTime(48), type: 'consumer', actor: 'System', actorType: 'System', actorName: 'System', consumer: 'Emma Rodriguez', ref: `CVC-${String(b.id).padStart(3, '0')}-001`, objectType: 'Consumer VCard', objectId: `CVC-${String(b.id).padStart(3, '0')}-001`, description: 'Consumer VCard issued to Emma Rodriguez as a reward.', previousValue: 'Unallocated', newValue: 'Allocated', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-009`, action: 'Consumer Card allocated', time: relativeTime(36), type: 'consumer', actor: 'System', actorType: 'System', actorName: 'System', consumer: 'Mike Patel', ref: `CC-${String(b.id).padStart(3, '0')}-001`, objectType: 'Consumer Card', objectId: `CC-${String(b.id).padStart(3, '0')}-001`, description: 'Consumer Card allocated to Mike Patel via Business Allocation.', previousValue: 'Available', newValue: 'Allocated', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-010`, action: 'Consumer VCard activated', time: relativeTime(24), type: 'consumer', actor: 'Consumer', actorType: 'Consumer', actorName: 'Emma Rodriguez', consumer: 'Emma Rodriguez', ref: `CVC-${String(b.id).padStart(3, '0')}-001`, objectType: 'Consumer VCard', objectId: `CVC-${String(b.id).padStart(3, '0')}-001`, description: 'Consumer VCard was activated by Emma Rodriguez.', previousValue: 'Pending', newValue: 'Active', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-011`, action: 'Additional card allocated', time: relativeTime(12), type: 'consumer', actor: 'System', actorType: 'System', actorName: 'System', consumer: 'Sarah Wilson', ref: `SUB-${String(b.id).padStart(3, '0')}-001`, objectType: 'Consumer Card', objectId: `CC-${String(b.id).padStart(3, '0')}-002`, description: 'Additional family card allocated for Sarah Wilson.', previousValue: 'Unallocated', newValue: 'Family', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-012`, action: 'Business Card activated', time: relativeTime(72), type: 'card', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BC-${String(b.id).padStart(6, '0')}`, objectType: 'Business Card', objectId: `BC-${String(b.id).padStart(6, '0')}`, description: 'Business Card was activated.', previousValue: 'Draft', newValue: 'Active', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-013`, action: 'QR code regenerated', time: relativeTime(12), type: 'vcard', actor: 'Business Owner', actorType: 'Business Owner', actorName: 'Business Owner', consumer: '', ref: `BVC-${String(b.id).padStart(6, '0')}`, objectType: 'Business VCard', objectId: `BVC-${String(b.id).padStart(6, '0')}`, description: 'Business VCard QR code was regenerated.', previousValue: '', newValue: '', status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-014`, action: 'Admin allocation adjusted', time: relativeTime(6), type: 'admin', actor: 'Admin', actorType: 'Admin', actorName: 'Admin', consumer: '', ref: '', objectType: 'Allocation', objectId: `ALLOC-${String(b.id).padStart(6, '0')}`, description: 'Admin increased Consumer VCard allocation by 50 units (promotional).', previousValue: `${consumerVTotal}`, newValue: `${consumerVTotal + 50}`, status: 'Successful', source: 'MCOMVCard' },
-      { activityId: `ACT-${String(b.id).padStart(6, '0')}-015`, action: 'MCOM Solutions connected', time: relativeTime(336), type: 'integration', actor: 'System', actorType: 'System', actorName: 'System', consumer: '', ref: '', objectType: 'Integration', objectId: `INT-${String(b.id).padStart(6, '0')}-001`, description: 'MCOM Solutions central authentication was connected.', previousValue: 'Disconnected', newValue: 'Connected', status: 'Successful', source: 'MCOM Solutions' },
-    ].slice(0, Math.floor(Math.random() * 5) + 10), // each biz gets 10-14 activity items
-    centralAccountId: `MCOM-BUS-${String(b.id).padStart(6, '0')}`,
-    localBusinessId: `BUS-${String(b.id).padStart(6, '0')}`,
-    accountType: 'Business',
-    registrationSource: b.id === 1 ? 'MCOM Solutions' : b.id === 2 ? 'Admin Created' : b.id === 3 ? 'Existing MCOM Business' : b.id % 2 === 0 ? 'Imported' : 'External Platform',
-    authenticationStatus: b.status === 'verified' ? 'Connected' : b.status === 'pending' ? 'Pending' : b.status === 'suspended' ? 'Suspended' : 'Connected',
-    lastSuccessfulSync: new Date(Date.now() - Math.floor(Math.random() * 24) * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    lastAttemptedSync: new Date(Date.now() - 1 * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    syncStatus: b.id % 5 === 0 ? 'Failed' : 'Successful',
-    syncError: b.id % 5 === 0 ? 'Unable to retrieve account information.' : '',
-    accountStatus: b.status === 'verified' ? 'Active' : b.status === 'pending' ? 'Pending' : b.status === 'suspended' ? 'Suspended' : 'Active',
-    ecosystemIds: { mcomVCard: `BUS-${String(b.id).padStart(6, '0')}`, mcomRewards: 'Not Connected', mcommall: 'Not Connected', mcomSpin: 'Not Connected', fundOrDonate: 'Not Connected' },
-    integrations: [
-      { platform: 'mcom_solutions', platformName: 'MCOM Solutions', purpose: 'Central Authentication & Identity', status: 'connected', externalBusinessId: `MCOM-BUS-${String(b.id).padStart(6, '0')}`, connectedAt: new Date(Date.now() - 365 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), lastSyncedAt: new Date(Date.now() - Math.floor(Math.random() * 24) * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), syncStatus: 'successful', dataOwner: 'MCOM Solutions', mcomVCardRole: 'Authentication & Identity Provider' },
-      { platform: 'mcom_rewards', platformName: 'MCOM Rewards', purpose: 'Rewards & Loyalty', status: 'coming-soon', externalBusinessId: null, connectedAt: null, lastSyncedAt: null, syncStatus: null, dataOwner: 'MCOM Rewards', mcomVCardRole: 'Display/consume reward data' },
-      { platform: 'mcommall', platformName: 'MCOMMall', purpose: 'Cashback', status: 'coming-soon', externalBusinessId: null, connectedAt: null, lastSyncedAt: null, syncStatus: null, dataOwner: 'MCOMMall', mcomVCardRole: 'Display/consume cashback data' },
-      { platform: 'mcom_spin', platformName: 'MCOMSpin', purpose: 'Gamification', status: 'coming-soon', externalBusinessId: null, connectedAt: null, lastSyncedAt: null, syncStatus: null, dataOwner: 'MCOMSpin', mcomVCardRole: 'Display/consume gamification data' },
-      { platform: 'fund_donate', platformName: 'FundOrDonate', purpose: 'Fundraising & Donations', status: 'coming-soon', externalBusinessId: null, connectedAt: null, lastSyncedAt: null, syncStatus: null, dataOwner: 'FundOrDonate', mcomVCardRole: 'Display/consume fundraising data' },
-    ],
-    integrationActivity: [
-      { id: `IA-${String(b.id).padStart(6, '0')}-001`, date: new Date(Date.now() - 1 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), action: 'MCOM Solutions Account Synced', status: 'successful', platform: 'MCOM Solutions' },
-      { id: `IA-${String(b.id).padStart(6, '0')}-002`, date: new Date(Date.now() - 2 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), action: 'MCOM Rewards Connection Attempted', status: 'coming-soon', platform: 'MCOM Rewards' },
-      { id: `IA-${String(b.id).padStart(6, '0')}-003`, date: new Date(Date.now() - 7 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), action: 'MCOMMall Integration Requested', status: 'pending', platform: 'MCOMMall' },
-    ],
-  }
-})
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
   return <div className={`bg-gray-100 dark:bg-gray-700 rounded animate-pulse ${className}`} />
@@ -242,16 +84,87 @@ function Badge({ status, variant = 'default' }: { status: string; variant?: 'def
   )
 }
 
+function mapApiBusiness(raw: any): any & BizExtra {
+  const status = raw.status || 'active'
+  const planMap: Record<string, string> = { Free: 'Bronze Standard', Starter: 'Bronze Pro', Business: 'Silver Pro', Enterprise: 'Enterprise Pro' }
+  const membership = planMap[raw.plan] || 'Bronze Standard'
+  const relativeTime = (h: number) => h < 1 ? 'Just now' : h < 2 ? '1 hour ago' : h < 24 ? `${h}h ago` : h < 48 ? 'Yesterday' : `${Math.floor(h / 24)}d ago`
+  const hoursAgo = Math.floor(Math.random() * 336)
+  return {
+    ...raw,
+    businessId: `BUS-${String(raw.id).padStart(6, '0')}`,
+    membership,
+    membershipStatus: status === 'suspended' ? 'Expired' : status === 'pending' ? 'Pending' : 'Active',
+    membershipStart: raw.created_at || new Date().toISOString(),
+    membershipRenewal: '2026-10-01',
+    billingCycle: '90-Day',
+    paymentStatus: 'Paid',
+    autoRenewal: true,
+    assignedBy: 'System',
+    lastUpdated: relativeTime(hoursAgo),
+    planTier: 'Starter',
+    planLevel: 'Basic',
+    amountPaid: '$0',
+    businessVCard: { status: 'Not Created', id: '', views: 0, shares: 0, scans: 0, url: '', preview: '', created: '', updated: '', lastViewed: '' },
+    businessCard: { status: 'Not Created', id: '', design: '', scans: 0, url: '', preview: '', updated: '' },
+    consumerVCards: [],
+    consumerCards: [],
+    consumerVTotal: 0,
+    consumerCTotal: 0,
+    vcardsUsed: 0,
+    cardsUsed: 0,
+    totalConsumers: 0,
+    activeConsumers: 0,
+    consumersWithVCards: 0,
+    consumersWithCards: 0,
+    consumersWithFF: 0,
+    requiresAttention: status !== 'active' && status !== 'verified',
+    lastActiveLabel: relativeTime(hoursAgo),
+    lastActiveFull: new Date(Date.now() - hoursAgo * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    hoursAgo,
+    centralUserId: `MCOM-${String(raw.id).padStart(8, '0')}`,
+    centralEmail: raw.email || '',
+    lastSync: relativeTime(Math.floor(Math.random() * 60)),
+    integrationStatus: { mcomSolutions: 'connected', mcomRewards: 'coming-soon', mcommallCashback: 'coming-soon', mcomSpin: 'coming-soon', fundOrDonate: 'coming-soon' },
+    activity: [],
+    centralAccountId: `MCOM-BUS-${String(raw.id).padStart(6, '0')}`,
+    localBusinessId: `BUS-${String(raw.id).padStart(6, '0')}`,
+    accountType: 'Business',
+    registrationSource: 'MCOM Solutions',
+    authenticationStatus: status === 'verified' || status === 'active' ? 'Connected' : status === 'pending' ? 'Pending' : 'Suspended',
+    lastSuccessfulSync: new Date(Date.now() - Math.floor(Math.random() * 24) * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    lastAttemptedSync: new Date(Date.now() - 1 * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    syncStatus: 'Successful',
+    syncError: '',
+    accountStatus: status === 'verified' || status === 'active' ? 'Active' : status === 'pending' ? 'Pending' : 'Suspended',
+    ecosystemIds: { mcomVCard: `BUS-${String(raw.id).padStart(6, '0')}`, mcomRewards: 'Not Connected', mcommall: 'Not Connected', mcomSpin: 'Not Connected', fundOrDonate: 'Not Connected' },
+    integrations: [
+      { platform: 'mcom_solutions', platformName: 'MCOM Solutions', purpose: 'Central Authentication & Identity', status: 'connected', externalBusinessId: `MCOM-BUS-${String(raw.id).padStart(6, '0')}`, connectedAt: new Date(Date.now() - 365 * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), lastSyncedAt: new Date(Date.now() - Math.floor(Math.random() * 24) * 3600000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), syncStatus: 'successful', dataOwner: 'MCOM Solutions', mcomVCardRole: 'Authentication & Identity Provider' },
+    ],
+    integrationActivity: [],
+  }
+}
+
 export default function BusinessProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const biz = bizData.find(b => b.id === Number(id)) || bizData[0]
+  const [biz, setBiz] = useState<(any & BizExtra) | null>(null)
   const [tab, setTab] = useState('Overview')
   const [subTab, setSubTab] = useState<'vcards' | 'cards'>('vcards')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    setError(false)
+    adminService.getAdminBusiness(String(id))
+      .then((data) => setBiz(mapApiBusiness(data)))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }, [id])
 
   if (error) {
     return (
@@ -271,6 +184,19 @@ export default function BusinessProfilePage() {
       <div className="space-y-6">
         <SkeletonBlock className="h-32" />
         <SkeletonBlock className="h-64" />
+      </div>
+    )
+  }
+
+  if (!biz) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+          <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business not found</p>
+        <p className="text-xs text-gray-400 mb-4">The business you're looking for doesn't exist or has been removed.</p>
+        <Link to="/admin/businesses" className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600">Back to Business List</Link>
       </div>
     )
   }

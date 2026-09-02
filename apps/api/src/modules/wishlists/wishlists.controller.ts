@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -9,6 +9,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
   getSchemaPath,
@@ -20,6 +21,7 @@ import { ApiResponse } from '../../lib/utils/api-response'
 import { WishlistsService } from './wishlists.service'
 import { WishlistResponseDto, WishlistItemResponseDto } from './dto/wishlist-response.dto'
 import { CreateWishlistDto, UpdateWishlistDto, AddWishlistItemDto } from './dto/wishlist.dto'
+import { ShareWishlistDto } from './dto/share-wishlist.dto'
 
 @ApiTags('wishlists')
 @ApiExtraModels(ApiResponse, WishlistResponseDto, WishlistItemResponseDto)
@@ -49,7 +51,8 @@ export class WishlistsController {
 
   @Get('wishlists')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List my wishlists', description: 'Returns the authenticated user\'s wishlists (newest first), each with its ordered items.' })
+  @ApiOperation({ summary: 'List my wishlists', description: 'Returns the authenticated user\'s wishlists (newest first), each with its ordered items. Optionally filter by name.' })
+  @ApiQuery({ name: 'name', required: false, description: 'Filter wishlists by name (case-insensitive LIKE match)' })
   @ApiOkResponse({
     description: 'Wishlists list',
     schema: {
@@ -64,8 +67,8 @@ export class WishlistsController {
     },
   })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  async listMyWishlists(@CurrentUser() user: UserResponseDto) {
-    return this.wishlistsService.listForUser(user.id)
+  async listMyWishlists(@CurrentUser() user: UserResponseDto, @Query('name') name?: string) {
+    return this.wishlistsService.listForUser(user.id, name)
   }
 
   @Get('wishlists/:id')
@@ -188,5 +191,106 @@ export class WishlistsController {
   @ApiForbiddenResponse({ description: 'You do not own this wishlist' })
   async removeItem(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string, @Param('itemId', new ParseUUIDPipe()) itemId: string) {
     return this.wishlistsService.removeItem(user.id, id, itemId)
+  }
+
+  @Post('wishlists/:id/share')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Share a wishlist', description: 'Shares a wishlist with another user by email. The recipient gains view or fulfill access.' })
+  @ApiBody({ type: ShareWishlistDto, examples: { default: { summary: 'Share with view access', value: { email: 'friend@example.com', permission: 'view' } } } })
+  @ApiCreatedResponse({
+    description: 'Wishlist shared',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: 'a1b2c3d4-...' },
+                wishlist_id: { type: 'string' },
+                shared_with_user_id: { type: 'string' },
+                permission: { type: 'string', enum: ['view', 'fulfill'] },
+                created_at: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Wishlist or user not found' })
+  @ApiForbiddenResponse({ description: 'You do not own this wishlist' })
+  @ApiBadRequestResponse({ description: 'Cannot share with yourself or already shared' })
+  async shareWishlist(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string, @Body() body: ShareWishlistDto) {
+    return this.wishlistsService.share(user.id, id, body)
+  }
+
+  @Get('wishlists/shared-with-me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List wishlists shared with me', description: 'Returns wishlists that other users have shared with the authenticated user.' })
+  @ApiOkResponse({
+    description: 'Shared wishlists',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  share_id: { type: 'string' },
+                  permission: { type: 'string', enum: ['view', 'fulfill'] },
+                  shared_at: { type: 'string', format: 'date-time' },
+                  wishlist: { $ref: getSchemaPath(WishlistResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async listSharedWithMe(@CurrentUser() user: UserResponseDto) {
+    return this.wishlistsService.listSharedWithMe(user.id)
+  }
+
+  @Post('wishlists/:id/items/:itemId/fulfill')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Fulfill a wishlist item', description: 'Marks a wishlist item as fulfilled and deducts the product price from the fulfiller\'s wallet. Requires fulfill permission.' })
+  @ApiOkResponse({
+    description: 'Item fulfilled',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                item_id: { type: 'string' },
+                product_price: { type: 'number' },
+                new_balance: { type: 'number' },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiNotFoundResponse({ description: 'Wishlist or item not found' })
+  @ApiForbiddenResponse({ description: 'No access or insufficient permission' })
+  @ApiBadRequestResponse({ description: 'Item already fulfilled, insufficient balance, or no wallet' })
+  async fulfillItem(
+    @CurrentUser() user: UserResponseDto,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('itemId', new ParseUUIDPipe()) itemId: string,
+  ) {
+    return this.wishlistsService.fulfillItem(user.id, id, itemId)
   }
 }

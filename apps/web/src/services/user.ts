@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { tokenStore } from './tokenStore'
 import { attach401Retry } from './retry401'
-import type { VCard, SocialLink, Service, Gallery, VCardTestimonial, BlogPost, AppointmentSlot, Appointment, VCardSEO, VCardCustomization, UserDashboardStats, AnalyticsData, Subscription } from '../types'
+import type { VCard, SocialLink, Service, Gallery, VCardTestimonial, BlogPost, AppointmentSlot, Appointment, VCardSEO, VCardCustomization, UserDashboardStats, AnalyticsData, Membership, Template } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -19,230 +19,237 @@ attach401Retry(api)
 export const userService = {
   // Dashboard
   async getDashboardStats(): Promise<UserDashboardStats> {
-    const res = await api.get('/user/dashboard')
+    const res = await api.get('/dashboard/stats')
     return res.data
   },
 
   // vCards
   async getVcards(): Promise<VCard[]> {
-    const res = await api.get('/user/vcards')
-    return res.data
+    const res = await api.get('/users/me/cards')
+    return res.data.data ?? res.data
   },
 
-  async getVcard(id: number): Promise<VCard> {
-    const res = await api.get(`/user/vcards/${id}`)
-    return res.data
+  async getVcard(id: string): Promise<VCard> {
+    const res = await api.get(`/cards/${id}`)
+    return res.data.data ?? res.data
   },
 
   async createVcard(data: FormData | Partial<VCard>): Promise<VCard> {
     if (data instanceof FormData) {
-      const res = await api.post('/user/vcards', data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.post('/cards', data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.post('/user/vcards', data)
-    return res.data
+    const res = await api.post('/cards', data)
+    return res.data.data ?? res.data
   },
 
-  async updateVcard(id: number, data: FormData | Partial<VCard>): Promise<VCard> {
+  async updateVcard(id: string, data: FormData | Partial<VCard>): Promise<VCard> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/user/vcards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.patch(`/cards/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.put(`/user/vcards/${id}`, data)
-    return res.data
+    const res = await api.patch(`/cards/${id}`, data)
+    return res.data.data ?? res.data
   },
 
-  async deleteVcard(id: number): Promise<void> {
-    await api.delete(`/user/vcards/${id}`)
+  async deleteVcard(id: string): Promise<void> {
+    await api.delete(`/cards/${id}`)
   },
 
-  // Templates
-  async getTemplates(): Promise<{ id: number; name: string; path: string; template_url: string }[]> {
-    const res = await api.get('/user/templates')
-    return res.data
+  // Templates (public, auth required)
+  async getTemplates(): Promise<Template[]> {
+    const res = await api.get('/templates')
+    return res.data.data ?? res.data
   },
 
-  // Social Links
-  async getSocialLinks(vcardId: number): Promise<SocialLink> {
-    const res = await api.get(`/user/vcards/${vcardId}/social-links`)
-    return res.data
+  // Social Links (card-scoped)
+  async getSocialLinks(_cardId: string): Promise<SocialLink[]> {
+    const res = await api.get(`/cards/${_cardId}/social-links`)
+    return res.data.data ?? res.data
   },
 
-  async updateSocialLinks(vcardId: number, data: Partial<SocialLink>): Promise<SocialLink> {
-    const res = await api.put(`/user/vcards/${vcardId}/social-links`, data)
-    return res.data
+  async createSocialLink(_cardId: string, data: Partial<SocialLink>): Promise<SocialLink> {
+    const res = await api.post(`/cards/${_cardId}/social-links`, data)
+    return res.data.data ?? res.data
   },
 
-  // Services
-  async getServices(vcardId: number): Promise<Service[]> {
-    const res = await api.get(`/user/vcards/${vcardId}/services`)
-    return res.data
+  async updateSocialLink(_cardId: string, linkId: string, data: Partial<SocialLink>): Promise<SocialLink> {
+    const res = await api.patch(`/social-links/${linkId}`, data)
+    return res.data.data ?? res.data
   },
 
-  async createService(vcardId: number, data: FormData | Partial<Service>): Promise<Service> {
+  async deleteSocialLink(_cardId: string, linkId: string): Promise<void> {
+    await api.delete(`/social-links/${linkId}`)
+  },
+
+  // Services (business-scoped)
+  async getServices(businessId: string): Promise<Service[]> {
+    const res = await api.get(`/businesses/${businessId}/services`)
+    return res.data.data ?? res.data
+  },
+
+  async createService(businessId: string, data: FormData | Partial<Service>): Promise<Service> {
     if (data instanceof FormData) {
-      const res = await api.post(`/user/vcards/${vcardId}/services`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.post(`/businesses/${businessId}/services`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.post(`/user/vcards/${vcardId}/services`, data)
-    return res.data
+    const res = await api.post(`/businesses/${businessId}/services`, data)
+    return res.data.data ?? res.data
   },
 
-  async updateService(vcardId: number, serviceId: number, data: FormData | Partial<Service>): Promise<Service> {
+  async updateService(serviceId: string, data: FormData | Partial<Service>): Promise<Service> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/user/vcards/${vcardId}/services/${serviceId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.patch(`/services/${serviceId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.put(`/user/vcards/${vcardId}/services/${serviceId}`, data)
-    return res.data
+    const res = await api.patch(`/services/${serviceId}`, data)
+    return res.data.data ?? res.data
   },
 
-  async deleteService(vcardId: number, serviceId: number): Promise<void> {
-    await api.delete(`/user/vcards/${vcardId}/services/${serviceId}`)
+  async deleteService(serviceId: string): Promise<void> {
+    await api.delete(`/services/${serviceId}`)
   },
 
-  // Gallery
-  async getGallery(vcardId: number): Promise<Gallery[]> {
-    const res = await api.get(`/user/vcards/${vcardId}/gallery`)
-    return res.data
+  // Products (business-scoped, with gallery)
+  async getProducts(businessId: string): Promise<Gallery[]> {
+    const res = await api.get(`/businesses/${businessId}/products`)
+    return res.data.data ?? res.data
   },
 
-  async createGalleryImage(vcardId: number, data: FormData): Promise<Gallery> {
-    const res = await api.post(`/user/vcards/${vcardId}/gallery`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-    return res.data
+  async createProduct(businessId: string, data: FormData): Promise<Gallery> {
+    const res = await api.post(`/businesses/${businessId}/products`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return res.data.data ?? res.data
   },
 
-  async deleteGalleryImage(vcardId: number, imageId: number): Promise<void> {
-    await api.delete(`/user/vcards/${vcardId}/gallery/${imageId}`)
+  async deleteProduct(productId: string): Promise<void> {
+    await api.delete(`/products/${productId}`)
   },
 
-  // Testimonials
-  async getTestimonials(vcardId: number): Promise<VCardTestimonial[]> {
-    const res = await api.get(`/user/vcards/${vcardId}/testimonials`)
-    return res.data
+  // Gallery (product images)
+  async getGallery(productId: string): Promise<Gallery[]> {
+    const res = await api.get(`/products/${productId}/images`)
+    return res.data.data ?? res.data
   },
 
-  async createTestimonial(vcardId: number, data: FormData | Partial<VCardTestimonial>): Promise<VCardTestimonial> {
+  async createGalleryImage(productId: string, data: FormData): Promise<Gallery> {
+    const res = await api.post(`/products/${productId}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return res.data.data ?? res.data
+  },
+
+  async deleteGalleryImage(_productId: string, imageId: string): Promise<void> {
+    await api.delete(`/product-images/${imageId}`)
+  },
+
+  // Reviews (business-scoped)
+  async getTestimonials(businessId: string): Promise<VCardTestimonial[]> {
+    const res = await api.get(`/reviews/businesses/${businessId}`)
+    return res.data.data ?? res.data
+  },
+
+  async createTestimonial(_businessId: string, data: FormData | Partial<VCardTestimonial>): Promise<VCardTestimonial> {
     if (data instanceof FormData) {
-      const res = await api.post(`/user/vcards/${vcardId}/testimonials`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.post(`/reviews`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.post(`/user/vcards/${vcardId}/testimonials`, data)
-    return res.data
+    const res = await api.post(`/reviews`, data)
+    return res.data.data ?? res.data
   },
 
-  async updateTestimonial(vcardId: number, testimonialId: number, data: FormData | Partial<VCardTestimonial>): Promise<VCardTestimonial> {
+  async updateTestimonial(reviewId: string, data: FormData | Partial<VCardTestimonial>): Promise<VCardTestimonial> {
     if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/user/vcards/${vcardId}/testimonials/${testimonialId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
+      const res = await api.patch(`/reviews/${reviewId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return res.data.data ?? res.data
     }
-    const res = await api.put(`/user/vcards/${vcardId}/testimonials/${testimonialId}`, data)
-    return res.data
+    const res = await api.patch(`/reviews/${reviewId}`, data)
+    return res.data.data ?? res.data
   },
 
-  async deleteTestimonial(vcardId: number, testimonialId: number): Promise<void> {
-    await api.delete(`/user/vcards/${vcardId}/testimonials/${testimonialId}`)
+  async deleteTestimonial(reviewId: string): Promise<void> {
+    await api.delete(`/reviews/${reviewId}`)
   },
 
-  // Blog
-  async getBlogPosts(vcardId: number): Promise<BlogPost[]> {
-    const res = await api.get(`/user/vcards/${vcardId}/blog`)
-    return res.data
+  // Blog (not implemented in API yet - placeholder)
+  async getBlogPosts(_cardId: string): Promise<BlogPost[]> {
+    return []
   },
 
-  async createBlogPost(vcardId: number, data: FormData | Partial<BlogPost>): Promise<BlogPost> {
-    if (data instanceof FormData) {
-      const res = await api.post(`/user/vcards/${vcardId}/blog`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
-    }
-    const res = await api.post(`/user/vcards/${vcardId}/blog`, data)
-    return res.data
+  async createBlogPost(_cardId: string, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
+    throw new Error('Not implemented')
   },
 
-  async updateBlogPost(vcardId: number, postId: number, data: FormData | Partial<BlogPost>): Promise<BlogPost> {
-    if (data instanceof FormData) {
-      data.append('_method', 'PUT')
-      const res = await api.post(`/user/vcards/${vcardId}/blog/${postId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data
-    }
-    const res = await api.put(`/user/vcards/${vcardId}/blog/${postId}`, data)
-    return res.data
+  async updateBlogPost(_cardId: string, _postId: string, _data: FormData | Partial<BlogPost>): Promise<BlogPost> {
+    throw new Error('Not implemented')
   },
 
-  async deleteBlogPost(vcardId: number, postId: number): Promise<void> {
-    await api.delete(`/user/vcards/${vcardId}/blog/${postId}`)
+  async deleteBlogPost(_cardId: string, _postId: string): Promise<void> {
+    throw new Error('Not implemented')
   },
 
-  // Appointments
-  async getAppointmentSlots(vcardId: number): Promise<AppointmentSlot[]> {
-    const res = await api.get(`/user/vcards/${vcardId}/appointment-slots`)
-    return res.data
+  // Appointments (business-scoped)
+  async getAppointmentSlots(businessId: string): Promise<AppointmentSlot[]> {
+    const res = await api.get(`/businesses/${businessId}/availability`)
+    return res.data.data ?? res.data
   },
 
-  async updateAppointmentSlots(vcardId: number, slots: Partial<AppointmentSlot>[]): Promise<AppointmentSlot[]> {
-    const res = await api.put(`/user/vcards/${vcardId}/appointment-slots`, { slots })
-    return res.data
+  async updateAppointmentSlots(businessId: string, slots: Partial<AppointmentSlot>[]): Promise<AppointmentSlot[]> {
+    const res = await api.patch(`/businesses/${businessId}/availability`, slots)
+    return res.data.data ?? res.data
   },
 
-  async getAppointments(vcardId?: number): Promise<Appointment[]> {
-    const params = vcardId ? { vcard_id: vcardId } : {}
-    const res = await api.get('/user/appointments', { params })
-    return res.data
+  async getAppointments(businessId: string): Promise<Appointment[]> {
+    const res = await api.get(`/businesses/${businessId}/appointments`)
+    return res.data.data ?? res.data
   },
 
-  async updateAppointmentStatus(id: number, status: Appointment['status']): Promise<Appointment> {
-    const res = await api.put(`/user/appointments/${id}`, { status })
-    return res.data
+  async updateAppointmentStatus(appointmentId: string, status: Appointment['status']): Promise<Appointment> {
+    const res = await api.patch(`/appointments/${appointmentId}/status`, { status })
+    return res.data.data ?? res.data
   },
 
-  // Password
-  async updatePassword(vcardId: number, password: string): Promise<void> {
-    await api.put(`/user/vcards/${vcardId}/password`, { password })
+  // Password protection (card-scoped)
+  async updatePassword(cardId: string, password: string): Promise<void> {
+    await api.patch(`/card-access/${cardId}`, { password })
   },
 
-  async removePassword(vcardId: number): Promise<void> {
-    await api.delete(`/user/vcards/${vcardId}/password`)
+  async removePassword(cardId: string): Promise<void> {
+    await api.patch(`/card-access/${cardId}`, { password: '' })
   },
 
-  // SEO
-  async getSEO(vcardId: number): Promise<VCardSEO> {
-    const res = await api.get(`/user/vcards/${vcardId}/seo`)
-    return res.data
+  // SEO (not implemented in API yet - placeholder)
+  async getSEO(_cardId: string): Promise<VCardSEO> {
+    return { id: '0', vcard_id: 0, meta_keyword: '', meta_description: '', site_title: '', home_title: '', google_analytics: '' }
   },
 
-  async updateSEO(vcardId: number, data: Partial<VCardSEO>): Promise<VCardSEO> {
-    const res = await api.put(`/user/vcards/${vcardId}/seo`, data)
-    return res.data
+  async updateSEO(_cardId: string, _data: Partial<VCardSEO>): Promise<VCardSEO> {
+    throw new Error('Not implemented')
   },
 
-  // Customization
-  async getCustomization(vcardId: number): Promise<VCardCustomization> {
-    const res = await api.get(`/user/vcards/${vcardId}/customization`)
-    return res.data
+  // Customization (card-scoped)
+  async getCustomization(cardId: string): Promise<VCardCustomization> {
+    const res = await api.get(`/cards/${cardId}/customization`)
+    return res.data.data ?? res.data
   },
 
-  async updateCustomization(vcardId: number, data: Partial<VCardCustomization>): Promise<VCardCustomization> {
-    const res = await api.put(`/user/vcards/${vcardId}/customization`, data)
-    return res.data
+  async updateCustomization(cardId: string, data: Partial<VCardCustomization>): Promise<VCardCustomization> {
+    const res = await api.patch(`/card-customizations/${cardId}`, data)
+    return res.data.data ?? res.data
   },
 
-  // Analytics
-  async getAnalytics(vcardId: number): Promise<AnalyticsData> {
-    const res = await api.get(`/user/vcards/${vcardId}/analytics`)
-    return res.data
+  // Analytics (card-scoped)
+  async getAnalytics(cardId: string): Promise<AnalyticsData> {
+    const res = await api.get(`/cards/${cardId}/stats`)
+    return res.data.data ?? res.data
   },
 
-  // Subscriptions
-  async getSubscriptions(): Promise<Subscription[]> {
-    const res = await api.get('/user/subscriptions')
-    return res.data
+  // Subscriptions (memberships)
+  async getSubscriptions(): Promise<Membership[]> {
+    const res = await api.get('/memberships')
+    return res.data.data ?? res.data
   },
 
-  async getCurrentSubscription(): Promise<Subscription | null> {
-    const res = await api.get('/user/subscriptions/current')
-    return res.data
+  async getCurrentSubscription(): Promise<Membership | null> {
+    const res = await api.get('/memberships')
+    const memberships = res.data.data ?? res.data
+    return memberships.find((m: Membership) => m.status === 'active') ?? null
   },
 }

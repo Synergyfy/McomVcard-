@@ -32,6 +32,10 @@ import { ActivityModule } from './modules/activity/activity.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { CustomersModule } from './modules/customers/customers.module'
 import { PlansModule } from './modules/plans/plans.module'
+import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
+import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
+import { EventsModule } from './modules/events/events.module'
+import { ContactModule } from './modules/contact/contact.module'
 import { SystemPlansModule } from './modules/system-plans/system-plans.module'
 import { McomModule } from './modules/mcom/mcom.module'
 import { APP_GUARD } from '@nestjs/core'
@@ -80,6 +84,10 @@ import { APP_GUARD } from '@nestjs/core'
     AnalyticsModule,
     CustomersModule,
     PlansModule,
+    GiftCardsModule,
+    CashbackProgramsModule,
+    EventsModule,
+    ContactModule,
     SystemPlansModule,
     McomModule,
   ],

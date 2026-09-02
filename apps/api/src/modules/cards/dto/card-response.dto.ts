@@ -114,6 +114,8 @@ export class CardAccessResponseDto {
   @ApiProperty() is_enabled!: boolean
   @ApiPropertyOptional() hint!: string | null
   @ApiPropertyOptional() protected_section_ids!: string[] | null
+  @ApiPropertyOptional() public_sections!: string[]
+  @ApiPropertyOptional() interactive_sections!: string[]
   @ApiProperty() access_expiry!: string
   @ApiPropertyOptional() expires_at!: Date | null
 
@@ -124,6 +126,8 @@ export class CardAccessResponseDto {
     dto.is_enabled = access.isEnabled
     dto.hint = access.hint ?? null
     dto.protected_section_ids = access.protectedSectionIds ?? null
+    dto.public_sections = access.publicSections ?? []
+    dto.interactive_sections = access.interactiveSections ?? []
     dto.access_expiry = access.accessExpiry
     dto.expires_at = access.expiresAt ?? null
     return dto
@@ -137,6 +141,7 @@ export class TemplateFieldResponseDto {
   @ApiProperty() field_type!: string
   @ApiProperty() is_editable!: boolean
   @ApiProperty() is_required!: boolean
+  @ApiPropertyOptional() editable_by_membership_level!: string | null
   @ApiProperty() display_order!: number
   @ApiPropertyOptional() options!: Record<string, unknown> | null
 
@@ -148,6 +153,7 @@ export class TemplateFieldResponseDto {
     dto.field_type = field.fieldType
     dto.is_editable = field.isEditable
     dto.is_required = field.isRequired
+    dto.editable_by_membership_level = field.editableByMembershipLevel ?? null
     dto.display_order = field.displayOrder
     dto.options = field.options ?? null
     return dto
@@ -171,6 +177,8 @@ export class TemplateResponseDto {
   @ApiPropertyOptional() logo_position!: string | null
   @ApiPropertyOptional() bg_style!: string | null
   @ApiPropertyOptional() sections!: Record<string, boolean> | null
+  @ApiPropertyOptional() required_membership_level!: string | null
+  @ApiProperty() is_premium!: boolean
   @ApiProperty() usage!: number
   @ApiProperty({ type: [TemplateFieldResponseDto] }) fields!: TemplateFieldResponseDto[]
 
@@ -192,6 +200,8 @@ export class TemplateResponseDto {
     dto.logo_position = template.logoPosition ?? null
     dto.bg_style = template.bgStyle ?? null
     dto.sections = template.sections ?? null
+    dto.required_membership_level = template.requiredMembershipLevel ?? null
+    dto.is_premium = template.isPremium ?? false
     dto.usage = template.usage
     dto.fields = (template.fields ?? []).map(TemplateFieldResponseDto.fromEntity)
     return dto

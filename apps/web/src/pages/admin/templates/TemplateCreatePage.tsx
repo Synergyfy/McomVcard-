@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { mockTemplates } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
+import type { Template } from '../../../types'
 
 const CATEGORIES = [
   'Restaurant', 'Café', 'Barber', 'Beauty Salon', 'Accountant', 'Estate Agent',
@@ -48,6 +49,8 @@ export default function TemplateCreatePage() {
   const cloneId = searchParams.get('clone')
   const isClone = Boolean(cloneId)
 
+  const [templates, setTemplates] = useState<Template[]>([])
+
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     name: '', category: '', description: '',
@@ -58,28 +61,32 @@ export default function TemplateCreatePage() {
   })
 
   useEffect(() => {
+    adminService.getPublicTemplates().then(setTemplates).catch(() => setTemplates([]))
+  }, [])
+
+  useEffect(() => {
     const sourceId = id || cloneId
-    if (sourceId) {
-      const source = mockTemplates.find((t) => t.id === Number(sourceId))
+    if (sourceId && templates.length > 0) {
+      const source = templates.find((t) => t.id === sourceId)
       if (source) {
         const sectionKey = (s: string) => s.toLowerCase().replace(/\s+/g, '_')
-        const sections = Object.fromEntries(SECTIONS.map((s) => [sectionKey(s), source.sections[s] ?? false]))
+        const sections = Object.fromEntries(SECTIONS.map((s) => [sectionKey(s), source.sections?.[sectionKey(s)] ?? false]))
         setForm({
           name: isClone ? `${source.name} (Clone)` : source.name,
-          category: source.category,
+          category: source.category || '',
           description: '',
-          logoPosition: source.logo_position.charAt(0).toUpperCase() + source.logo_position.slice(1),
-          font: source.font_family,
-          buttonStyle: source.button_style.charAt(0).toUpperCase() + source.button_style.slice(1),
-          bgStyle: source.bg_style.charAt(0).toUpperCase() + source.bg_style.slice(1),
-          colorPrimary: source.primary_color,
-          colorSecondary: source.secondary_color,
+          logoPosition: 'Top Center',
+          font: source.font_family || 'Inter',
+          buttonStyle: 'Rounded Full',
+          bgStyle: 'Gradient',
+          colorPrimary: source.primary_color || '#FF5C00',
+          colorSecondary: source.secondary_color || '#1E293B',
           sections,
           publishAction: source.status === 'published' ? 'publish' : 'draft',
         })
       }
     }
-  }, [id, cloneId, isClone])
+  }, [id, cloneId, isClone, templates])
 
   const update = (key: string, value: unknown) => setForm((prev) => ({ ...prev, [key]: value }))
   const toggleSection = (key: string) => setForm((prev) => ({ ...prev, sections: { ...prev.sections, [key]: !prev.sections[key] } }))

@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
 import { consumerWishlistService } from '../../services/consumerWishlist'
+import api from '../../services/api'
 import { businessService, type Wallet, type WalletTransaction } from '../../services/businessApi'
-import { mockRedeemItems, mockNearbyOffers } from '../../services/mockData'
 import BottomSheet from '../../components/business/primitives/BottomSheet'
 import FundCardSheet from '../../components/consumer/wallet/FundCardSheet'
 import ErrorState from '../../components/common/ErrorState'
+
+interface ExchangeItem { id: string; title: string; type: string; business: string; value: string; expires: string; icon: string; color: string }
+interface NearbyOffer { id: string; business: string; category: string; offer: string; discount: string; distance: string; icon: string; gradient: string }
 
 type WalletKey = 'giftCards' | 'vouchers' | 'coupons' | 'deals' | 'cashback' | 'rewards' | 'redeemable' | 'wishlist'
 
@@ -21,23 +24,30 @@ export default function ConsumerWalletPage() {
     const [error, setError] = useState(false)
     const [detail, setDetail] = useState<WalletKey | null>(null)
     const [wishCount, setWishCount] = useState(0)
+    const [redeemItems, setRedeemItems] = useState<ExchangeItem[]>([])
+    const [nearbyOffers, setNearbyOffers] = useState<NearbyOffer[]>([])
 
     const loadWallet = () => {
         setLoading(true)
         setError(false)
+
         Promise.all([
             consumerService.getWallet(),
-            businessService.getWallet(),
-            businessService.getWalletTransactions(),
             consumerService.getCardBalance(),
             consumerWishlistService.getWishlist(),
+            businessService.getWallet(),
+            businessService.getWalletTransactions(),
+            api.get('/vouchers/redeem/items').then((r) => r.data as ExchangeItem[]).catch(() => [] as ExchangeItem[]),
+            api.get('/campaigns/nearby').then((r) => r.data as NearbyOffer[]).catch(() => [] as NearbyOffer[]),
         ])
-            .then(([w, cw, txs, b, wish]) => {
+            .then(([w, b, wish, cw, txs, redeem, offers]) => {
                 setWallet(w)
-                setCentralWallet(cw)
-                setTransactions(txs || [])
                 setCardBalance(b)
                 setWishCount(wish.length)
+                setCentralWallet(cw)
+                setTransactions(txs || [])
+                setRedeemItems(redeem)
+                setNearbyOffers(offers)
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false))
@@ -66,8 +76,8 @@ export default function ConsumerWalletPage() {
         )
     }
 
-    const redeemable = mockRedeemItems.length
-    const deals = mockNearbyOffers.length
+    const redeemable = redeemItems.length
+    const deals = nearbyOffers.length
 
     const items: { key: WalletKey; label: string; value: string; sub: string; icon: string; color: string; bg: string; to?: string }[] = [
         { key: 'giftCards', label: 'Gift Cards', value: wallet.giftCards.toString(), sub: 'In your wallet', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -95,7 +105,7 @@ export default function ConsumerWalletPage() {
             { label: '10% Off Voucher', value: '10% off' },
             { label: 'Free Class Pass', value: '1 free class' },
         ], cta: 'Use Coupon' },
-        deals: { title: 'Deals Near You', rows: mockNearbyOffers.map((o) => ({ label: o.offer, value: o.discount })), cta: 'Browse Deals' },
+        deals: { title: 'Deals Near You', rows: nearbyOffers.map((o) => ({ label: o.offer, value: o.discount })), cta: 'Browse Deals' },
         cashback: { title: 'Cashback', rows: [
             { label: 'Available cashback', value: `£${wallet.cashback.toFixed(2)}` },
             { label: 'From GreenLeaf Coffee', value: '£2.00' },
@@ -107,7 +117,7 @@ export default function ConsumerWalletPage() {
             { label: 'Active vouchers', value: wallet.vouchers.toString() },
             { label: 'Rewards earned', value: '6' },
         ], cta: 'View Rewards' },
-        redeemable: { title: 'Redeemable Now', rows: mockRedeemItems.map((r) => ({ label: r.title, value: r.value })), cta: 'Redeem Now' },
+        redeemable: { title: 'Redeemable Now', rows: redeemItems.map((r) => ({ label: r.title, value: r.value })), cta: 'Redeem Now' },
         wishlist: { title: 'My Wishlist', rows: [{ label: 'Saved items', value: wishCount.toString() }], cta: 'View Wishlist' },
     }
 

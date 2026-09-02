@@ -44,15 +44,15 @@ export default function ConsumerNotificationsPage() {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
     }
 
-    const markRead = (id: number) => {
+    const markRead = (id: string) => {
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
     }
 
-    const markUnread = (id: number) => {
+    const markUnread = (id: string) => {
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)))
     }
 
-    const dismiss = (id: number) => {
+    const dismiss = (id: string) => {
         setNotifications((prev) => prev.filter((n) => n.id !== id))
     }
 

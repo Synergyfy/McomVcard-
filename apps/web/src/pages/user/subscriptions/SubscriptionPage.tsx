@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
@@ -7,9 +7,8 @@ import { LevelDropdown, AccessCards, AccessComparison, BillingToggle } from '../
 import { MembershipLimitCard } from '../../../components/membership/MembershipLimitCard'
 import { rulesForContext, getPlanLevelFromName } from '../../../services/membershipEnforcement'
 import { mockBusinessProfile } from '../../../services/businessStore'
-import { mockVcards } from '../../../services/mockData'
-
-const BUSINESS_ID = 1
+import { userService } from '../../../services/user'
+import type { VCard } from '../../../types'
 
 export default function SubscriptionPage() {
   const [tier, setTier] = useState<PlanTier>(mockBusinessProfile.tier as PlanTier)
@@ -19,6 +18,11 @@ export default function SubscriptionPage() {
   const [level, setLevel] = useState<PlanLevel>(planLevel)
   const businessRules = rulesForContext(pricingState, planLevel, 'business')
   const currentPlan = pricingState.plans.find((p) => p.id === planLevel)
+  const [myVcards, setMyVcards] = useState<VCard[]>([])
+
+  useEffect(() => {
+    userService.getVcards().then(setMyVcards).catch(console.error)
+  }, [])
 
   const currentPrice = currentPlan?.tiers[tier]?.[billing]
   const renewal = mockBusinessProfile.renewalDate
@@ -91,7 +95,7 @@ export default function SubscriptionPage() {
           ))}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          <MembershipLimitCard label="Business VCards" used={mockVcards.filter((v) => v.user_id === BUSINESS_ID).length} planLevel={planLevel} context="business" />
+          <MembershipLimitCard label="Business VCards" used={myVcards.length} planLevel={planLevel} context="business" />
         </div>
       </div>
 

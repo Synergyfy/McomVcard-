@@ -58,7 +58,7 @@ export default function PlanDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    adminService.getPlan(Number(id))
+    adminService.getPlan(String(id))
       .then(setPlan)
       .catch(() => navigate('/admin/plans'))
       .finally(() => setLoading(false))
@@ -68,7 +68,7 @@ export default function PlanDetailPage() {
     if (!plan) return
     setToggling(true)
     try {
-      await adminService.updatePlan(plan.id, { ...plan, status: plan.status ? 0 : 1 })
+      await adminService.updatePlan(String(plan.id), { ...plan, status: plan.status ? 0 : 1 })
       setPlan({ ...plan, status: plan.status ? 0 : 1 })
       t(plan.status === 0 ? 'admin.plan_activated' : 'admin.plan_deactivated')
     } catch { /* ignore */ }
@@ -92,7 +92,7 @@ export default function PlanDetailPage() {
   const handleDelete = async () => {
     if (!plan || !confirm(t('admin.confirm_delete'))) return
     try {
-      await adminService.deletePlan(plan.id)
+      await adminService.deletePlan(String(plan.id))
       navigate('/admin/plans')
     } catch { /* ignore */ }
   }

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import {
   type BillingCycle, type MembershipPricingState, type PlanTier, type PlanCard,
 } from '../../../services/membershipPricingStore'
-import { SYSTEM_RESOURCES, systemResource, resourceUsage } from '../../../services/membershipResources'
+import { getSystemResources, systemResource, resourceUsage, type SystemResource } from '../../../services/membershipResources'
 import { parseLimit } from '../../../services/membershipEnforcement'
 import { BillingToggle, PricingCard, PricingTierTabs } from '../../public/PricingCards'
 
@@ -163,6 +163,11 @@ export function PlansPricingSection({ state, update }: {
   const [tier, setTier] = useState<PlanTier>('Normal')
   const [billing, setBilling] = useState<BillingCycle>('quarterly')
   const [open, setOpen] = useState<'price' | 'feature' | 'rule' | null>(null)
+  const [resources, setResources] = useState<SystemResource[]>([])
+
+  useEffect(() => {
+    getSystemResources().then(setResources)
+  }, [])
 
   const colSpan = state.plans.length + 1
   const toggle = (k: 'price' | 'feature' | 'rule') => setOpen(prev => (prev === k ? null : k))
@@ -214,7 +219,7 @@ export function PlansPricingSection({ state, update }: {
 
   const addRuleRow = () => update(s => {
     const used = new Set(s.plans[0]?.rules.map(r => r.label) ?? [])
-    const next = SYSTEM_RESOURCES.find(r => !used.has(r.label)) ?? SYSTEM_RESOURCES[0]
+    const next = resources.find(r => !used.has(r.label)) ?? resources[0]
     return {
       ...s,
       plans: s.plans.map(p => ({
@@ -415,7 +420,7 @@ export function PlansPricingSection({ state, update }: {
                                 {currentLabel && !systemResource(currentLabel) && (
                                   <option value={currentLabel}>{currentLabel} (custom)</option>
                                 )}
-                                {SYSTEM_RESOURCES.map(s => (
+                                {resources.map(s => (
                                   <option key={s.label} value={s.label}>{s.label}</option>
                                 ))}
                               </select>

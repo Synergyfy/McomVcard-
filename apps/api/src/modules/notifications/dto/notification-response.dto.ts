@@ -27,7 +27,7 @@ export class NotificationResponseDto {
   read_at!: string | null
 
   @ApiProperty({ description: 'Created at', example: '2026-08-20T09:00:00.000Z' })
-  created_at!: string
+  created_at!: string | null
 
   static fromEntity(notification: Notification): NotificationResponseDto {
     const dto = new NotificationResponseDto()

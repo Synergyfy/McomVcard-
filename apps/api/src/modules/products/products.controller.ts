@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, ParseUUIDPipe } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
   ApiBody,
+  ApiQuery,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiUnauthorizedResponse,
@@ -14,17 +15,18 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { Public } from '../auth/public.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { ProductsService } from './products.service'
-import { ProductResponseDto, ProductImageResponseDto } from './dto/product-response.dto'
+import { ProductResponseDto, ProductImageResponseDto, ExchangeItemResponseDto } from './dto/product-response.dto'
 import { CreateProductDto } from './dto/create-product.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { CreateProductImageDto } from './dto/create-product-image.dto'
 
 @ApiTags('products')
-@ApiExtraModels(ApiResponse, ProductResponseDto, ProductImageResponseDto)
+@ApiExtraModels(ApiResponse, ProductResponseDto, ProductImageResponseDto, ExchangeItemResponseDto)
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class ProductsController {
@@ -71,6 +73,27 @@ export class ProductsController {
   @ApiNotFoundResponse({ description: 'Business not found' })
   async list(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.productsService.list(id)
+  }
+
+  @Public()
+  @Get('products/exchange')
+  @ApiOperation({ summary: 'List exchange items', description: 'Returns active products available for exchange. Public endpoint — no authentication required.' })
+  @ApiQuery({ name: 'business_id', required: false, description: 'Filter by business UUID' })
+  @ApiOkResponse({
+    description: 'Exchange items retrieved',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(ExchangeItemResponseDto) } },
+          },
+        },
+      ],
+    },
+  })
+  async listExchangeItems(@Query('business_id') businessId?: string) {
+    return this.productsService.listExchangeItems(businessId)
   }
 
   @Get('products/:id')

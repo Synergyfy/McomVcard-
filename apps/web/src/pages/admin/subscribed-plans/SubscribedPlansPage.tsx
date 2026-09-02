@@ -6,14 +6,14 @@ import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
 const MOCK_DATA: SubscribedUserPlan[] = [
-  { id: 1, user_id: 1, plan_id: 3, plan_name: 'Pro', user_name: 'Sarah Johnson', user_email: 'sarah@example.com', start_date: '2025-03-01', end_date: '2025-07-01', status: 'active', payment_type: 'stripe', transaction_id: 'txn_001', created_at: '2025-03-01' },
-  { id: 2, user_id: 2, plan_id: 2, plan_name: 'Basic', user_name: 'Mike Chen', user_email: 'mike@example.com', start_date: '2025-04-01', end_date: '2025-07-01', status: 'active', payment_type: 'paypal', transaction_id: 'txn_002', created_at: '2025-04-01' },
-  { id: 3, user_id: 3, plan_id: 4, plan_name: 'Enterprise', user_name: 'Emily Williams', user_email: 'emily@example.com', start_date: '2025-02-15', end_date: '2025-08-15', status: 'active', payment_type: 'stripe', transaction_id: 'txn_003', created_at: '2025-02-15' },
-  { id: 4, user_id: 4, plan_id: 2, plan_name: 'Basic', user_name: 'David Smith', user_email: 'david@example.com', start_date: '2025-03-01', end_date: '2025-06-01', status: 'expired', payment_type: 'cash', transaction_id: 'CASH-001', created_at: '2025-03-01' },
-  { id: 5, user_id: 5, plan_id: 3, plan_name: 'Pro', user_name: 'Anna Garcia', user_email: 'anna@example.com', start_date: '2025-05-01', end_date: '2025-08-01', status: 'active', payment_type: 'stripe', transaction_id: 'txn_004', created_at: '2025-05-01' },
-  { id: 6, user_id: 6, plan_id: 1, plan_name: 'Free', user_name: 'James Brown', user_email: 'james@example.com', start_date: '2025-06-01', end_date: '2025-07-01', status: 'active', payment_type: '', transaction_id: '', created_at: '2025-06-01' },
-  { id: 7, user_id: 7, plan_id: 3, plan_name: 'Pro', user_name: 'Lisa Anderson', user_email: 'lisa@example.com', start_date: '2025-04-15', end_date: '2025-07-15', status: 'cancelled', payment_type: 'stripe', transaction_id: 'txn_005', created_at: '2025-04-15' },
-  { id: 8, user_id: 8, plan_id: 2, plan_name: 'Basic', user_name: 'Robert Taylor', user_email: 'robert@example.com', start_date: '2025-05-20', end_date: '2025-06-20', status: 'expired', payment_type: 'cash', transaction_id: 'CASH-002', created_at: '2025-05-20' },
+  { id: '1', user_id: 1, plan_id: 3, plan_name: 'Pro', user_name: 'Sarah Johnson', user_email: 'sarah@example.com', start_date: '2025-03-01', end_date: '2025-07-01', status: 'active', payment_type: 'stripe', transaction_id: 'txn_001', created_at: '2025-03-01' },
+  { id: '2', user_id: 2, plan_id: 2, plan_name: 'Basic', user_name: 'Mike Chen', user_email: 'mike@example.com', start_date: '2025-04-01', end_date: '2025-07-01', status: 'active', payment_type: 'paypal', transaction_id: 'txn_002', created_at: '2025-04-01' },
+  { id: '3', user_id: 3, plan_id: 4, plan_name: 'Enterprise', user_name: 'Emily Williams', user_email: 'emily@example.com', start_date: '2025-02-15', end_date: '2025-08-15', status: 'active', payment_type: 'stripe', transaction_id: 'txn_003', created_at: '2025-02-15' },
+  { id: '4', user_id: 4, plan_id: 2, plan_name: 'Basic', user_name: 'David Smith', user_email: 'david@example.com', start_date: '2025-03-01', end_date: '2025-06-01', status: 'expired', payment_type: 'cash', transaction_id: 'CASH-001', created_at: '2025-03-01' },
+  { id: '5', user_id: 5, plan_id: 3, plan_name: 'Pro', user_name: 'Anna Garcia', user_email: 'anna@example.com', start_date: '2025-05-01', end_date: '2025-08-01', status: 'active', payment_type: 'stripe', transaction_id: 'txn_004', created_at: '2025-05-01' },
+  { id: '6', user_id: 6, plan_id: 1, plan_name: 'Free', user_name: 'James Brown', user_email: 'james@example.com', start_date: '2025-06-01', end_date: '2025-07-01', status: 'active', payment_type: '', transaction_id: '', created_at: '2025-06-01' },
+  { id: '7', user_id: 7, plan_id: 3, plan_name: 'Pro', user_name: 'Lisa Anderson', user_email: 'lisa@example.com', start_date: '2025-04-15', end_date: '2025-07-15', status: 'cancelled', payment_type: 'stripe', transaction_id: 'txn_005', created_at: '2025-04-15' },
+  { id: '8', user_id: 8, plan_id: 2, plan_name: 'Basic', user_name: 'Robert Taylor', user_email: 'robert@example.com', start_date: '2025-05-20', end_date: '2025-06-20', status: 'expired', payment_type: 'cash', transaction_id: 'CASH-002', created_at: '2025-05-20' },
 ]
 
 const statusStyles: Record<string, string> = {
@@ -38,7 +38,7 @@ export default function SubscribedPlansPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleStatusChange = async (id: number, status: string) => {
+  const handleStatusChange = async (id: string, status: string) => {
     try {
       await adminService.updateSubscribedUserPlan(id, { status } as any)
       setPlans(plans.map((p) => p.id === id ? { ...p, status } : p))

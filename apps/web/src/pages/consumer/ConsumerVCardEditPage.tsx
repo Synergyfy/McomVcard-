@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockTemplates } from '../../services/mockData'
 import { consumerService } from '../../services/consumer'
+import api from '../../services/api'
+import type { AdminTemplate } from '../../types'
 
 const TEMPLATE_COLORS = ['#FF5C00', '#2563EB', '#7C3AED', '#059669', '#DC2626', '#EC4899', '#0891B2', '#F59E0B', '#1E293B', '#18181B']
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Display', 'Lora', 'DM Sans', 'Space Grotesk']
@@ -12,14 +13,15 @@ const BUTTON_STYLES = ['rounded', 'pill', 'square']
 export default function ConsumerVCardEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const template = mockTemplates.find((t) => t.id === Number(id)) || mockTemplates[0]
+  const [template, setTemplate] = useState<AdminTemplate | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const [primaryColor, setPrimaryColor] = useState(template.primary_color)
-  const [secondaryColor, setSecondaryColor] = useState(template.secondary_color)
-  const [fontFamily, setFontFamily] = useState(template.font_family)
-  const [bgStyle, setBgStyle] = useState(template.bg_style)
-  const [buttonStyle, setButtonStyle] = useState(template.button_style)
-  const [logoPosition, setLogoPosition] = useState(template.logo_position)
+  const [primaryColor, setPrimaryColor] = useState('#FF5C00')
+  const [secondaryColor, setSecondaryColor] = useState('#1F2937')
+  const [fontFamily, setFontFamily] = useState('Inter')
+  const [bgStyle, setBgStyle] = useState('gradient')
+  const [buttonStyle, setButtonStyle] = useState('rounded')
+  const [logoPosition, setLogoPosition] = useState('center')
   const [displayName, setDisplayName] = useState('Your Name')
   const [tagline, setTagline] = useState('Digital Marketing Professional')
   const [phone, setPhone] = useState('')
@@ -29,20 +31,39 @@ export default function ConsumerVCardEditPage() {
   const [tab, setTab] = useState<'style' | 'content' | 'sections'>('style')
 
   useEffect(() => {
-    consumerService.getProfile().then((p) => {
-      setDisplayName(p.name)
-      setPhone(p.phone)
-      setEmail(p.email)
-      setAddress(p.location)
-      if (p.cardId) setWebsite(`mcomvcard.link/c/${p.cardId.toLowerCase()}`)
-    }).catch(() => {})
-  }, [])
+    const fetchTemplate = id
+      ? api.get(`/templates/${id}`).then((r) => r.data as AdminTemplate).catch(() => null)
+      : Promise.resolve(null)
+
+    Promise.all([consumerService.getProfile(), fetchTemplate])
+      .then(([p, t]) => {
+        setDisplayName(p.name)
+        setPhone(p.phone)
+        setEmail(p.email)
+        setAddress(p.location)
+        if (p.cardId) setWebsite(`mcomvcard.link/c/${p.cardId.toLowerCase()}`)
+        if (t) {
+          setTemplate(t)
+          setPrimaryColor(t.primary_color)
+          setSecondaryColor(t.secondary_color)
+          setFontFamily(t.font_family)
+          setBgStyle(t.bg_style)
+          setButtonStyle(t.button_style)
+          setLogoPosition(t.logo_position)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [id])
 
   const btnRadius = buttonStyle === 'pill' ? '9999px' : buttonStyle === 'square' ? '4px' : '8px'
 
   const handleSave = () => {
     navigate('/c/vcard-templates')
   }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (!template) return <div className="text-center py-20 text-gray-500">Template not found.</div>
 
   return (
     <div>

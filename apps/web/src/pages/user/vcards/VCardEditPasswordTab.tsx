@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditPasswordTab({ vcardId }: Props) {
   const { t } = useTranslation()

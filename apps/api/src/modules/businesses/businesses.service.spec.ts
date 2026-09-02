@@ -8,14 +8,17 @@ import { BusinessCategory } from './entities/business-category.entity'
 import { BusinessLocation } from './entities/business-location.entity'
 import { BusinessHour } from './entities/business-hour.entity'
 import { Brand } from './entities/brand.entity'
+import { Membership } from '../memberships/entities/membership.entity'
+import { MembershipTier } from '../memberships/entities/membership-tier.entity'
+import { Card } from '../cards/entities/card.entity'
 import { CreateBusinessDto } from './dto/create-business.dto'
 import { CreateLocationDto } from './dto/create-location.dto'
 import { CreateBusinessHourDto } from './dto/create-business-hour.dto'
 import { CreateBrandDto } from './dto/create-brand.dto'
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>
+type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
-function createMockRepo<T = any>(): MockRepo<T> {
+function createMockRepo(): MockRepo {
   return {
     findOne: jest.fn(),
     findOneBy: jest.fn(),
@@ -94,18 +97,24 @@ function makeBrand(overrides: Partial<Brand> = {}): Brand {
 
 describe('BusinessesService', () => {
   let service: BusinessesService
-  let businessesRepo: MockRepo<Business>
-  let categoriesRepo: MockRepo<BusinessCategory>
-  let locationsRepo: MockRepo<BusinessLocation>
-  let hoursRepo: MockRepo<BusinessHour>
-  let brandsRepo: MockRepo<Brand>
+  let businessesRepo: MockRepo
+  let categoriesRepo: MockRepo
+  let locationsRepo: MockRepo
+  let hoursRepo: MockRepo
+  let brandsRepo: MockRepo
+  let membershipsRepo: MockRepo
+  let membershipTiersRepo: MockRepo
+  let cardsRepo: MockRepo
 
   beforeEach(async () => {
-    businessesRepo = createMockRepo<Business>()
-    categoriesRepo = createMockRepo<BusinessCategory>()
-    locationsRepo = createMockRepo<BusinessLocation>()
-    hoursRepo = createMockRepo<BusinessHour>()
-    brandsRepo = createMockRepo<Brand>()
+    businessesRepo = createMockRepo()
+    categoriesRepo = createMockRepo()
+    locationsRepo = createMockRepo()
+    hoursRepo = createMockRepo()
+    brandsRepo = createMockRepo()
+    membershipsRepo = createMockRepo()
+    membershipTiersRepo = createMockRepo()
+    cardsRepo = createMockRepo()
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -115,6 +124,9 @@ describe('BusinessesService', () => {
         { provide: getRepositoryToken(BusinessLocation), useValue: locationsRepo },
         { provide: getRepositoryToken(BusinessHour), useValue: hoursRepo },
         { provide: getRepositoryToken(Brand), useValue: brandsRepo },
+        { provide: getRepositoryToken(Membership), useValue: membershipsRepo },
+        { provide: getRepositoryToken(MembershipTier), useValue: membershipTiersRepo },
+        { provide: getRepositoryToken(Card), useValue: cardsRepo },
       ],
     }).compile()
 

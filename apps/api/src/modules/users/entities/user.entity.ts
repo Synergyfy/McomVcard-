@@ -20,13 +20,13 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash!: string
 
-  @Column({ name: 'first_name', nullable: true })
+  @Column({ name: 'first_name', type: 'text', nullable: true })
   firstName!: string | null
 
-  @Column({ name: 'last_name', nullable: true })
+  @Column({ name: 'last_name', type: 'text', nullable: true })
   lastName!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   phone!: string | null
 
   @Column({ default: 'active' })

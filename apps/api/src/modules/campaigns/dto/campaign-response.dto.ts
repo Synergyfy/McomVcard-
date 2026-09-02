@@ -39,10 +39,10 @@ export class CampaignResponseDto {
   ends_at!: string | null
 
   @ApiProperty({ description: 'Created at', example: '2026-08-20T09:00:00.000Z' })
-  created_at!: string
+  created_at!: string | null
 
   @ApiProperty({ description: 'Updated at', example: '2026-08-20T09:00:00.000Z' })
-  updated_at!: string
+  updated_at!: string | null
 
   @ApiPropertyOptional({ description: 'Offers in this campaign', type: () => [OfferResponseDto], nullable: true })
   offers?: OfferResponseDto[]
@@ -94,10 +94,10 @@ export class OfferResponseDto {
   is_active!: boolean
 
   @ApiProperty({ description: 'Created at', example: '2026-08-20T09:00:00.000Z' })
-  created_at!: string
+  created_at!: string | null
 
   @ApiProperty({ description: 'Updated at', example: '2026-08-20T09:00:00.000Z' })
-  updated_at!: string
+  updated_at!: string | null
 
   @ApiPropertyOptional({ description: 'Coupons attached to this offer', type: () => [CouponResponseDto], nullable: true })
   coupons?: CouponResponseDto[]
@@ -153,10 +153,10 @@ export class CouponResponseDto {
   status!: CouponStatus
 
   @ApiProperty({ description: 'Created at', example: '2026-08-20T09:00:00.000Z' })
-  created_at!: string
+  created_at!: string | null
 
   @ApiProperty({ description: 'Updated at', example: '2026-08-20T09:00:00.000Z' })
-  updated_at!: string
+  updated_at!: string | null
 
   static fromEntity(coupon: Coupon): CouponResponseDto {
     const dto = new CouponResponseDto()

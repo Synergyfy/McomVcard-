@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { mockTemplates } from '../../../services/mockData'
+import { userService } from '../../../services/user'
+import type { AdminTemplate } from '../../../types'
 
 const TEMPLATE_COLORS = ['#FF5C00', '#2563EB', '#7C3AED', '#059669', '#DC2626', '#EC4899', '#0891B2', '#F59E0B', '#1E293B', '#18181B']
 const FONT_OPTIONS = ['Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Display', 'Lora', 'DM Sans', 'Space Grotesk']
@@ -10,15 +11,36 @@ const BUTTON_STYLES = ['rounded', 'pill', 'square']
 
 export default function TemplateCustomizePage() {
   const { id } = useParams()
-  const template = mockTemplates.find((t) => t.id === Number(id)) || mockTemplates[0]
+  const [template, setTemplate] = useState<AdminTemplate | null>(null)
 
-  const [primaryColor, setPrimaryColor] = useState(template.primary_color)
-  const [secondaryColor, setSecondaryColor] = useState(template.secondary_color)
-  const [fontFamily, setFontFamily] = useState(template.font_family)
-  const [bgStyle, setBgStyle] = useState(template.bg_style)
-  const [buttonStyle, setButtonStyle] = useState(template.button_style)
-  const [logoPosition, setLogoPosition] = useState(template.logo_position)
+  useEffect(() => {
+    if (!id) return
+    userService.getTemplates()
+      .then((templates) => {
+        const found = (templates as unknown as AdminTemplate[]).find((t) => String(t.id) === id)
+        if (found) setTemplate(found)
+      })
+      .catch(console.error)
+  }, [id])
+
+  const [primaryColor, setPrimaryColor] = useState('#FF5C00')
+  const [secondaryColor, setSecondaryColor] = useState('#2563EB')
+  const [fontFamily, setFontFamily] = useState('Inter')
+  const [bgStyle, setBgStyle] = useState('gradient')
+  const [buttonStyle, setButtonStyle] = useState('rounded')
+  const [logoPosition, setLogoPosition] = useState('left')
   const [businessName, setBusinessName] = useState('GreenLeaf Coffee')
+
+  useEffect(() => {
+    if (template) {
+      setPrimaryColor(template.primary_color || '#FF5C00')
+      setSecondaryColor(template.secondary_color || '#2563EB')
+      setFontFamily(template.font_family || 'Inter')
+      setBgStyle(template.bg_style || 'gradient')
+      setButtonStyle(template.button_style || 'rounded')
+      setLogoPosition(template.logo_position || 'left')
+    }
+  }, [template])
   const [tagline, setTagline] = useState('Premium Coffee & Pastries')
   const [phone, setPhone] = useState('+1 (555) 123-4567')
   const [email, setEmail] = useState('hello@greenleaf.com')
@@ -27,6 +49,14 @@ export default function TemplateCustomizePage() {
   const [tab, setTab] = useState<'style' | 'content' | 'sections'>('style')
 
   const btnRadius = buttonStyle === 'pill' ? '9999px' : buttonStyle === 'square' ? '4px' : '8px'
+
+  if (!template) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div>

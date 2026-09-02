@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authService } from '../services/auth'
+import { useAuth } from './AuthContext'
 
 interface ThemeContextValue {
   theme: 'light' | 'dark'
@@ -17,6 +18,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored === 'dark' || stored === 'light') return stored
     return 'light'
   })
+  const { user } = useAuth()
 
   useEffect(() => {
     const root = document.documentElement
@@ -32,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
     try {
-      await authService.updateTheme(next)
+      await authService.updateTheme(next, user!)
     } catch {
       // silently fail
     }

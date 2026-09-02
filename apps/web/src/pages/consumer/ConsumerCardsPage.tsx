@@ -108,7 +108,7 @@ export default function ConsumerCardsPage() {
 
     const scrollTo = (el: HTMLDivElement | null) => el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-    const renderCardTile = (c: { id: number; name: string; business: string; type: string; source?: string; editable?: boolean }, meta: typeof CATEGORY_META[CardCategory]) => (
+    const renderCardTile = (c: { id: string; name: string; business: string; type: string; source?: string; editable?: boolean }, meta: typeof CATEGORY_META[CardCategory]) => (
         <div key={c.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
                 <div className={`w-11 h-11 rounded-xl ${meta.bg} flex items-center justify-center shrink-0`}>

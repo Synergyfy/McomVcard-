@@ -15,7 +15,7 @@ export default function LanguageFormPage() {
 
   useEffect(() => {
     if (!id) return
-    adminService.getLanguage(Number(id)).then((data) => {
+    adminService.getLanguage(String(id)).then((data) => {
       setForm({ name: data.name, code: data.code, native_name: data.native_name || '', is_default: data.is_default, status: data.status })
     })
   }, [id])
@@ -25,7 +25,7 @@ export default function LanguageFormPage() {
     setSaving(true)
     try {
       if (isEdit) {
-        await adminService.updateLanguage(Number(id), form)
+        await adminService.updateLanguage(String(id), form)
         toast.success(t('common.updated'))
       } else {
         await adminService.createLanguage(form)

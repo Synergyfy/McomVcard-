@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ThemeToggle from '../../common/ThemeToggle'
-import { consumerService } from '../../../services/consumer'
-import { mockConsumers } from '../../../services/mockData'
+import { consumerService, type ConsumerProfile } from '../../../services/consumer'
 import { useAuth } from '../../../contexts/AuthContext'
-
-const CONSUMER_ID = 1
-const profile = mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
 
 export default function ConsumerTopBar() {
     const [unread, setUnread] = useState(0)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const [open, setOpen] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
+        consumerService.getProfile().then(setProfile).catch(() => {})
         consumerService.getUnreadNotificationCount().then(setUnread)
     }, [])
 
@@ -86,12 +84,12 @@ export default function ConsumerTopBar() {
                             aria-label="Account menu"
                         >
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                                {user?.name?.charAt(0).toUpperCase() || profile.name.charAt(0)}
+                                {user?.name?.charAt(0).toUpperCase() || profile?.name?.charAt(0) || '?'}
                             </div>
                             <div className="text-left hidden sm:block">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{user?.name || profile.name}</p>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{user?.email || profile.email}</p>
-                                <p className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 leading-tight">{profile.membership}</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{user?.name || profile?.name || ''}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{user?.email || profile?.email || ''}</p>
+                                <p className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 leading-tight">{profile?.membership || ''}</p>
                             </div>
                             <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -101,11 +99,11 @@ export default function ConsumerTopBar() {
                         {open && (
                             <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-xl py-2 z-50">
                                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name || profile.name}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || profile.email}</p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name || profile?.name || ''}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || profile?.email || ''}</p>
                                     <p className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/10 to-orange-600/5 dark:from-orange-500/20 dark:to-orange-600/10 border border-orange-200 dark:border-orange-800/40 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                                         <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                                        {profile.membership}
+                                        {profile?.membership || ''}
                                     </p>
                                 </div>
                                 <div className="py-1">

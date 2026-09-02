@@ -7,6 +7,7 @@ import { WalletController } from './wallet.controller'
 import { WalletService } from './wallet.service'
 import { Wallet } from './entities/wallet.entity'
 import { WalletTransaction } from './entities/wallet-transaction.entity'
+import { ChildCard } from '../child-cards/entities/child-card.entity'
 import { RewardsController } from './rewards.controller'
 import { RewardsService } from './rewards.service'
 import { RewardBalance } from './entities/reward-balance.entity'
@@ -21,16 +22,20 @@ import { CatalogService } from './catalog.service'
 import { GiftCard } from './entities/gift-card.entity'
 import { CashbackProgram } from './entities/cashback-program.entity'
 import { Business } from '../businesses/entities/business.entity'
+import { CashPaymentsService } from './cash-payments.service'
+import { CashPayment } from './entities/cash-payment.entity'
+import { WithdrawTransactionsService } from './withdraw-transactions.service'
+import { WithdrawTransaction } from './entities/withdraw-transaction.entity'
 
 @Module({
   imports: [
     AuthModule,
+    TypeOrmModule.forFeature([Wallet, WalletTransaction, ChildCard, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business, CashPayment, WithdrawTransaction]),
     McomModule,
     UsersModule,
-    TypeOrmModule.forFeature([Wallet, WalletTransaction, RewardBalance, RewardTransaction, CashbackAccount, CashbackTransaction, CashbackRule, GiftCard, CashbackProgram, Business]),
   ],
   controllers: [WalletController, RewardsController, CashbackController, CatalogController],
-  providers: [WalletService, RewardsService, CashbackService, CatalogService],
-  exports: [WalletService, RewardsService, CashbackService, CatalogService],
+  providers: [WalletService, RewardsService, CashbackService, CatalogService, CashPaymentsService, WithdrawTransactionsService],
+  exports: [WalletService, RewardsService, CashbackService, CatalogService, CashPaymentsService, WithdrawTransactionsService],
 })
 export class FinanceModule {}

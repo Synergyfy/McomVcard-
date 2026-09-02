@@ -8,6 +8,25 @@ import { SocialLink } from './social-link.entity'
 import { CardAccess } from './card-access.entity'
 import { CardSection } from './card-section.entity'
 import { CardCentreControl } from './card-centre-control.entity'
+import { Event } from '../../events/entities/event.entity'
+
+export enum CardType {
+  BUSINESS_VCARD = 'BUSINESS_VCARD',
+  BUSINESS_CARD = 'BUSINESS_CARD',
+  CONSUMER_VCARD = 'CONSUMER_VCARD',
+  CONSUMER_STORE_CARD = 'CONSUMER_STORE_CARD',
+  EVENT = 'EVENT',
+}
+
+export enum CardProduct {
+  VCARD = 'VCARD',
+  CARD = 'CARD',
+}
+
+export enum CardAudience {
+  BUSINESS = 'BUSINESS',
+  CONSUMER = 'CONSUMER',
+}
 
 @Entity({ name: 'cards' })
 export class Card {
@@ -36,7 +55,13 @@ export class Card {
   template!: Template | null
 
   @Column({ default: 'PERSONAL' })
-  type!: string
+  type!: CardType
+
+  @Column({ name: 'card_product', default: 'VCARD' })
+  cardProduct!: CardProduct
+
+  @Column({ name: 'audience', default: 'BUSINESS' })
+  audience!: CardAudience
 
   @Column({ unique: true })
   slug!: string
@@ -94,4 +119,7 @@ export class Card {
 
   @OneToMany(() => CardCentreControl, (control) => control.card)
   centreControls!: CardCentreControl[]
+
+  @OneToMany(() => Event, (event) => event.card)
+  events!: Event[]
 }

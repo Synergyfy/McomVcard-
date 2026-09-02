@@ -19,7 +19,7 @@ import { slugify } from '../../lib/utils/slug.util'
 import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseDto, BrandResponseDto, BusinessCategoryResponseDto } from './dto/business-response.dto'
 import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
-import { Card } from '../cards/entities/card.entity'
+import { Card, CardType } from '../cards/entities/card.entity'
 
 /* Plan levels + per-tier limits, mirroring the default pricing catalogue
    (membershipPricingStore defaults on the frontend). null = Unlimited. */
@@ -143,7 +143,7 @@ export class BusinessesService {
 
     const allocatedVcards = await this.cardsRepo.count({ where: { ownerId: userId } })
     const allocatedBusinessCards = business
-      ? await this.cardsRepo.count({ where: { businessId: business.id, type: 'BUSINESS' } })
+      ? await this.cardsRepo.count({ where: { businessId: business.id, type: CardType.BUSINESS_CARD } })
       : 0
 
     const remaining = (limit: number | null, used: number) => (limit === null ? null : Math.max(0, limit - used))
@@ -183,6 +183,34 @@ export class BusinessesService {
     return ApiResponse.success(categories.map(BusinessCategoryResponseDto.fromEntity), 'Business categories retrieved', 200)
   }
 
+  async listDirectory(search?: string, category?: string) {
+    const qb = this.businessesRepo
+      .createQueryBuilder('b')
+      .leftJoinAndSelect('b.category', 'category')
+      .leftJoinAndSelect('b.locations', 'locations')
+      .where('b.status = :status', { status: 'active' })
+      .orderBy('b.createdAt', 'DESC')
+      .take(100)
+
+    if (search) {
+      qb.andWhere('(LOWER(b.name) LIKE :search OR LOWER(b.description) LIKE :search)', {
+        search: `%${search.toLowerCase()}%`,
+      })
+    }
+
+    if (category) {
+      qb.andWhere('LOWER(category.name) = :category', { category: category.toLowerCase() })
+    }
+
+    const businesses = await qb.getMany()
+
+    return ApiResponse.success(
+      businesses.map(b => BusinessResponseDto.fromEntity(b)),
+      'Business directory retrieved',
+      200,
+    )
+  }
+
   async listForOwner(ownerId: string) {
     const businesses = await this.businessesRepo.find({
       where: { ownerId },
@@ -208,7 +236,7 @@ export class BusinessesService {
     if (dto.phone !== undefined) patch.phone = dto.phone
     if (dto.website !== undefined) patch.website = dto.website
 
-    await this.businessesRepo.update({ id }, patch)
+    await this.businessesRepo.update({ id }, patch as any)
 
     return ApiResponse.success(BusinessResponseDto.fromEntity(await this.findOne(id)), 'Business updated', 200)
   }
@@ -264,7 +292,7 @@ export class BusinessesService {
     if (dto.latitude !== undefined) patch.latitude = dto.latitude
     if (dto.longitude !== undefined) patch.longitude = dto.longitude
 
-    await this.locationsRepo.update({ id: locationId }, patch)
+    await this.locationsRepo.update({ id: locationId }, patch as any)
 
     const updated = await this.locationsRepo.findOneBy({ id: locationId })
     if (!updated) throw new NotFoundException('Location not found')
@@ -343,7 +371,7 @@ export class BusinessesService {
     if (dto.closes_at !== undefined) patch.closesAt = dto.closes_at
     if (dto.is_closed !== undefined) patch.isClosed = dto.is_closed
 
-    await this.hoursRepo.update({ id: hourId }, patch)
+    await this.hoursRepo.update({ id: hourId }, patch as any)
 
     const updated = await this.hoursRepo.findOneBy({ id: hourId })
     if (!updated) throw new NotFoundException('Business hours not found')
@@ -414,7 +442,7 @@ export class BusinessesService {
     if (dto.description !== undefined) patch.description = dto.description
     if (dto.logo_url !== undefined) patch.logoUrl = dto.logo_url
 
-    await this.brandsRepo.update({ id: brandId }, patch)
+    await this.brandsRepo.update({ id: brandId }, patch as any)
 
     const updated = await this.brandsRepo.findOneBy({ id: brandId })
     if (!updated) throw new NotFoundException('Brand not found')

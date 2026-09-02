@@ -13,13 +13,13 @@ export class Template {
   @Column({ unique: true })
   slug!: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   path!: string | null
 
-  @Column({ name: 'preview_url', nullable: true })
+  @Column({ name: 'preview_url', type: 'text', nullable: true })
   previewUrl!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   category!: string | null
 
   @Column({ default: 'published' })
@@ -31,26 +31,32 @@ export class Template {
   @Column({ name: 'is_consumer', default: true })
   isConsumer!: boolean
 
-  @Column({ name: 'font_family', nullable: true })
+  @Column({ name: 'font_family', type: 'text', nullable: true })
   fontFamily!: string | null
 
-  @Column({ name: 'primary_color', nullable: true })
+  @Column({ name: 'primary_color', type: 'text', nullable: true })
   primaryColor!: string | null
 
-  @Column({ name: 'secondary_color', nullable: true })
+  @Column({ name: 'secondary_color', type: 'text', nullable: true })
   secondaryColor!: string | null
 
-  @Column({ name: 'button_style', nullable: true })
+  @Column({ name: 'button_style', type: 'text', nullable: true })
   buttonStyle!: string | null
 
-  @Column({ name: 'logo_position', nullable: true })
+  @Column({ name: 'logo_position', type: 'text', nullable: true })
   logoPosition!: string | null
 
-  @Column({ name: 'bg_style', nullable: true })
+  @Column({ name: 'bg_style', type: 'text', nullable: true })
   bgStyle!: string | null
 
   @Column({ type: 'jsonb', nullable: true })
   sections!: Record<string, boolean> | null
+
+  @Column({ name: 'required_membership_level', type: 'varchar', length: 50, nullable: true })
+  requiredMembershipLevel!: string | null
+
+  @Column({ name: 'is_premium', default: false })
+  isPremium!: boolean
 
   @Column({ default: 0 })
   usage!: number

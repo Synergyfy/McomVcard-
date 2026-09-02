@@ -83,7 +83,7 @@ export class AuthController {
       ip: req.ip,
     })
 
-    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+    setRefreshTokenCookie(res, result.data!.refresh_token, this.authService.refreshTokenTtl())
 
     return result
   }
@@ -127,7 +127,7 @@ export class AuthController {
       ip: req.ip,
     })
 
-    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+    setRefreshTokenCookie(res, result.data!.refresh_token, this.authService.refreshTokenTtl())
 
     return result
   }
@@ -178,7 +178,7 @@ export class AuthController {
       ip: req.ip,
     })
 
-    setRefreshTokenCookie(res, result.data.refresh_token, this.authService.refreshTokenTtl())
+    setRefreshTokenCookie(res, result.data!.refresh_token, this.authService.refreshTokenTtl())
 
     return result
   }

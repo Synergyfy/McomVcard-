@@ -11,7 +11,7 @@ export default function TranslationsPage() {
   const navigate = useNavigate()
   const [entries, setEntries] = useState<TranslationEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<number | null>(null)
+  const [saving, setSaving] = useState<string | null>(null)
   const [langName, setLangName] = useState('')
 
   const load = async () => {
@@ -19,7 +19,7 @@ export default function TranslationsPage() {
     setLoading(true)
     try {
       const [lang, translations] = await Promise.all([
-        adminService.getLanguage(Number(langId)),
+        adminService.getLanguage(langId),
         adminService.getTranslations(Number(langId)),
       ])
       setLangName(lang.name)
@@ -33,7 +33,7 @@ export default function TranslationsPage() {
 
   useEffect(() => { load() }, [langId])
 
-  const updateValue = async (entryId: number, value: string) => {
+  const updateValue = async (entryId: string, value: string) => {
     setSaving(entryId)
     try {
       await adminService.updateTranslation(Number(langId), entryId, { value } as any)

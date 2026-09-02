@@ -169,4 +169,38 @@ export class ProfileController {
   async deactivate(@CurrentUser() user: UserResponseDto) {
     return this.profileService.deactivate(user.id)
   }
+
+
+  @Get('usage-stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get usage statistics for the authenticated user', description: 'Returns real usage counts across all resource types for the current user, including card counts, child-card allocations, and total wallet balance of linked children.' })
+  @ApiOkResponse({
+    description: 'Usage statistics',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                business_vcards: { type: 'number', example: 5, description: 'Count of BUSINESS_VCARD cards owned by the user' },
+                consumer_vcards: { type: 'number', example: 42, description: 'Total CONSUMER_VCARD cards in the system' },
+                business_cards: { type: 'number', example: 3, description: 'Count of BUSINESS_CARD cards owned by the user' },
+                consumer_cards: { type: 'number', example: 18, description: 'Total CONSUMER_STORE_CARD cards in the system' },
+                family_allocations: { type: 'number', example: 2, description: 'Count of child_card allocations with kind=FAMILY' },
+                friend_allocations: { type: 'number', example: 1, description: 'Count of child_card allocations with kind=FRIEND' },
+                additional_cards: { type: 'number', example: 4, description: 'Total child_card allocations owned by the user' },
+                total_wallet_balance: { type: 'number', example: 125.50, description: 'Sum of wallet balances for all child users linked via child_cards' },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  async getUsageStats(@CurrentUser() user: UserResponseDto) {
+    return this.profileService.getUsageStats(user.id)
+  }
 }

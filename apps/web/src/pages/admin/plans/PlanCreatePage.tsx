@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
 import InputField from '../../../components/auth/InputField'
 import type { Currency } from '../../../types'
-import { mockCurrencies } from '../../../services/mockData'
 
 const featureGroups = [
   {
@@ -70,7 +69,7 @@ export default function PlanCreatePage() {
   const [serverError, setServerError] = useState('')
 
   useEffect(() => {
-    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies(mockCurrencies))
+    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies([]))
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,7 +98,7 @@ export default function PlanCreatePage() {
     }
   }
 
-  const currencyIcon = currencies.find((c) => c.id === form.currency_id)?.currency_icon || '£'
+  const currencyIcon = currencies.find((c) => c.id === String(form.currency_id))?.currency_icon || '£'
   const enabledCount = Object.values(features).filter(Boolean).length
 
   return (

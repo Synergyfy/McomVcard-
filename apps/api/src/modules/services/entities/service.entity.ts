@@ -28,10 +28,10 @@ export class Service {
   @Column({ length: 3, default: 'GBP' })
   currency!: string
 
-  @Column({ nullable: true })
+  @Column({ type: 'integer', nullable: true })
   duration!: number | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   image!: string | null
 
   @Column({ default: 'active' })
