@@ -30,26 +30,22 @@ export default function ConsumerWalletPage() {
     const loadWallet = () => {
         setLoading(true)
         setError(false)
+
         Promise.all([
             consumerService.getWallet(),
             consumerService.getCardBalance(),
-            consumerService.getCardActivity(),
             consumerWishlistService.getWishlist(),
+            businessService.getWallet(),
+            businessService.getWalletTransactions(),
             api.get('/vouchers/redeem/items').then((r) => r.data as ExchangeItem[]).catch(() => [] as ExchangeItem[]),
             api.get('/campaigns/nearby').then((r) => r.data as NearbyOffer[]).catch(() => [] as NearbyOffer[]),
         ])
-            .then(([w, b, a, wish, redeem, offers]) => {
-            businessService.getWallet(),
-            businessService.getWalletTransactions(),
-            consumerService.getCardBalance(),
-            consumerWishlistService.getWishlist(),
-        ])
-            .then(([w, cw, txs, b, wish]) => {
+            .then(([w, b, wish, cw, txs, redeem, offers]) => {
                 setWallet(w)
-                setCentralWallet(cw)
-                setTransactions(txs || [])
                 setCardBalance(b)
                 setWishCount(wish.length)
+                setCentralWallet(cw)
+                setTransactions(txs || [])
                 setRedeemItems(redeem)
                 setNearbyOffers(offers)
             })

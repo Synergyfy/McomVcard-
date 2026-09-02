@@ -38,11 +38,13 @@ export class GiftCardsService {
     const businessIds = businesses.map((b) => b.id)
     if (businessIds.length === 0) return []
 
-    const giftCards: GiftCard[] = []
-    for (const businessId of businessIds) {
-      const cards = await this.giftCardsRepo.find({ where: { businessId }, order: { createdAt: 'DESC' } })
-      giftCards.push(...cards)
-    }
+    // Single query with IN clause instead of N+1 loops
+    const giftCards = await this.giftCardsRepo
+      .createQueryBuilder('gc')
+      .where('gc.business_id IN (:...businessIds)', { businessIds })
+      .orderBy('gc.created_at', 'DESC')
+      .getMany()
+
     return giftCards
   }
 
