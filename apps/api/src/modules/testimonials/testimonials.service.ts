@@ -58,12 +58,22 @@ export class TestimonialsService {
   }
 
   async reorder(ids: string[]): Promise<Testimonial[]> {
-    const testimonials: Testimonial[] = []
-    for (let i = 0; i < ids.length; i++) {
-      const testimonial = await this.findOne(ids[i])
-      testimonial.displayOrder = i
-      testimonials.push(await this.testimonialRepository.save(testimonial))
-    }
-    return testimonials
+    // Single query to load all items, then batch save
+    const all = await this.testimonialRepository
+      .createQueryBuilder('t')
+      .where('t.id IN (:...ids)', { ids })
+      .getMany()
+
+    const byId = new Map(all.map((t) => [t.id, t]))
+    const toSave = ids
+      .map((id, i) => {
+        const t = byId.get(id)
+        if (!t) return null
+        t.displayOrder = i
+        return t
+      })
+      .filter((t): t is Testimonial => t !== null)
+
+    return this.testimonialRepository.save(toSave)
   }
 }

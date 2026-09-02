@@ -56,12 +56,22 @@ export class AboutUsService {
   }
 
   async reorder(ids: string[]): Promise<AboutUs[]> {
-    const entries: AboutUs[] = []
-    for (let i = 0; i < ids.length; i++) {
-      const entry = await this.findOne(ids[i])
-      entry.displayOrder = i
-      entries.push(await this.aboutUsRepository.save(entry))
-    }
-    return entries
+    // Single query to load all entries, then batch save
+    const all = await this.aboutUsRepository
+      .createQueryBuilder('a')
+      .where('a.id IN (:...ids)', { ids })
+      .getMany()
+
+    const byId = new Map(all.map((a) => [a.id, a]))
+    const toSave = ids
+      .map((id, i) => {
+        const entry = byId.get(id)
+        if (!entry) return null
+        entry.displayOrder = i
+        return entry
+      })
+      .filter((entry): entry is AboutUs => entry !== null)
+
+    return this.aboutUsRepository.save(toSave)
   }
 }
