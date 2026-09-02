@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
 import InputField from '../../../components/auth/InputField'
 import type { Currency } from '../../../types'
-import { mockCurrencies } from '../../../services/mockData'
 
 const featureGroups = [
   {
@@ -70,9 +69,9 @@ export default function PlanEditPage() {
   const [serverError, setServerError] = useState('')
 
   useEffect(() => {
-    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies(mockCurrencies))
+    adminService.getAllCurrencies().then(setCurrencies).catch(() => setCurrencies([]))
     if (!id) return
-    adminService.getPlan(Number(id))
+    adminService.getPlan(String(id))
       .then((p) => {
         setForm({
           name: p.name, currency_id: p.currency_id, price: p.price,
@@ -94,7 +93,7 @@ export default function PlanEditPage() {
     setServerError('')
     setLoading(true)
     try {
-      await adminService.updatePlan(Number(id), {
+      await adminService.updatePlan(String(id), {
         ...form,
         currency_id: Number(form.currency_id),
         plan_feature: Object.fromEntries(
@@ -123,7 +122,7 @@ export default function PlanEditPage() {
     )
   }
 
-  const currencyIcon = currencies.find((c) => c.id === form.currency_id)?.currency_icon || '\u00a3'
+  const currencyIcon = currencies.find((c) => c.id === String(form.currency_id))?.currency_icon || '\u00a3'
   const enabledCount = Object.values(features).filter(Boolean).length
 
   return (

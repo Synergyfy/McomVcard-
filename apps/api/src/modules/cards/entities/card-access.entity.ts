@@ -16,7 +16,7 @@ export class CardAccess {
   @Column({ name: 'is_enabled', default: false })
   isEnabled!: boolean
 
-  @Column({ name: 'password_hash', nullable: true })
+  @Column({ name: 'password_hash', type: 'text', nullable: true })
   passwordHash!: string | null
 
   @Column({ name: 'hint', type: 'varchar', length: 200, nullable: true })
@@ -27,6 +27,12 @@ export class CardAccess {
 
   @Column({ name: 'protected_section_ids', type: 'jsonb', nullable: true })
   protectedSectionIds!: string[] | null
+
+  @Column({ name: 'public_sections', type: 'jsonb', default: [] })
+  publicSections!: string[]
+
+  @Column({ name: 'interactive_sections', type: 'jsonb', default: [] })
+  interactiveSections!: string[]
 
   @Column({ name: 'access_expiry', default: 'never' })
   accessExpiry!: string

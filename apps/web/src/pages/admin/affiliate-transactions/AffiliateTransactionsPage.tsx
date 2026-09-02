@@ -4,13 +4,13 @@ import { adminService } from '../../../services/admin'
 import toast from 'react-hot-toast'
 
 const MOCK_TXNS: any[] = [
-  { id: 1, referred_user_name: 'Mike Chen', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-04-05' },
-  { id: 2, referred_user_name: 'Emily Williams', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-04-20' },
-  { id: 3, referred_user_name: 'David Smith', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-10' },
-  { id: 4, referred_user_name: 'James Brown', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-06-15' },
-  { id: 5, referred_user_name: 'Lisa Anderson', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'rejected', created_at: '2025-04-25' },
-  { id: 6, referred_user_name: 'Anna Garcia', amount: 125.00, description: 'Commission from Enterprise plan purchase', status: 'pending', created_at: '2025-06-01' },
-  { id: 7, referred_user_name: 'Robert Taylor', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-20' },
+  { id: '1', referred_user_name: 'Mike Chen', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-04-05' },
+  { id: '2', referred_user_name: 'Emily Williams', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-04-20' },
+  { id: '3', referred_user_name: 'David Smith', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-10' },
+  { id: '4', referred_user_name: 'James Brown', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-06-15' },
+  { id: '5', referred_user_name: 'Lisa Anderson', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'rejected', created_at: '2025-04-25' },
+  { id: '6', referred_user_name: 'Anna Garcia', amount: 125.00, description: 'Commission from Enterprise plan purchase', status: 'pending', created_at: '2025-06-01' },
+  { id: '7', referred_user_name: 'Robert Taylor', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-20' },
 ]
 
 const statusStyles: Record<string, string> = {
@@ -34,9 +34,9 @@ export default function AffiliateTransactionsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleStatus = async (id: number, status: 'approved' | 'rejected') => {
+  const handleStatus = async (id: string, status: 'approved' | 'rejected') => {
     try { await adminService.updateAffiliateTransaction(id, { status } as any) } catch {}
-    setTxns(txns.map((t) => t.id === id ? { ...t, status } : t))
+    setTxns(txns.map((t) => String(t.id) === id ? { ...t, status } : t))
     toast.success(`Transaction ${status}`)
   }
 

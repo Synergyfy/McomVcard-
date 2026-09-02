@@ -4,7 +4,7 @@ import { consumerService } from '../../services/consumer'
 import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerBookingsPage() {
-  const [profile, setProfile] = useState<{ name: string; savedCards: Array<{ id: number; name: string; business: string; type: string }> } | null>(null)
+  const [profile, setProfile] = useState<{ name: string; savedCards: Array<{ id: string; name: string; business: string; type: string }> } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 

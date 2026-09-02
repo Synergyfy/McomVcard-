@@ -31,9 +31,9 @@ export default function SubscriberListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteSubscriber(id); setItems(items.filter((s) => s.id !== id)) } catch { setItems(items.filter((s) => s.id !== id)) }
+    try { await adminService.deleteSubscriber(String(id)); setItems(items.filter((s) => String(s.id) !== id)) } catch { setItems(items.filter((s) => String(s.id) !== id)) }
   }
 
   const filtered = items.filter((s) => {
@@ -82,7 +82,7 @@ export default function SubscriberListPage() {
                     <td className="px-4 py-3 text-xs text-gray-500">{new Date(s.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
                       <ActionDropdown actions={[
-                        { label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', destructive: true, onClick: () => handleDelete(s.id) },
+                        { label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', destructive: true, onClick: () => handleDelete(String(s.id)) },
                       ]} />
                     </td>
                   </tr>

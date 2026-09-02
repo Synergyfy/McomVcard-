@@ -29,6 +29,18 @@ export class CreateCardAccessDto {
   @IsString({ each: true })
   protected_section_ids?: string[]
 
+  @ApiPropertyOptional({ example: ['profile', 'about'], description: 'Section schema IDs that are publicly visible without authentication' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  public_sections?: string[]
+
+  @ApiPropertyOptional({ example: ['wallet', 'rewards'], description: 'Section schema IDs that allow interaction (e.g. redeem, transfer) without full access' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interactive_sections?: string[]
+
   @ApiPropertyOptional({ example: 'never', enum: ['never', 'until'], description: 'Access expiry policy' })
   @IsOptional()
   @IsIn(['never', 'until'])

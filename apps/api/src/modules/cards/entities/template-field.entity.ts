@@ -28,6 +28,9 @@ export class TemplateField {
   @Column({ name: 'is_required', default: false })
   isRequired!: boolean
 
+  @Column({ name: 'editable_by_membership_level', type: 'varchar', length: 50, nullable: true })
+  editableByMembershipLevel!: string | null
+
   @Column({ name: 'display_order', default: 0 })
   displayOrder!: number
 

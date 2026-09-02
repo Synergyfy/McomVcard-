@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 interface DistributionRecord {
-  id: number
+  id: string
   cardId: string
   cardType: 'Business Card' | 'Business VCard' | 'Consumer Card' | 'Consumer VCard'
   template: string
@@ -61,18 +61,18 @@ interface DrawerData {
 }
 
 const MOCK: DistributionRecord[] = [
-  { id: 1, cardId: 'CRD-000001', cardType: 'Business Card', template: 'Standard Business Card', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '15 Jan 2026', expiryDate: '15 Jan 2027', lastActivity: '2 hours ago' },
-  { id: 2, cardId: 'CRD-000002', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '10 Jan 2026', expiryDate: '10 Jan 2027', lastActivity: '1 day ago' },
-  { id: 3, cardId: 'CRD-000003', cardType: 'Consumer Card', template: 'Gold Premium Card', business: 'TechCorp Solutions', consumer: 'John Smith', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 3, used: 2, remaining: 1 }, eCardValue: '£50.00', status: 'Activated', activationDate: '20 Jan 2026', expiryDate: '20 Jan 2027', lastActivity: '5 mins ago' },
-  { id: 4, cardId: 'CRD-000004', cardType: 'Consumer VCard', template: 'Platinum Elite VCard', business: 'Luxury Hotels Ltd', consumer: 'Sarah Johnson', membership: 'Platinum', allocationSource: 'Campaign', friendsFamily: { total: 5, used: 3, remaining: 2 }, eCardValue: '£200.00', status: 'Activated', activationDate: '5 Feb 2026', expiryDate: '5 Feb 2027', lastActivity: '1 hour ago' },
-  { id: 5, cardId: 'CRD-000005', cardType: 'Business Card', template: 'Enterprise Business Card', business: 'Global Retail Inc', consumer: '—', membership: 'Platinum Pro+', allocationSource: 'Admin', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '3 days ago' },
-  { id: 6, cardId: 'CRD-000006', cardType: 'Consumer Card', template: 'Silver Rewards Card', business: 'Café Mocha', consumer: 'Emily Davis', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 1, used: 1, remaining: 0 }, eCardValue: '£25.00', status: 'Activated', activationDate: '12 Feb 2026', expiryDate: '12 Feb 2027', lastActivity: '3 hours ago' },
-  { id: 7, cardId: 'CRD-000007', cardType: 'Consumer VCard', template: 'Bronze Consumer VCard', business: 'TechCorp Solutions', consumer: 'Michael Brown', membership: 'Bronze', allocationSource: 'Manual', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Suspended', activationDate: '8 Jan 2026', expiryDate: '8 Jan 2027', lastActivity: '1 week ago' },
-  { id: 8, cardId: 'CRD-000008', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Expired', activationDate: '10 Jan 2025', expiryDate: '10 Jan 2026', lastActivity: '6 months ago' },
-  { id: 9, cardId: 'CRD-000009', cardType: 'Consumer Card', template: 'Platinum Elite Card', business: 'Luxury Hotels Ltd', consumer: 'James Wilson', membership: 'Platinum', allocationSource: 'Promotion', friendsFamily: { total: 5, used: 1, remaining: 4 }, eCardValue: '£500.00', status: 'Activated', activationDate: '1 Mar 2026', expiryDate: '1 Mar 2027', lastActivity: '30 mins ago' },
-  { id: 10, cardId: 'CRD-000010', cardType: 'Business Card', template: 'Standard Business Card', business: 'Green Energy Co', consumer: '—', membership: 'Gold', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Not Allocated', activationDate: '—', expiryDate: '—', lastActivity: '—' },
-  { id: 11, cardId: 'CRD-000011', cardType: 'Consumer VCard', template: 'Silver Pro VCard', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', allocationSource: 'Reward', friendsFamily: { total: 2, used: 0, remaining: 2 }, eCardValue: '£75.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '5 days ago' },
-  { id: 12, cardId: 'CRD-000012', cardType: 'Consumer Card', template: 'Bronze Consumer Card', business: 'TechCorp Solutions', consumer: 'Daniel Anderson', membership: 'Bronze', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£10.00', status: 'Redeemed', activationDate: '20 Dec 2025', expiryDate: '20 Dec 2026', lastActivity: '2 months ago' },
+  { id: '1', cardId: 'CRD-000001', cardType: 'Business Card', template: 'Standard Business Card', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '15 Jan 2026', expiryDate: '15 Jan 2027', lastActivity: '2 hours ago' },
+  { id: '2', cardId: 'CRD-000002', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '10 Jan 2026', expiryDate: '10 Jan 2027', lastActivity: '1 day ago' },
+  { id: '3', cardId: 'CRD-000003', cardType: 'Consumer Card', template: 'Gold Premium Card', business: 'TechCorp Solutions', consumer: 'John Smith', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 3, used: 2, remaining: 1 }, eCardValue: '£50.00', status: 'Activated', activationDate: '20 Jan 2026', expiryDate: '20 Jan 2027', lastActivity: '5 mins ago' },
+  { id: '4', cardId: 'CRD-000004', cardType: 'Consumer VCard', template: 'Platinum Elite VCard', business: 'Luxury Hotels Ltd', consumer: 'Sarah Johnson', membership: 'Platinum', allocationSource: 'Campaign', friendsFamily: { total: 5, used: 3, remaining: 2 }, eCardValue: '£200.00', status: 'Activated', activationDate: '5 Feb 2026', expiryDate: '5 Feb 2027', lastActivity: '1 hour ago' },
+  { id: '5', cardId: 'CRD-000005', cardType: 'Business Card', template: 'Enterprise Business Card', business: 'Global Retail Inc', consumer: '—', membership: 'Platinum Pro+', allocationSource: 'Admin', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '3 days ago' },
+  { id: '6', cardId: 'CRD-000006', cardType: 'Consumer Card', template: 'Silver Rewards Card', business: 'Café Mocha', consumer: 'Emily Davis', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 1, used: 1, remaining: 0 }, eCardValue: '£25.00', status: 'Activated', activationDate: '12 Feb 2026', expiryDate: '12 Feb 2027', lastActivity: '3 hours ago' },
+  { id: '7', cardId: 'CRD-000007', cardType: 'Consumer VCard', template: 'Bronze Consumer VCard', business: 'TechCorp Solutions', consumer: 'Michael Brown', membership: 'Bronze', allocationSource: 'Manual', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Suspended', activationDate: '8 Jan 2026', expiryDate: '8 Jan 2027', lastActivity: '1 week ago' },
+  { id: '8', cardId: 'CRD-000008', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Expired', activationDate: '10 Jan 2025', expiryDate: '10 Jan 2026', lastActivity: '6 months ago' },
+  { id: '9', cardId: 'CRD-000009', cardType: 'Consumer Card', template: 'Platinum Elite Card', business: 'Luxury Hotels Ltd', consumer: 'James Wilson', membership: 'Platinum', allocationSource: 'Promotion', friendsFamily: { total: 5, used: 1, remaining: 4 }, eCardValue: '£500.00', status: 'Activated', activationDate: '1 Mar 2026', expiryDate: '1 Mar 2027', lastActivity: '30 mins ago' },
+  { id: '10', cardId: 'CRD-000010', cardType: 'Business Card', template: 'Standard Business Card', business: 'Green Energy Co', consumer: '—', membership: 'Gold', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Not Allocated', activationDate: '—', expiryDate: '—', lastActivity: '—' },
+  { id: '11', cardId: 'CRD-000011', cardType: 'Consumer VCard', template: 'Silver Pro VCard', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', allocationSource: 'Reward', friendsFamily: { total: 2, used: 0, remaining: 2 }, eCardValue: '£75.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '5 days ago' },
+  { id: '12', cardId: 'CRD-000012', cardType: 'Consumer Card', template: 'Bronze Consumer Card', business: 'TechCorp Solutions', consumer: 'Daniel Anderson', membership: 'Bronze', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£10.00', status: 'Redeemed', activationDate: '20 Dec 2025', expiryDate: '20 Dec 2026', lastActivity: '2 months ago' },
 ]
 
 const CARD_TYPES = ['All', 'Business Card', 'Business VCard', 'Consumer Card', 'Consumer VCard']
@@ -169,7 +169,7 @@ export default function CardDistributionPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [businessFilter, setBusinessFilter] = useState('')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [drawerRecord, setDrawerRecord] = useState<DrawerData | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -197,10 +197,10 @@ export default function CardDistributionPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { if (allSelected) setSelectedIds([]); else setSelectedIds(filtered.map(r => r.id)) }
-  const toggleOne = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   const openDrawer = (record: DistributionRecord) => {
-    setDrawerRecord(DRAWER_DATA[record.id] || null)
+    setDrawerRecord(DRAWER_DATA[Number(record.id)] || null)
     setDrawerOpen(true)
   }
 

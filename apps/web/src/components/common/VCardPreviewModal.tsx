@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
-import { mockTemplates } from '../../services/mockData'
-import type { VCard } from '../../types'
+import { useEffect, useState } from 'react'
+import api from '../../services/api'
+import type { VCard, AdminTemplate } from '../../types'
 
 interface Props {
   vcard: VCard | null
@@ -8,6 +8,18 @@ interface Props {
 }
 
 export default function VCardPreviewModal({ vcard, onClose }: Props) {
+  const [template, setTemplate] = useState<Pick<AdminTemplate, 'primary_color' | 'secondary_color'> | null>(null)
+
+  useEffect(() => {
+    if (!vcard?.template_id) return
+    api.get(`/templates/${vcard.template_id}`)
+      .then((res) => {
+        const data = res.data
+        setTemplate({ primary_color: data.primary_color || data.primaryColor, secondary_color: data.secondary_color || data.secondaryColor })
+      })
+      .catch(() => {})
+  }, [vcard?.template_id])
+
   useEffect(() => {
     if (!vcard) return
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -18,7 +30,6 @@ export default function VCardPreviewModal({ vcard, onClose }: Props) {
 
   if (!vcard) return null
 
-  const template = mockTemplates.find((t) => t.id === vcard.template_id)
   const primaryColor = template?.primary_color || '#FF5C00'
   const secondaryColor = template?.secondary_color || '#FF8A50'
 

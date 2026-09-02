@@ -6,12 +6,12 @@ import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
 const MOCK_CAMPAIGNS: NewsletterCampaign[] = [
-  { id: 1, subject: 'Introducing New Pro Templates', content: 'Check out our latest template designs...', sent_count: 1234, status: 'sent', created_at: '2025-07-01' },
-  { id: 2, subject: 'Summer Sale – 50% Off Pro Plans', content: 'Limited time offer...', sent_count: 0, status: 'draft', created_at: '2025-07-10' },
-  { id: 3, subject: 'Monthly Newsletter – July', content: 'Here are this month updates...', sent_count: 1156, status: 'sent', created_at: '2025-06-28' },
-  { id: 4, subject: 'New Feature: Analytics Dashboard', content: 'Track your vCard performance...', sent_count: 982, status: 'sent', created_at: '2025-06-15' },
-  { id: 5, subject: 'Webinar Invitation: Digital Networking', content: 'Join us for a free webinar...', sent_count: 0, status: 'draft', created_at: '2025-07-12' },
-  { id: 6, subject: 'Holiday Greetings from Mobile VCard Link', content: 'Wishing you a wonderful holiday...', sent_count: 2100, status: 'sent', created_at: '2025-12-20' },
+  { id: '1', subject: 'Introducing New Pro Templates', content: 'Check out our latest template designs...', sent_count: 1234, status: 'sent', created_at: '2025-07-01' },
+  { id: '2', subject: 'Summer Sale – 50% Off Pro Plans', content: 'Limited time offer...', sent_count: 0, status: 'draft', created_at: '2025-07-10' },
+  { id: '3', subject: 'Monthly Newsletter – July', content: 'Here are this month updates...', sent_count: 1156, status: 'sent', created_at: '2025-06-28' },
+  { id: '4', subject: 'New Feature: Analytics Dashboard', content: 'Track your vCard performance...', sent_count: 982, status: 'sent', created_at: '2025-06-15' },
+  { id: '5', subject: 'Webinar Invitation: Digital Networking', content: 'Join us for a free webinar...', sent_count: 0, status: 'draft', created_at: '2025-07-12' },
+  { id: '6', subject: 'Holiday Greetings from Mobile VCard Link', content: 'Wishing you a wonderful holiday...', sent_count: 2100, status: 'sent', created_at: '2025-12-20' },
 ]
 
 export default function NewsletterPage() {
@@ -44,9 +44,9 @@ export default function NewsletterPage() {
     } finally { setSending(false) }
   }
 
-  const handleSend = async (id: number) => {
+  const handleSend = async (id: string) => {
     if (!confirm('Send this newsletter now?')) return
-    try { await adminService.sendNewsletter(id); toast.success('Newsletter sent!'); adminService.getNewsletterCampaigns().then((res) => setCampaigns(res.data)).catch(() => {}) }
+    try { await adminService.sendNewsletter(String(id)); toast.success('Newsletter sent!'); adminService.getNewsletterCampaigns().then((res) => setCampaigns(res.data)).catch(() => {}) }
     catch { toast.error('Error sending') }
   }
 

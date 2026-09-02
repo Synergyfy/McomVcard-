@@ -2,12 +2,18 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import QRCode from 'qrcode'
-import { mockCardDesigns } from '../../services/mockData'
 import { consumerService } from '../../services/consumer'
 import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
+import api from '../../services/api'
 
 const LAYOUTS = ['split', 'centered', 'header', 'minimal', 'bold', 'diagonal'] as const
 const COLOR_PRESETS = ['#0F172A', '#D4AF37', '#FFFFFF', '#0D9488', '#F0FDFA', '#DC2626', '#1F2937', '#7C3AED', '#EC4899', '#059669', '#FEF3C7', '#2563EB', '#06B6D4', '#92400E', '#FFFBEB', '#18181B', '#FAFAFA', '#E11D48', '#14B8A6', '#0EA5E9', '#10B981', '#B45309', '#8B5CF6', '#EF4444', '#F59E0B']
+
+interface CardDesignData {
+  id: string; name: string; type: string; style: string
+  primaryColor: string; secondaryColor: string; accentColor: string
+  layout: string; status: string; usage: number
+}
 
 const tooltips: Record<string, string> = {
   primaryColor: 'Main background color of the card front',
@@ -70,18 +76,19 @@ interface CustomField {
 
 export default function ConsumerCardEditPage() {
   const { designId } = useParams()
-  const design = mockCardDesigns.find((d) => d.id === Number(designId))
   const navigate = useNavigate()
+  const [design, setDesign] = useState<CardDesignData | null>(null)
+  const [loadingDesign, setLoadingDesign] = useState(true)
 
   const [name, setName] = useState('Your Name')
   const [title, setTitle] = useState('Nature Lover')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [description, setDescription] = useState('Passionate about connecting people through beautiful card designs.')
-  const [primaryColor, setPrimaryColor] = useState(design?.primaryColor || '#0F172A')
-  const [secondaryColor, setSecondaryColor] = useState(design?.secondaryColor || '#D4AF37')
-  const [accentColor, setAccentColor] = useState(design?.accentColor || '#FFFFFF')
-  const [layout, setLayout] = useState(design?.layout || 'split')
+  const [primaryColor, setPrimaryColor] = useState('#0F172A')
+  const [secondaryColor, setSecondaryColor] = useState('#D4AF37')
+  const [accentColor, setAccentColor] = useState('#FFFFFF')
+  const [layout, setLayout] = useState<string>('split')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([
     { id: 1, label: 'Website', value: 'mcomvcard.link' },
@@ -101,8 +108,29 @@ export default function ConsumerCardEditPage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    consumerService.getProfile()
-      .then((p) => {
+    const fetchDesign = designId
+      ? api.get(`/cards/${designId}`).then((r) => {
+          const d = r.data as Record<string, unknown>
+          return {
+            id: String(d.id),
+            name: String(d.name || ''),
+            type: String(d.type || 'Consumer'),
+            style: String(d.style || ''),
+            primaryColor: String(d.primaryColor || d.primary_color || '#0F172A'),
+            secondaryColor: String(d.secondaryColor || d.secondary_color || '#D4AF37'),
+            accentColor: String(d.accentColor || d.accent_color || '#FFFFFF'),
+            layout: String(d.layout || 'split'),
+            status: String(d.status || 'active'),
+            usage: Number(d.usage || 0),
+          } as CardDesignData
+        }).catch(() => null)
+      : Promise.resolve(null)
+
+    Promise.all([
+      consumerService.getProfile(),
+      fetchDesign,
+    ])
+      .then(([p, d]) => {
         setCardId(p.cardId || 'CARD-CNS-000001')
         setName(p.name)
         setPhone(p.phone)
@@ -110,9 +138,17 @@ export default function ConsumerCardEditPage() {
         setCustomFields((fields) => [
           ...fields.map((f) => (f.label === 'Website' ? { ...f, value: p.cardId ? `mcomvcard.link/c/${p.cardId.toLowerCase()}` : f.value } : f)),
         ])
+        if (d) {
+          setDesign(d)
+          setPrimaryColor(d.primaryColor)
+          setSecondaryColor(d.secondaryColor)
+          setAccentColor(d.accentColor)
+          setLayout(d.layout)
+        }
       })
       .catch(() => { /* keep default */ })
-  }, [])
+      .finally(() => setLoadingDesign(false))
+  }, [designId])
 
   useEffect(() => {
     setCardUrl(`https://mcomvcard.link/c/${cardId}`)
@@ -134,6 +170,8 @@ export default function ConsumerCardEditPage() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  if (loadingDesign) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
 
   if (!design) {
     return (

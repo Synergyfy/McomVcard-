@@ -39,7 +39,7 @@ export default function VCardEditInfoTab({ vcard, onUpdate, onFormChange, onFiel
       const fd = new FormData()
       Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)))
       if (fileRef.current?.files?.[0]) fd.append('profile_image', fileRef.current.files[0])
-      const updated = await userService.updateVcard(vcard.id, fd)
+      const updated = await userService.updateVcard(String(vcard.id), fd)
       onUpdate(updated)
       setMessage(t('user.saved'))
     } catch (err: any) {

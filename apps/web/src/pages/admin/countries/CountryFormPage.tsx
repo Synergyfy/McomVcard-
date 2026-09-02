@@ -15,7 +15,7 @@ export default function CountryFormPage() {
 
   useEffect(() => {
     if (!id) return
-    adminService.getCountry(Number(id)).then((data) => {
+    adminService.getCountry(String(id)).then((data) => {
       setForm({ name: data.name, code: data.code, phone_code: data.phone_code, currency_code: data.currency_code || '', status: data.status })
     })
   }, [id])
@@ -25,7 +25,7 @@ export default function CountryFormPage() {
     setSaving(true)
     try {
       if (isEdit) {
-        await adminService.updateCountry(Number(id), form)
+        await adminService.updateCountry(String(id), form)
         toast.success(t('common.updated'))
       } else {
         await adminService.createCountry(form)

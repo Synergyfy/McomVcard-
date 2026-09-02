@@ -196,6 +196,7 @@ export class McomPackagesService {
   /** Freshly calculated access for this platform on Central (may still be gated on membership). */
   private async canAccessVcard(userId: string): Promise<boolean> {
     const dbUser = await this.requireLinkedUser(userId)
+    if (!dbUser.mcomUserId) throw new Error('User has no linked MCOM account')
     const permissions = await this.mcomService.fetchPermissions(dbUser.mcomUserId)
     return permissions[this.mcomService.platformPermissionKey] === true || permissions.can_access_vcard === true
   }

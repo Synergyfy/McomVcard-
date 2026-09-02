@@ -19,25 +19,25 @@ export class CardProfile {
   @Column({ type: 'text', nullable: true })
   bio!: string | null
 
-  @Column({ name: 'job_title', nullable: true })
+  @Column({ name: 'job_title', type: 'text', nullable: true })
   jobTitle!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   email!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   phone!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   avatar!: string | null
 
-  @Column({ name: 'cover_image', nullable: true })
+  @Column({ name: 'cover_image', type: 'text', nullable: true })
   coverImage!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   location!: string | null
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   website!: string | null
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

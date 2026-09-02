@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 interface ActivityRecord {
-  id: number; activityId: string; timestamp: string; activityType: string
+  id: string; activityId: string; timestamp: string; activityType: string
   cardType: string; cardId: string; business: string; consumer: string
   membership: string; qr: string; device: string; status: string; performedBy: string
 }
@@ -20,26 +20,26 @@ interface DrawerData {
 }
 
 const ACTIVITY_RECORDS: ActivityRecord[] = [
-  { id: 1, activityId: 'ACT-000001', timestamp: '10:35 AM · 28 Jul 2026', activityType: 'Published', cardType: 'Business VCard', cardId: 'VCRD-001', business: 'ABC Restaurant', consumer: '—', membership: 'Gold', qr: 'QR-ABC-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
-  { id: 2, activityId: 'ACT-000002', timestamp: '10:37 AM · 28 Jul 2026', activityType: 'Activated', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Safari / iOS', status: 'Successful', performedBy: 'Sarah Johnson' },
-  { id: 3, activityId: 'ACT-000003', timestamp: '10:39 AM · 28 Jul 2026', activityType: 'Shared', cardType: 'Consumer VCard', cardId: 'VCRD-004', business: 'Luxury Hotels Ltd', consumer: 'John Smith', membership: 'Platinum', qr: 'QR-JS-002', device: 'Chrome / Android', status: 'Successful', performedBy: 'John Smith' },
-  { id: 4, activityId: 'ACT-000004', timestamp: '10:42 AM · 28 Jul 2026', activityType: 'QR Scanned', cardType: 'Business VCard', cardId: 'VCRD-001', business: 'ABC Restaurant', consumer: '—', membership: 'Gold', qr: 'QR-ABC-001', device: 'Camera App / iOS', status: 'Successful', performedBy: 'External User' },
-  { id: 5, activityId: 'ACT-000005', timestamp: '10:50 AM · 28 Jul 2026', activityType: 'Exchanged', cardType: 'Consumer VCard', cardId: 'VCRD-005', business: 'Global Retail Inc', consumer: 'Emily Davis', membership: 'Silver Pro', qr: 'QR-ED-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Emily Davis' },
-  { id: 6, activityId: 'ACT-000006', timestamp: '10:55 AM · 28 Jul 2026', activityType: 'Membership Upgraded', cardType: 'Consumer Card', cardId: 'CRD-009', business: 'Luxury Hotels Ltd', consumer: 'James Wilson', membership: 'Platinum', qr: 'QR-JW-001', device: 'Safari / macOS', status: 'Successful', performedBy: 'System' },
-  { id: 7, activityId: 'ACT-000007', timestamp: '11:00 AM · 28 Jul 2026', activityType: 'Created', cardType: 'Business Card', cardId: 'CRD-010', business: 'Green Energy Co', consumer: '—', membership: 'Gold', qr: 'QR-GE-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
-  { id: 8, activityId: 'ACT-000008', timestamp: '11:05 AM · 28 Jul 2026', activityType: 'Shared', cardType: 'Consumer Card', cardId: 'CRD-006', business: 'Café Mocha', consumer: 'Emily Davis', membership: 'Silver', qr: 'QR-ED-002', device: 'Firefox / Windows', status: 'Successful', performedBy: 'Emily Davis' },
-  { id: 9, activityId: 'ACT-000009', timestamp: '11:12 AM · 28 Jul 2026', activityType: 'QR Scanned', cardType: 'Consumer VCard', cardId: 'VCRD-004', business: 'Luxury Hotels Ltd', consumer: 'John Smith', membership: 'Platinum', qr: 'QR-JS-002', device: 'Camera App / Android', status: 'Successful', performedBy: 'External User' },
-  { id: 10, activityId: 'ACT-000010', timestamp: '11:20 AM · 28 Jul 2026', activityType: 'Suspended', cardType: 'Consumer VCard', cardId: 'VCRD-007', business: 'TechCorp Solutions', consumer: 'Michael Brown', membership: 'Bronze', qr: 'QR-MB-001', device: '—', status: 'Successful', performedBy: 'Support Agent' },
-  { id: 11, activityId: 'ACT-000011', timestamp: '11:25 AM · 28 Jul 2026', activityType: 'Redeemed', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Safari / iOS', status: 'Successful', performedBy: 'Sarah Johnson' },
-  { id: 12, activityId: 'ACT-000012', timestamp: '11:30 AM · 28 Jul 2026', activityType: 'Expired', cardType: 'Business VCard', cardId: 'VCRD-008', business: 'Café Mocha', consumer: '—', membership: 'Silver', qr: 'QR-CM-001', device: '—', status: 'Successful', performedBy: 'System' },
-  { id: 13, activityId: 'ACT-000013', timestamp: '11:35 AM · 28 Jul 2026', activityType: 'Updated', cardType: 'Business Card', cardId: 'CRD-001', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', qr: 'QR-TC-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
-  { id: 14, activityId: 'ACT-000014', timestamp: '11:40 AM · 28 Jul 2026', activityType: 'Archived', cardType: 'Consumer VCard', cardId: 'VCRD-009', business: 'Luxury Hotels Ltd', consumer: 'Lisa Wilson', membership: 'Platinum', qr: 'QR-LW-001', device: '—', status: 'Successful', performedBy: 'Admin' },
-  { id: 15, activityId: 'ACT-000015', timestamp: '11:45 AM · 28 Jul 2026', activityType: 'Exchanged', cardType: 'Business VCard', cardId: 'VCRD-002', business: 'Café Mocha', consumer: '—', membership: 'Silver', qr: 'QR-CM-002', device: 'Chrome / Android', status: 'Failed', performedBy: 'External User' },
-  { id: 16, activityId: 'ACT-000016', timestamp: '11:50 AM · 28 Jul 2026', activityType: 'Assigned', cardType: 'Consumer Card', cardId: 'CRD-011', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', qr: 'QR-OT-001', device: '—', status: 'Successful', performedBy: 'Admin' },
-  { id: 17, activityId: 'ACT-000017', timestamp: 'Yesterday · 4:15 PM', activityType: 'Published', cardType: 'Business Card', cardId: 'CRD-012', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', qr: 'QR-TC-002', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
-  { id: 18, activityId: 'ACT-000018', timestamp: 'Yesterday · 3:00 PM', activityType: 'QR Scanned', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Camera App / iOS', status: 'Successful', performedBy: 'External User' },
-  { id: 19, activityId: 'ACT-000019', timestamp: 'Yesterday · 2:30 PM', activityType: 'Activated', cardType: 'Consumer Card', cardId: 'CRD-011', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', qr: 'QR-OT-001', device: 'Chrome / Android', status: 'Pending', performedBy: 'Olivia Taylor' },
-  { id: 20, activityId: 'ACT-000020', timestamp: 'Yesterday · 1:00 PM', activityType: 'Assigned', cardType: 'Business VCard', cardId: 'VCRD-010', business: 'Green Energy Co', consumer: '—', membership: 'Gold', qr: 'QR-GE-002', device: '—', status: 'Successful', performedBy: 'Admin' },
+  { id: '1', activityId: 'ACT-000001', timestamp: '10:35 AM · 28 Jul 2026', activityType: 'Published', cardType: 'Business VCard', cardId: 'VCRD-001', business: 'ABC Restaurant', consumer: '—', membership: 'Gold', qr: 'QR-ABC-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
+  { id: '2', activityId: 'ACT-000002', timestamp: '10:37 AM · 28 Jul 2026', activityType: 'Activated', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Safari / iOS', status: 'Successful', performedBy: 'Sarah Johnson' },
+  { id: '3', activityId: 'ACT-000003', timestamp: '10:39 AM · 28 Jul 2026', activityType: 'Shared', cardType: 'Consumer VCard', cardId: 'VCRD-004', business: 'Luxury Hotels Ltd', consumer: 'John Smith', membership: 'Platinum', qr: 'QR-JS-002', device: 'Chrome / Android', status: 'Successful', performedBy: 'John Smith' },
+  { id: '4', activityId: 'ACT-000004', timestamp: '10:42 AM · 28 Jul 2026', activityType: 'QR Scanned', cardType: 'Business VCard', cardId: 'VCRD-001', business: 'ABC Restaurant', consumer: '—', membership: 'Gold', qr: 'QR-ABC-001', device: 'Camera App / iOS', status: 'Successful', performedBy: 'External User' },
+  { id: '5', activityId: 'ACT-000005', timestamp: '10:50 AM · 28 Jul 2026', activityType: 'Exchanged', cardType: 'Consumer VCard', cardId: 'VCRD-005', business: 'Global Retail Inc', consumer: 'Emily Davis', membership: 'Silver Pro', qr: 'QR-ED-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Emily Davis' },
+  { id: '6', activityId: 'ACT-000006', timestamp: '10:55 AM · 28 Jul 2026', activityType: 'Membership Upgraded', cardType: 'Consumer Card', cardId: 'CRD-009', business: 'Luxury Hotels Ltd', consumer: 'James Wilson', membership: 'Platinum', qr: 'QR-JW-001', device: 'Safari / macOS', status: 'Successful', performedBy: 'System' },
+  { id: '7', activityId: 'ACT-000007', timestamp: '11:00 AM · 28 Jul 2026', activityType: 'Created', cardType: 'Business Card', cardId: 'CRD-010', business: 'Green Energy Co', consumer: '—', membership: 'Gold', qr: 'QR-GE-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
+  { id: '8', activityId: 'ACT-000008', timestamp: '11:05 AM · 28 Jul 2026', activityType: 'Shared', cardType: 'Consumer Card', cardId: 'CRD-006', business: 'Café Mocha', consumer: 'Emily Davis', membership: 'Silver', qr: 'QR-ED-002', device: 'Firefox / Windows', status: 'Successful', performedBy: 'Emily Davis' },
+  { id: '9', activityId: 'ACT-000009', timestamp: '11:12 AM · 28 Jul 2026', activityType: 'QR Scanned', cardType: 'Consumer VCard', cardId: 'VCRD-004', business: 'Luxury Hotels Ltd', consumer: 'John Smith', membership: 'Platinum', qr: 'QR-JS-002', device: 'Camera App / Android', status: 'Successful', performedBy: 'External User' },
+  { id: '10', activityId: 'ACT-000010', timestamp: '11:20 AM · 28 Jul 2026', activityType: 'Suspended', cardType: 'Consumer VCard', cardId: 'VCRD-007', business: 'TechCorp Solutions', consumer: 'Michael Brown', membership: 'Bronze', qr: 'QR-MB-001', device: '—', status: 'Successful', performedBy: 'Support Agent' },
+  { id: '11', activityId: 'ACT-000011', timestamp: '11:25 AM · 28 Jul 2026', activityType: 'Redeemed', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Safari / iOS', status: 'Successful', performedBy: 'Sarah Johnson' },
+  { id: '12', activityId: 'ACT-000012', timestamp: '11:30 AM · 28 Jul 2026', activityType: 'Expired', cardType: 'Business VCard', cardId: 'VCRD-008', business: 'Café Mocha', consumer: '—', membership: 'Silver', qr: 'QR-CM-001', device: '—', status: 'Successful', performedBy: 'System' },
+  { id: '13', activityId: 'ACT-000013', timestamp: '11:35 AM · 28 Jul 2026', activityType: 'Updated', cardType: 'Business Card', cardId: 'CRD-001', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', qr: 'QR-TC-001', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
+  { id: '14', activityId: 'ACT-000014', timestamp: '11:40 AM · 28 Jul 2026', activityType: 'Archived', cardType: 'Consumer VCard', cardId: 'VCRD-009', business: 'Luxury Hotels Ltd', consumer: 'Lisa Wilson', membership: 'Platinum', qr: 'QR-LW-001', device: '—', status: 'Successful', performedBy: 'Admin' },
+  { id: '15', activityId: 'ACT-000015', timestamp: '11:45 AM · 28 Jul 2026', activityType: 'Exchanged', cardType: 'Business VCard', cardId: 'VCRD-002', business: 'Café Mocha', consumer: '—', membership: 'Silver', qr: 'QR-CM-002', device: 'Chrome / Android', status: 'Failed', performedBy: 'External User' },
+  { id: '16', activityId: 'ACT-000016', timestamp: '11:50 AM · 28 Jul 2026', activityType: 'Assigned', cardType: 'Consumer Card', cardId: 'CRD-011', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', qr: 'QR-OT-001', device: '—', status: 'Successful', performedBy: 'Admin' },
+  { id: '17', activityId: 'ACT-000017', timestamp: 'Yesterday · 4:15 PM', activityType: 'Published', cardType: 'Business Card', cardId: 'CRD-012', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', qr: 'QR-TC-002', device: 'Chrome / Windows', status: 'Successful', performedBy: 'Admin' },
+  { id: '18', activityId: 'ACT-000018', timestamp: 'Yesterday · 3:00 PM', activityType: 'QR Scanned', cardType: 'Consumer Card', cardId: 'CRD-003', business: 'TechCorp Solutions', consumer: 'Sarah Johnson', membership: 'Gold Pro', qr: 'QR-SJ-001', device: 'Camera App / iOS', status: 'Successful', performedBy: 'External User' },
+  { id: '19', activityId: 'ACT-000019', timestamp: 'Yesterday · 2:30 PM', activityType: 'Activated', cardType: 'Consumer Card', cardId: 'CRD-011', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', qr: 'QR-OT-001', device: 'Chrome / Android', status: 'Pending', performedBy: 'Olivia Taylor' },
+  { id: '20', activityId: 'ACT-000020', timestamp: 'Yesterday · 1:00 PM', activityType: 'Assigned', cardType: 'Business VCard', cardId: 'VCRD-010', business: 'Green Energy Co', consumer: '—', membership: 'Gold', qr: 'QR-GE-002', device: '—', status: 'Successful', performedBy: 'Admin' },
 ]
 
 const CARD_TYPES = ['All', 'Business Card', 'Business VCard', 'Consumer Card', 'Consumer VCard']
@@ -166,7 +166,7 @@ export default function CardActivityPage() {
   const [membershipFilter, setMembershipFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [drawerRecord, setDrawerRecord] = useState<DrawerData | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -195,10 +195,10 @@ export default function CardActivityPage() {
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
   const toggleAll = () => { if (allSelected) setSelectedIds([]); else setSelectedIds(filtered.map(r => r.id)) }
-  const toggleOne = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleOne = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   const openDrawer = (record: ActivityRecord) => {
-    setDrawerRecord(DRAWER_RECORDS[record.id] || null)
+    setDrawerRecord(DRAWER_RECORDS[Number(record.id)] || null)
     setDrawerOpen(true)
   }
 

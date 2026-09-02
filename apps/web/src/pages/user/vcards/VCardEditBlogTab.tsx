@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 import type { BlogPost } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditBlogTab({ vcardId }: Props) {
   const { t } = useTranslation()
@@ -23,7 +23,7 @@ export default function VCardEditBlogTab({ vcardId }: Props) {
 
   const startEdit = (item?: BlogPost) => {
     if (item) { setEditing(item); setForm({ title: item.title, description: item.description, status: item.status }) }
-    else { setEditing({ id: 0, vcard_id: vcardId } as BlogPost); setForm({ title: '', description: '', status: 1 }) }
+    else { setEditing({ id: '0', vcard_id: Number(vcardId) } as unknown as BlogPost); setForm({ title: '', description: '', status: 1 }) }
   }
 
   const cancelEdit = () => { setEditing(null); setForm({ title: '', description: '', status: 1 }) }
@@ -34,13 +34,13 @@ export default function VCardEditBlogTab({ vcardId }: Props) {
       const fd = new FormData()
       fd.append('title', form.title); fd.append('description', form.description); fd.append('status', String(form.status))
       if (fileRef.current?.files?.[0]) fd.append('image', fileRef.current.files[0])
-      if (editing?.id) await userService.updateBlogPost(vcardId, editing.id, fd)
+      if (editing?.id && editing.id !== '0') await userService.updateBlogPost(vcardId, editing.id, fd)
       else await userService.createBlogPost(vcardId, fd)
       cancelEdit(); fetch(); setMessage(t('user.saved'))
     } catch {}
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('user.confirm_delete'))) return
     try { await userService.deleteBlogPost(vcardId, id); fetch() } catch {}
   }

@@ -343,10 +343,10 @@ export function getBusinessCardRows(): CardRow[] {
   return [...MOCK, ...stored]
 }
 
-export function getBusinessCardRow(cardId: number): CardRow | null {
+export function getBusinessCardRow(cardId: string): CardRow | null {
   const mock = MOCK.find(m => m.id === cardId)
   if (mock) return mock
-  const stored = getCardTemplate(cardId)
+  const stored = getCardTemplate(Number(cardId))
   return stored ? toRow(stored) : null
 }
 
@@ -357,7 +357,7 @@ export function getBusinessCardRow(cardId: number): CardRow | null {
 
 function cardFacesFor(row: CardRow): CardFaces {
   if (row.isStored) {
-    const stored = getCardTemplate(row.id)
+    const stored = getCardTemplate(Number(row.id))
     if (stored) return stored.builder.faces
   }
   return buildMockFaces({
@@ -378,7 +378,7 @@ function cardFacesFor(row: CardRow): CardFaces {
 /*  Build the full editor state for a card.                            */
 /* ------------------------------------------------------------------ */
 
-export function buildEditorSections(cardId: number): BizCardSectionState[] {
+export function buildEditorSections(cardId: string): BizCardSectionState[] {
   const row = getBusinessCardRow(cardId) ?? getBusinessCardRows()[0]
   if (!row) return []
   const faces = cardFacesFor(row)
@@ -441,7 +441,7 @@ function loadRaw(): Record<string, BizCardSectionState[]> {
   }
 }
 
-function persist(cardId: number, sections: BizCardSectionState[]) {
+function persist(cardId: string, sections: BizCardSectionState[]) {
   const all = loadRaw()
   all[String(cardId)] = sections
   try {
@@ -451,7 +451,7 @@ function persist(cardId: number, sections: BizCardSectionState[]) {
   }
 }
 
-export function getCardEditorContent(cardId: number): BizCardSectionState[] {
+export function getCardEditorContent(cardId: string): BizCardSectionState[] {
   const all = loadRaw()
   const saved = all[String(cardId)]
   const fresh = buildEditorSections(cardId)
@@ -468,11 +468,11 @@ export function getCardEditorContent(cardId: number): BizCardSectionState[] {
   })
 }
 
-export function saveCardEditorContent(cardId: number, sections: BizCardSectionState[]) {
+export function saveCardEditorContent(cardId: string, sections: BizCardSectionState[]) {
   persist(cardId, sections)
 }
 
-export function resetCardEditorContent(cardId: number) {
+export function resetCardEditorContent(cardId: string) {
   const all = loadRaw()
   delete all[String(cardId)]
   try {
@@ -527,7 +527,7 @@ export function getCardPasswordInfo(sections: BizCardSectionState[]): CardPasswo
   }
 }
 
-export function setCardPassword(cardId: number, password: string, hint: string, message: string) {
+export function setCardPassword(cardId: string, password: string, hint: string, message: string) {
   const sections = getCardEditorContent(cardId)
   saveCardEditorContent(cardId, sections.map(s => {
     if (s.schemaId !== 'security') return s

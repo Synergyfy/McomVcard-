@@ -8,7 +8,7 @@ import { CreateProductDto } from './dto/create-product.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { CreateProductImageDto } from './dto/create-product-image.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
-import { ProductResponseDto, ProductImageResponseDto } from './dto/product-response.dto'
+import { ProductResponseDto, ProductImageResponseDto, ExchangeItemResponseDto } from './dto/product-response.dto'
 
 @Injectable()
 export class ProductsService {
@@ -49,6 +49,45 @@ export class ProductsService {
     return ApiResponse.success(products.map(ProductResponseDto.fromEntity), 'Products retrieved', 200)
   }
 
+  async listExchangeItems(businessId?: string) {
+    const qb = this.productsRepo
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.business', 'business')
+      .where('product.status = :status', { status: 'active' })
+      .andWhere('business.status = :bStatus', { bStatus: 'active' })
+      .select([
+        'product.id',
+        'product.name',
+        'product.description',
+        'product.price',
+        'product.currency',
+        'product.image',
+        'business.name',
+        'business.id',
+      ])
+      .orderBy('product.createdAt', 'DESC')
+      .limit(20)
+
+    if (businessId) {
+      qb.andWhere('product.businessId = :businessId', { businessId })
+    }
+
+    const products = await qb.getMany()
+
+    const data = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      currency: p.currency,
+      image: p.image,
+      business_name: p.business?.name ?? null,
+      business_id: p.business?.id ?? p.businessId,
+    }))
+
+    return ApiResponse.success(data, 'Exchange items retrieved', 200)
+  }
+
   async findOne(id: string) {
     const product = await this.productsRepo.findOne({
       where: { id },
@@ -80,7 +119,7 @@ export class ProductsService {
     if (dto.currency !== undefined) patch.currency = dto.currency
     if (dto.image !== undefined) patch.image = dto.image
 
-    await this.productsRepo.update({ id }, patch)
+    await this.productsRepo.update({ id }, patch as any)
 
     return ApiResponse.success(ProductResponseDto.fromEntity(await this.findOne(id)), 'Product updated', 200)
   }

@@ -1,8 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { mockConsumers } from '../../../services/mockData'
-
-const CONSUMER_ID = 1
-const profile = mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
+import { consumerService, type ConsumerProfile } from '../../../services/consumer'
 
 interface NavItem {
     to: string
@@ -23,6 +21,12 @@ const navItems: NavItem[] = [
 ]
 
 export default function ConsumerSideNav() {
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
+
+    useEffect(() => {
+        consumerService.getProfile().then(setProfile).catch(() => {})
+    }, [])
+
     return (
         <div className="flex flex-col h-full">
             <Link to="/c/dashboard" className="flex items-center gap-2.5 px-5 h-16 border-b border-gray-100 dark:border-gray-800 shrink-0">
@@ -59,11 +63,11 @@ export default function ConsumerSideNav() {
             <div className="p-3 border-t border-gray-100 dark:border-gray-800 shrink-0">
                 <Link to="/c/settings" className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {profile.name.charAt(0)}
+                        {profile?.name?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{profile.name}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{profile.membership}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{profile?.name || 'Loading…'}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{profile?.membership || ''}</p>
                     </div>
                 </Link>
                 <button className="mt-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">

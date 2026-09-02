@@ -57,7 +57,7 @@ interface RollbackInfo {
 }
 
 interface Transition {
-  id: number
+  id: string
   transitionId: string
   memberName: string
   memberType: MemberType
@@ -84,7 +84,7 @@ interface Transition {
 }
 
 const TRANSITIONS: Transition[] = [
-  { id: 1, transitionId: 'TR-2026-0001', memberName: 'Oceanview Hotel & Spa', memberType: 'Business', memberId: 'BIZ-001', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Sarah Mitchell', requestedDate: '2026-07-15', effectiveDate: '2026-07-20', reason: 'Business growth - need higher allocation limits for peak season', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '1', transitionId: 'TR-2026-0001', memberName: 'Oceanview Hotel & Spa', memberType: 'Business', memberId: 'BIZ-001', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Sarah Mitchell', requestedDate: '2026-07-15', effectiveDate: '2026-07-20', reason: 'Business growth - need higher allocation limits for peak season', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Business Name', value: 'Oceanview Hotel & Spa' }, { label: 'Membership ID', value: 'MB-2026-0001' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'Sarah Mitchell' }, { label: 'Requested Date', value: '2026-07-15' }
   ], currentMembership: [
     { label: 'Membership Tier', value: 'Gold' }, { label: 'Pricing', value: '$1,999 / year' }, { label: 'Business VCards', value: '25' }, { label: 'Consumer VCards', value: '500' }, { label: 'Consumer Cards', value: '500' }, { label: 'Friends & Family', value: '10' }, { label: 'Additional Cards', value: '5' }, { label: 'Dynamic QR', value: 'Basic' }, { label: 'Analytics', value: 'Standard' }
@@ -130,7 +130,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Notifications Sent', date: '2026-07-20', detail: 'Business owner and account manager notified' },
     { action: 'Completed', date: '2026-07-20', detail: 'Transition completed successfully' },
   ], rollback: { possible: true, restores: ['Previous membership: Gold', 'Previous entitlements: 25 Biz VCards, 500 Consumer VCards', 'Previous allocation limits: 10 F&F, 5 Additional Cards', 'Previous permissions: Standard Analytics', 'Previous feature access: Basic Dynamic QR'] } },
-  { id: 2, transitionId: 'TR-2026-0002', memberName: 'Emily Watson', memberType: 'Consumer', memberId: 'CON-2026-0001', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Admin', requestedDate: '2026-06-10', effectiveDate: '2026-06-10', reason: 'VIP customer - 15+ redemptions, high engagement', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '2', transitionId: 'TR-2026-0002', memberName: 'Emily Watson', memberType: 'Consumer', memberId: 'CON-2026-0001', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Admin', requestedDate: '2026-06-10', effectiveDate: '2026-06-10', reason: 'VIP customer - 15+ redemptions, high engagement', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'Emily Watson' }, { label: 'Consumer ID', value: 'CON-2026-0001' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'Admin' }, { label: 'Requested Date', value: '2026-06-10' }
   ], currentMembership: [
     { label: 'Current Level', value: 'Gold' }, { label: 'Linked Business', value: 'Oceanview Hotel & Spa' }, { label: 'Entry Method', value: 'Automatic' }, { label: 'Friends & Family', value: 'Family: 2, Friends: 3' }, { label: 'Additional Cards', value: '2' }
@@ -170,7 +170,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Notifications Sent', date: '2026-06-10', detail: 'Consumer and business owner notified' },
     { action: 'Completed', date: '2026-06-10', detail: 'Promotion completed' },
   ], rollback: { possible: true, restores: ['Previous level: Gold', 'Previous allocations: 2 Family, 3 Friends', 'Previous theme: Gold Standard'] } },
-  { id: 3, transitionId: 'TR-2026-0003', memberName: 'Maple Leaf Dental Clinic', memberType: 'Business', memberId: 'BIZ-002', currentPlan: 'Gold Pro', targetPlan: 'Silver Pro+', transitionType: 'Downgrade', status: 'Scheduled', requestedBy: 'Dr. James Wong', requestedDate: '2026-07-25', effectiveDate: '2026-09-01', reason: 'Reducing operational costs - renewal downgrade', approvalStatus: 'Pending Approval', overviewMemberInfo: [
+  { id: '3', transitionId: 'TR-2026-0003', memberName: 'Maple Leaf Dental Clinic', memberType: 'Business', memberId: 'BIZ-002', currentPlan: 'Gold Pro', targetPlan: 'Silver Pro+', transitionType: 'Downgrade', status: 'Scheduled', requestedBy: 'Dr. James Wong', requestedDate: '2026-07-25', effectiveDate: '2026-09-01', reason: 'Reducing operational costs - renewal downgrade', approvalStatus: 'Pending Approval', overviewMemberInfo: [
     { label: 'Business Name', value: 'Maple Leaf Dental Clinic' }, { label: 'Membership ID', value: 'MB-2026-0002' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'Dr. James Wong' }, { label: 'Requested Date', value: '2026-07-25' }
   ], currentMembership: [
     { label: 'Membership Tier', value: 'Gold Pro' }, { label: 'Pricing', value: '$2,499 / semi-annual' }, { label: 'Business VCards', value: '25' }, { label: 'Consumer VCards', value: '1,000' }, { label: 'Consumer Cards', value: '1,000' }, { label: 'Friends & Family', value: '12' }, { label: 'Additional Cards', value: '5' }, { label: 'Dynamic QR', value: 'Premium' }, { label: 'Premium Builder', value: 'Included' }
@@ -210,7 +210,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Scheduled', date: '2026-07-25', detail: 'Scheduled for September 1, 2026 (renewal date)' },
     { action: 'Awaiting Approval', date: '2026-07-25', detail: 'Pending Commercial Manager review' },
   ], rollback: { possible: true, reason: 'Not yet executed - can be cancelled before effective date', restores: ['N/A - transition not yet applied'] } },
-  { id: 4, transitionId: 'TR-2026-0004', memberName: 'James Rodriguez', memberType: 'Consumer', memberId: 'CON-2026-0002', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Promotion', status: 'Completed', requestedBy: 'System', requestedDate: '2026-04-15', effectiveDate: '2026-04-15', reason: 'Automatic progression - family plan enrollment', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '4', transitionId: 'TR-2026-0004', memberName: 'James Rodriguez', memberType: 'Consumer', memberId: 'CON-2026-0002', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Promotion', status: 'Completed', requestedBy: 'System', requestedDate: '2026-04-15', effectiveDate: '2026-04-15', reason: 'Automatic progression - family plan enrollment', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'James Rodriguez' }, { label: 'Consumer ID', value: 'CON-2026-0002' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'System (Automatic)' }, { label: 'Requested Date', value: '2026-04-15' }
   ], currentMembership: [
     { label: 'Current Level', value: 'Silver' }, { label: 'Linked Business', value: 'Maple Leaf Dental Clinic' }, { label: 'Family Slots', value: '2' }, { label: 'Friends Slots', value: '3' }, { label: 'Additional Cards', value: '2' }
@@ -244,7 +244,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Membership Updated', date: '2026-04-15', detail: 'Promoted to Gold - VCard theme upgraded' },
     { action: 'Completed', date: '2026-04-15', detail: 'Automatic promotion completed' },
   ], rollback: { possible: true, restores: ['Previous level: Silver', 'Previous theme: Silver Standard', 'Previous VCard exchange: Disabled'] } },
-  { id: 5, transitionId: 'TR-2026-0005', memberName: 'Summit Financial Advisors', memberType: 'Business', memberId: 'BIZ-008', currentPlan: 'Platinum Pro', targetPlan: 'Platinum Pro+', transitionType: 'Upgrade', status: 'Pending Approval', requestedBy: "Kevin O'Brien", requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Growing client base - need higher Consumer Card allocation', approvalStatus: 'Pending Approval', overviewMemberInfo: [
+  { id: '5', transitionId: 'TR-2026-0005', memberName: 'Summit Financial Advisors', memberType: 'Business', memberId: 'BIZ-008', currentPlan: 'Platinum Pro', targetPlan: 'Platinum Pro+', transitionType: 'Upgrade', status: 'Pending Approval', requestedBy: "Kevin O'Brien", requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Growing client base - need higher Consumer Card allocation', approvalStatus: 'Pending Approval', overviewMemberInfo: [
     { label: 'Business Name', value: 'Summit Financial Advisors' }, { label: 'Membership ID', value: 'MB-2026-0008' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: "Kevin O'Brien" }, { label: 'Requested Date', value: '2026-07-28' }
   ], currentMembership: [
     { label: 'Tier', value: 'Platinum Pro' }, { label: 'Pricing', value: '$7,999 / year' }, { label: 'Biz VCards', value: '100' }, { label: 'Con VCards', value: '5,000' }, { label: 'Con Cards', value: '5,000' }, { label: 'F&F', value: '30' }, { label: 'Additional Cards', value: '10' }
@@ -279,7 +279,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Validated', date: '2026-07-28', detail: 'All checks passed' },
     { action: 'Pending Approval', date: '2026-07-28', detail: 'Awaiting Commercial Manager and Finance approval' },
   ], rollback: { possible: true, reason: 'Can be cancelled before approval', restores: ['N/A - not yet executed'] } },
-  { id: 6, transitionId: 'TR-2026-0006', memberName: 'Riverside Restaurant & Bar', memberType: 'Business', memberId: 'BIZ-007', currentPlan: 'Bronze', targetPlan: 'Bronze Pro', transitionType: 'Upgrade', status: 'Draft', requestedBy: 'Marco Bellini', requestedDate: '2026-07-29', effectiveDate: '', reason: 'Need Business VCard and higher Consumer Card allocation', approvalStatus: 'Draft', overviewMemberInfo: [
+  { id: '6', transitionId: 'TR-2026-0006', memberName: 'Riverside Restaurant & Bar', memberType: 'Business', memberId: 'BIZ-007', currentPlan: 'Bronze', targetPlan: 'Bronze Pro', transitionType: 'Upgrade', status: 'Draft', requestedBy: 'Marco Bellini', requestedDate: '2026-07-29', effectiveDate: '', reason: 'Need Business VCard and higher Consumer Card allocation', approvalStatus: 'Draft', overviewMemberInfo: [
     { label: 'Business Name', value: 'Riverside Restaurant & Bar' }, { label: 'Membership ID', value: 'MB-2026-0007' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'Marco Bellini' }, { label: 'Requested Date', value: '2026-07-29' }
   ], currentMembership: [
     { label: 'Tier', value: 'Bronze' }, { label: 'Pricing', value: '$299 / month' }, { label: 'Biz VCards', value: '1' }, { label: 'Con VCards', value: '50' }, { label: 'Con Cards', value: '50' }, { label: 'F&F', value: '2' }, { label: 'Additional Cards', value: '1' }
@@ -306,7 +306,7 @@ const TRANSITIONS: Transition[] = [
   ], activity: [
     { action: 'Draft Created', date: '2026-07-29', detail: 'Upgrade draft created - not yet submitted' },
   ], rollback: { possible: true, reason: 'Draft - can be deleted', restores: ['N/A - draft not yet applied'] } },
-  { id: 7, transitionId: 'TR-2026-0007', memberName: 'GreenLeaf Wellness Center', memberType: 'Business', memberId: 'BIZ-005', currentPlan: 'Silver', targetPlan: 'Gold Pro', transitionType: 'Trial Conversion', status: 'Processing', requestedBy: 'Dr. Lisa Park', requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Trial conversion - upgrading to paid Gold Pro', approvalStatus: 'Pending Approval', overviewMemberInfo: [
+  { id: '7', transitionId: 'TR-2026-0007', memberName: 'GreenLeaf Wellness Center', memberType: 'Business', memberId: 'BIZ-005', currentPlan: 'Silver', targetPlan: 'Gold Pro', transitionType: 'Trial Conversion', status: 'Processing', requestedBy: 'Dr. Lisa Park', requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Trial conversion - upgrading to paid Gold Pro', approvalStatus: 'Pending Approval', overviewMemberInfo: [
     { label: 'Business Name', value: 'GreenLeaf Wellness Center' }, { label: 'Membership ID', value: 'MB-2026-0005' }, { label: 'Current Status', value: 'Trial' }, { label: 'Requested By', value: 'Dr. Lisa Park' }, { label: 'Requested Date', value: '2026-07-28' }
   ], currentMembership: [
     { label: 'Tier', value: 'Silver (Trial)' }, { label: 'Pricing', value: 'Free (trial ends 2026-08-01)' }, { label: 'Biz VCards', value: '5' }, { label: 'Con VCards', value: '200' }, { label: 'Con Cards', value: '200' }, { label: 'F&F', value: '5' }, { label: 'Additional Cards', value: '3' }
@@ -343,7 +343,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Validated', date: '2026-07-28', detail: 'All checks passed' },
     { action: 'Scheduled', date: '2026-07-28', detail: 'Conversion set for August 1, 2026 (trial expiry)' },
   ], rollback: { possible: true, reason: 'Can be cancelled before trial expiry', restores: ['Will revert to trial state'] } },
-  { id: 8, transitionId: 'TR-2026-0008', memberName: 'Harbor Logistics Inc.', memberType: 'Business', memberId: 'BIZ-009', currentPlan: 'Gold Pro', targetPlan: 'Silver Pro+', transitionType: 'Downgrade', status: 'Failed', requestedBy: 'Jennifer Walsh', requestedDate: '2026-06-01', effectiveDate: '2026-06-15', reason: 'Cost reduction - logistics industry downturn', approvalStatus: 'Cancelled', overviewMemberInfo: [
+  { id: '8', transitionId: 'TR-2026-0008', memberName: 'Harbor Logistics Inc.', memberType: 'Business', memberId: 'BIZ-009', currentPlan: 'Gold Pro', targetPlan: 'Silver Pro+', transitionType: 'Downgrade', status: 'Failed', requestedBy: 'Jennifer Walsh', requestedDate: '2026-06-01', effectiveDate: '2026-06-15', reason: 'Cost reduction - logistics industry downturn', approvalStatus: 'Cancelled', overviewMemberInfo: [
     { label: 'Business Name', value: 'Harbor Logistics Inc.' }, { label: 'Membership ID', value: 'MB-2026-0009' }, { label: 'Current Status', value: 'Suspended' }, { label: 'Requested By', value: 'Jennifer Walsh' }, { label: 'Requested Date', value: '2026-06-01' }
   ], currentMembership: [
     { label: 'Tier', value: 'Gold Pro' }, { label: 'Pricing', value: '$2,499 / semi-annual' }, { label: 'Status', value: 'Suspended (overdue)' }, { label: 'Outstanding', value: '$2,499' }
@@ -368,7 +368,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Validation Failed', date: '2026-06-01', detail: 'Membership suspended and billing overdue' },
     { action: 'Failed', date: '2026-06-01', detail: 'Cannot process downgrade while membership is suspended' },
   ], rollback: { possible: false, reason: 'Transition failed before execution - no changes applied', restores: [] } },
-  { id: 9, transitionId: 'TR-2026-0009', memberName: 'Prestige Auto Dealership', memberType: 'Business', memberId: 'BIZ-017', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Upgrade', status: 'Scheduled', requestedBy: 'Andrew Clarke', requestedDate: '2026-07-20', effectiveDate: '2026-08-15', reason: 'Seasonal upgrade for annual sales event', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '9', transitionId: 'TR-2026-0009', memberName: 'Prestige Auto Dealership', memberType: 'Business', memberId: 'BIZ-017', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Upgrade', status: 'Scheduled', requestedBy: 'Andrew Clarke', requestedDate: '2026-07-20', effectiveDate: '2026-08-15', reason: 'Seasonal upgrade for annual sales event', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Business Name', value: 'Prestige Auto Dealership' }, { label: 'Membership ID', value: 'MB-2026-0017' }, { label: 'Current Status', value: 'Active' }, { label: 'Requested By', value: 'Andrew Clarke' }, { label: 'Requested Date', value: '2026-07-20' }
   ], currentMembership: [
     { label: 'Tier', value: 'Gold' }, { label: 'Pricing', value: '$1,999 / year' }, { label: 'Biz VCards', value: '25' }, { label: 'Con Cards', value: '500' }, { label: 'F&F', value: '10' }, { label: 'Additional Cards', value: '5' }, { label: 'Dynamic QR', value: 'Basic' }
@@ -398,7 +398,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Approved', date: '2026-07-21', detail: 'Approved by Commercial Manager' },
     { action: 'Scheduled', date: '2026-07-21', detail: 'Scheduled for August 15, 2026' },
   ], rollback: { possible: true, reason: 'Can be cancelled before effective date', restores: ['N/A - not yet applied'] } },
-  { id: 10, transitionId: 'TR-2026-0010', memberName: 'Mia Robinson', memberType: 'Consumer', memberId: 'CON-2026-0017', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Admin', requestedDate: '2026-03-01', effectiveDate: '2026-03-01', reason: 'Longest-standing consumer - 18 months active', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '10', transitionId: 'TR-2026-0010', memberName: 'Mia Robinson', memberType: 'Consumer', memberId: 'CON-2026-0017', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Admin', requestedDate: '2026-03-01', effectiveDate: '2026-03-01', reason: 'Longest-standing consumer - 18 months active', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'Mia Robinson' }, { label: 'Consumer ID', value: 'CON-2026-0017' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'Summit Financial Advisors' }, { label: 'Requested By', value: 'Admin' }
   ], currentMembership: [
     { label: 'Level', value: 'Gold' }, { label: 'Family', value: '2' }, { label: 'Friends', value: '3' }, { label: 'Additional Cards', value: '2' }
@@ -426,7 +426,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Approved', date: '2026-03-01', detail: 'Approved by Admin' },
     { action: 'Completed', date: '2026-03-01', detail: 'Promotion applied' },
   ], rollback: { possible: true, restores: ['Previous level: Gold', 'Previous allocations: 2 Family, 3 Friends, 2 Additional Cards'] } },
-  { id: 11, transitionId: 'TR-2026-0011', memberName: 'Charlotte Davis', memberType: 'Consumer', memberId: 'CON-2026-0011', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Complimentary Upgrade', status: 'Completed', requestedBy: 'Super Admin', requestedDate: '2026-07-15', effectiveDate: '2026-07-15', reason: 'Government partnership - complimentary upgrade', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '11', transitionId: 'TR-2026-0011', memberName: 'Charlotte Davis', memberType: 'Consumer', memberId: 'CON-2026-0011', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Complimentary Upgrade', status: 'Completed', requestedBy: 'Super Admin', requestedDate: '2026-07-15', effectiveDate: '2026-07-15', reason: 'Government partnership - complimentary upgrade', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'Charlotte Davis' }, { label: 'Consumer ID', value: 'CON-2026-0011' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'Metro Transit Authority' }, { label: 'Requested By', value: 'Super Admin' }
   ], currentMembership: [
     { label: 'Level', value: 'Gold' }, { label: 'Family', value: '3' }, { label: 'Friends', value: '5' }, { label: 'Additional Cards', value: '3' }
@@ -451,7 +451,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Approved', date: '2026-07-15', detail: 'Approved by Super Admin' },
     { action: 'Completed', date: '2026-07-15', detail: 'Upgrade applied' },
   ], rollback: { possible: true, restores: ['Previous level: Gold', 'Previous F&F allocations'] } },
-  { id: 12, transitionId: 'TR-2026-0012', memberName: 'Pinnacle Marketing Solutions', memberType: 'Business', memberId: 'BIZ-006', currentPlan: 'Bronze Pro+', targetPlan: 'Silver', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Alex Thompson', requestedDate: '2026-07-10', effectiveDate: '2026-07-15', reason: 'Growing client portfolio - need higher allocations', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '12', transitionId: 'TR-2026-0012', memberName: 'Pinnacle Marketing Solutions', memberType: 'Business', memberId: 'BIZ-006', currentPlan: 'Bronze Pro+', targetPlan: 'Silver', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Alex Thompson', requestedDate: '2026-07-10', effectiveDate: '2026-07-15', reason: 'Growing client portfolio - need higher allocations', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Business', value: 'Pinnacle Marketing Solutions' }, { label: 'ID', value: 'MB-2026-0006' }, { label: 'Status', value: 'Active' }, { label: 'Requested By', value: 'Alex Thompson' }, { label: 'Date', value: '2026-07-10' }
   ], currentMembership: [
     { label: 'Tier', value: 'Bronze Pro+' }, { label: 'Pricing', value: '$599 / month' }, { label: 'Biz VCards', value: '5' }, { label: 'Con VCards', value: '150' }, { label: 'Con Cards', value: '150' }, { label: 'F&F', value: '4' }
@@ -480,7 +480,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Approved', date: '2026-07-11', detail: 'Approved' },
     { action: 'Completed', date: '2026-07-15', detail: 'Upgrade applied' },
   ], rollback: { possible: true, restores: ['Previous tier: Bronze Pro+', 'Previous allocations'] } },
-  { id: 13, transitionId: 'TR-2026-0013', memberName: 'Evergreen Property Management', memberType: 'Business', memberId: 'BIZ-023', currentPlan: 'Silver', targetPlan: 'Bronze Pro', transitionType: 'Downgrade', status: 'Cancelled', requestedBy: 'William Chen', requestedDate: '2026-06-10', effectiveDate: '2026-07-01', reason: 'Business downsizing', approvalStatus: 'Cancelled', overviewMemberInfo: [
+  { id: '13', transitionId: 'TR-2026-0013', memberName: 'Evergreen Property Management', memberType: 'Business', memberId: 'BIZ-023', currentPlan: 'Silver', targetPlan: 'Bronze Pro', transitionType: 'Downgrade', status: 'Cancelled', requestedBy: 'William Chen', requestedDate: '2026-06-10', effectiveDate: '2026-07-01', reason: 'Business downsizing', approvalStatus: 'Cancelled', overviewMemberInfo: [
     { label: 'Business', value: 'Evergreen Property Management' }, { label: 'ID', value: 'MB-2026-0023' }, { label: 'Status', value: 'Suspended' }, { label: 'Requested By', value: 'William Chen' }
   ], currentMembership: [
     { label: 'Tier', value: 'Silver' }, { label: 'Pricing', value: '$999 / month' }, { label: 'Biz VCards', value: '5' }, { label: 'Con VCards', value: '200' }, { label: 'F&F', value: '5' }
@@ -501,7 +501,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Downgrade Requested', date: '2026-06-10', detail: 'Downgrade requested by Evergreen Property Management' },
     { action: 'Cancelled', date: '2026-06-15', detail: 'Cancelled by William Chen' },
   ], rollback: { possible: false, reason: 'Cancelled before execution', restores: [] } },
-  { id: 14, transitionId: 'TR-2026-0014', memberName: 'Benjamin Scott', memberType: 'Consumer', memberId: 'CON-2026-0020', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotion', status: 'Failed', requestedBy: 'System', requestedDate: '2026-06-15', effectiveDate: '', reason: 'Automatic progression check - threshold met but business suspended', approvalStatus: 'Failed', overviewMemberInfo: [
+  { id: '14', transitionId: 'TR-2026-0014', memberName: 'Benjamin Scott', memberType: 'Consumer', memberId: 'CON-2026-0020', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotion', status: 'Failed', requestedBy: 'System', requestedDate: '2026-06-15', effectiveDate: '', reason: 'Automatic progression check - threshold met but business suspended', approvalStatus: 'Failed', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'Benjamin Scott' }, { label: 'Consumer ID', value: 'CON-2026-0020' }, { label: 'Status', value: 'Suspended' }, { label: 'Linked Business', value: 'Evergreen Property Management' }
   ], currentMembership: [
     { label: 'Level', value: 'Bronze' }, { label: 'Status', value: 'Suspended' }, { label: 'Linked Business Status', value: 'Suspended' }
@@ -522,7 +522,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Automatic Promotion Check', date: '2026-06-15', detail: 'Bronze to Silver eligibility check' },
     { action: 'Validation Failed', date: '2026-06-15', detail: 'Membership suspended - cannot promote' },
   ], rollback: { possible: false, reason: 'No changes applied', restores: [] } },
-  { id: 15, transitionId: 'TR-2026-0015', memberName: 'TechVantage Consulting', memberType: 'Business', memberId: 'BIZ-013', currentPlan: 'Silver Pro+', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Pending Approval', requestedBy: 'Raj Patel', requestedDate: '2026-07-28', effectiveDate: '2026-08-15', reason: 'Expanding team - need more Business VCards and allocations', approvalStatus: 'Pending Approval', overviewMemberInfo: [
+  { id: '15', transitionId: 'TR-2026-0015', memberName: 'TechVantage Consulting', memberType: 'Business', memberId: 'BIZ-013', currentPlan: 'Silver Pro+', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Pending Approval', requestedBy: 'Raj Patel', requestedDate: '2026-07-28', effectiveDate: '2026-08-15', reason: 'Expanding team - need more Business VCards and allocations', approvalStatus: 'Pending Approval', overviewMemberInfo: [
     { label: 'Business', value: 'TechVantage Consulting' }, { label: 'ID', value: 'MB-2026-0013' }, { label: 'Status', value: 'Active' }, { label: 'Requested By', value: 'Raj Patel' }, { label: 'Date', value: '2026-07-28' }
   ], currentMembership: [
     { label: 'Tier', value: 'Silver Pro+' }, { label: 'Pricing', value: '$1,499 / year' }, { label: 'Biz VCards', value: '10' }, { label: 'Con VCards', value: '400' }, { label: 'Con Cards', value: '400' }, { label: 'F&F', value: '8' }, { label: 'Additional Cards', value: '4' }
@@ -553,7 +553,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Validated', date: '2026-07-28', detail: 'All checks passed' },
     { action: 'Pending Approval', date: '2026-07-28', detail: 'Awaiting Commercial Manager' },
   ], rollback: { possible: true, reason: 'Can be cancelled before approval', restores: [] } },
-  { id: 16, transitionId: 'TR-2026-0016', memberName: 'Sophia Kim', memberType: 'Consumer', memberId: 'CON-2026-0003', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotional Upgrade', status: 'Scheduled', requestedBy: 'Admin', requestedDate: '2026-07-25', effectiveDate: '2026-08-01', reason: 'Student excellence program - 3-month promotional upgrade', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '16', transitionId: 'TR-2026-0016', memberName: 'Sophia Kim', memberType: 'Consumer', memberId: 'CON-2026-0003', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotional Upgrade', status: 'Scheduled', requestedBy: 'Admin', requestedDate: '2026-07-25', effectiveDate: '2026-08-01', reason: 'Student excellence program - 3-month promotional upgrade', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer Name', value: 'Sophia Kim' }, { label: 'Consumer ID', value: 'CON-2026-0003' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'BrightFuture Academy' }, { label: 'Requested By', value: 'Admin' }
   ], currentMembership: [
     { label: 'Level', value: 'Bronze' }, { label: 'Family', value: '1' }, { label: 'Friends', value: '1' }, { label: 'Additional Cards', value: '0' }
@@ -583,7 +583,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Promotional Upgrade Initiated', date: '2026-07-25', detail: 'Bronze to Silver (promotional - 3 months)' },
     { action: 'Scheduled', date: '2026-07-25', detail: 'Effective August 1, 2026' },
   ], rollback: { possible: true, reason: 'Can be cancelled before effective date', restores: ['N/A - not yet applied'] } },
-  { id: 17, transitionId: 'TR-2026-0017', memberName: 'Great Lakes Brewing Co.', memberType: 'Business', memberId: 'BIZ-024', currentPlan: 'Silver Pro', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Completed', requestedBy: "Patrick O'Sullivan", requestedDate: '2026-07-01', effectiveDate: '2026-07-05', reason: 'Expanding distribution - need more consumer cards', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '17', transitionId: 'TR-2026-0017', memberName: 'Great Lakes Brewing Co.', memberType: 'Business', memberId: 'BIZ-024', currentPlan: 'Silver Pro', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Completed', requestedBy: "Patrick O'Sullivan", requestedDate: '2026-07-01', effectiveDate: '2026-07-05', reason: 'Expanding distribution - need more consumer cards', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Business', value: 'Great Lakes Brewing Co.' }, { label: 'ID', value: 'MB-2026-0024' }, { label: 'Status', value: 'Active' }, { label: 'Requested By', value: "Patrick O'Sullivan" }, { label: 'Date', value: '2026-07-01' }
   ], currentMembership: [
     { label: 'Tier', value: 'Silver Pro' }, { label: 'Pricing', value: '$1,299 / semi-annual' }, { label: 'Con Cards', value: '300' }, { label: 'F&F', value: '7' }
@@ -608,7 +608,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Upgrade Requested', date: '2026-07-01', detail: 'Silver Pro to Gold Pro upgrade requested' },
     { action: 'Completed', date: '2026-07-05', detail: 'Silver Pro to Gold Pro' },
   ], rollback: { possible: true, restores: ['Previous tier: Silver Pro', 'Previous allocations'] } },
-  { id: 18, transitionId: 'TR-2026-0018', memberName: 'Olivia Thompson', memberType: 'Consumer', memberId: 'CON-2026-0005', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Operations Manager', requestedDate: '2026-07-01', effectiveDate: '2026-07-01', reason: 'High-value customer - multiple service bookings', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '18', transitionId: 'TR-2026-0018', memberName: 'Olivia Thompson', memberType: 'Consumer', memberId: 'CON-2026-0005', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Promotion', status: 'Completed', requestedBy: 'Operations Manager', requestedDate: '2026-07-01', effectiveDate: '2026-07-01', reason: 'High-value customer - multiple service bookings', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer', value: 'Olivia Thompson' }, { label: 'Consumer ID', value: 'CON-2026-0005' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'Prestige Auto Dealership' }
   ], currentMembership: [
     { label: 'Level', value: 'Silver' }, { label: 'Family', value: '2' }, { label: 'Friends', value: '3' }, { label: 'Additional Cards', value: '2' }
@@ -632,7 +632,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Promotion Requested', date: '2026-07-01', detail: 'Silver to Gold - VIP customer' },
     { action: 'Completed', date: '2026-07-01', detail: 'Promotion from Silver to Gold completed' },
   ], rollback: { possible: true, restores: ['Previous level: Silver', 'Previous F&F allocations'] } },
-  { id: 19, transitionId: 'TR-2026-0019', memberName: 'Cornerstone Realty Group', memberType: 'Business', memberId: 'BIZ-004', currentPlan: 'Gold', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Emily Rodriguez', requestedDate: '2026-07-15', effectiveDate: '2026-07-20', reason: 'Need premium builder and higher consumer card allocation', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '19', transitionId: 'TR-2026-0019', memberName: 'Cornerstone Realty Group', memberType: 'Business', memberId: 'BIZ-004', currentPlan: 'Gold', targetPlan: 'Gold Pro', transitionType: 'Upgrade', status: 'Completed', requestedBy: 'Emily Rodriguez', requestedDate: '2026-07-15', effectiveDate: '2026-07-20', reason: 'Need premium builder and higher consumer card allocation', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Business', value: 'Cornerstone Realty Group' }, { label: 'ID', value: 'MB-2026-0004' }, { label: 'Status', value: 'Active' }, { label: 'Requested By', value: 'Emily Rodriguez' }
   ], currentMembership: [
     { label: 'Tier', value: 'Gold' }, { label: 'Pricing', value: '$1,999 / year' }, { label: 'Con Cards', value: '500' }, { label: 'F&F', value: '10' }
@@ -655,7 +655,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Upgrade Requested', date: '2026-07-15', detail: 'Gold to Gold Pro upgrade requested' },
     { action: 'Completed', date: '2026-07-20', detail: 'Gold to Gold Pro' },
   ], rollback: { possible: true, restores: ['Previous tier: Gold', 'Previous allocations'] } },
-  { id: 20, transitionId: 'TR-2026-0020', memberName: 'Liam Gallagher', memberType: 'Consumer', memberId: 'CON-2026-0010', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotion', status: 'Completed', requestedBy: 'System', requestedDate: '2026-04-01', effectiveDate: '2026-04-01', reason: '6 months active - 4 referrals', approvalStatus: 'Approved', overviewMemberInfo: [
+  { id: '20', transitionId: 'TR-2026-0020', memberName: 'Liam Gallagher', memberType: 'Consumer', memberId: 'CON-2026-0010', currentPlan: 'Bronze', targetPlan: 'Silver', transitionType: 'Promotion', status: 'Completed', requestedBy: 'System', requestedDate: '2026-04-01', effectiveDate: '2026-04-01', reason: '6 months active - 4 referrals', approvalStatus: 'Approved', overviewMemberInfo: [
     { label: 'Consumer', value: 'Liam Gallagher' }, { label: 'Consumer ID', value: 'CON-2026-0010' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'TechVantage Consulting' }
   ], currentMembership: [
     { label: 'Level', value: 'Bronze' }, { label: 'Family', value: '1' }, { label: 'Friends', value: '1' }, { label: 'Additional Cards', value: '0' }
@@ -678,7 +678,7 @@ const TRANSITIONS: Transition[] = [
   ], activity: [
     { action: 'Automatic Promotion', date: '2026-04-01', detail: 'Bronze to Silver' },
   ], rollback: { possible: true, restores: ['Previous level: Bronze', 'Previous allocations'] } },
-  { id: 21, transitionId: 'TR-2026-0021', memberName: 'Northwest Community Health', memberType: 'Business', memberId: 'BIZ-019', currentPlan: 'Gold Pro', targetPlan: 'Gold Pro+', transitionType: 'Upgrade', status: 'Draft', requestedBy: 'Dr. Sarah Connors', requestedDate: '2026-07-29', effectiveDate: '', reason: 'Community program expansion - need higher allocations', approvalStatus: 'Draft', overviewMemberInfo: [
+  { id: '21', transitionId: 'TR-2026-0021', memberName: 'Northwest Community Health', memberType: 'Business', memberId: 'BIZ-019', currentPlan: 'Gold Pro', targetPlan: 'Gold Pro+', transitionType: 'Upgrade', status: 'Draft', requestedBy: 'Dr. Sarah Connors', requestedDate: '2026-07-29', effectiveDate: '', reason: 'Community program expansion - need higher allocations', approvalStatus: 'Draft', overviewMemberInfo: [
     { label: 'Business', value: 'Northwest Community Health' }, { label: 'ID', value: 'MB-2026-0019' }, { label: 'Status', value: 'Active' }, { label: 'Requested By', value: 'Dr. Sarah Connors' }, { label: 'Date', value: '2026-07-29' }
   ], currentMembership: [
     { label: 'Tier', value: 'Gold Pro' }, { label: 'Pricing', value: '$2,499 / semi-annual (50% promo)' }, { label: 'Con Cards', value: '1,000' }, { label: 'F&F', value: '12' }, { label: 'Additional Cards', value: '5' }
@@ -702,7 +702,7 @@ const TRANSITIONS: Transition[] = [
   ], activity: [
     { action: 'Draft Created', date: '2026-07-29', detail: 'Gold Pro to Gold Pro+ draft' },
   ], rollback: { possible: true, reason: 'Draft - can be deleted', restores: [] } },
-  { id: 22, transitionId: 'TR-2026-0022', memberName: 'Noah Wilson', memberType: 'Consumer', memberId: 'CON-2026-0008', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Manual Override', status: 'Pending Approval', requestedBy: 'Admin', requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Admin override - exceptional consumer performance', approvalStatus: 'Pending Approval', overviewMemberInfo: [
+  { id: '22', transitionId: 'TR-2026-0022', memberName: 'Noah Wilson', memberType: 'Consumer', memberId: 'CON-2026-0008', currentPlan: 'Gold', targetPlan: 'Platinum', transitionType: 'Manual Override', status: 'Pending Approval', requestedBy: 'Admin', requestedDate: '2026-07-28', effectiveDate: '2026-08-01', reason: 'Admin override - exceptional consumer performance', approvalStatus: 'Pending Approval', overviewMemberInfo: [
     { label: 'Consumer', value: 'Noah Wilson' }, { label: 'Consumer ID', value: 'CON-2026-0008' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'Summit Financial Advisors' }, { label: 'Requested By', value: 'Admin' }
   ], currentMembership: [
     { label: 'Level', value: 'Gold' }, { label: 'Family', value: '2' }, { label: 'Friends', value: '3' }, { label: 'Additional Cards', value: '2' }
@@ -728,7 +728,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Manual Override Requested', date: '2026-07-28', detail: 'Gold to Platinum - admin override' },
     { action: 'Pending Super Admin', date: '2026-07-28', detail: 'Awaiting Super Admin approval' },
   ], rollback: { possible: true, reason: 'Can be rejected before execution', restores: [] } },
-  { id: 23, transitionId: 'TR-2026-0023', memberName: 'Blue Ocean Aquatics', memberType: 'Business', memberId: 'BIZ-014', currentPlan: 'Bronze', targetPlan: 'Bronze Pro', transitionType: 'Manual Override', status: 'Rolled Back', requestedBy: 'Admin', requestedDate: '2026-05-01', effectiveDate: '2026-05-15', reason: 'Admin override - trial upgrade', approvalStatus: 'Rolled Back', overviewMemberInfo: [
+  { id: '23', transitionId: 'TR-2026-0023', memberName: 'Blue Ocean Aquatics', memberType: 'Business', memberId: 'BIZ-014', currentPlan: 'Bronze', targetPlan: 'Bronze Pro', transitionType: 'Manual Override', status: 'Rolled Back', requestedBy: 'Admin', requestedDate: '2026-05-01', effectiveDate: '2026-05-15', reason: 'Admin override - trial upgrade', approvalStatus: 'Rolled Back', overviewMemberInfo: [
     { label: 'Business', value: 'Blue Ocean Aquatics' }, { label: 'ID', value: 'MB-2026-0014' }, { label: 'Status', value: 'Cancelled' }, { label: 'Requested By', value: 'Admin' }
   ], currentMembership: [
     { label: 'Tier', value: 'Bronze' }, { label: 'Pricing', value: '$299 / month' }
@@ -752,7 +752,7 @@ const TRANSITIONS: Transition[] = [
     { action: 'Rollback Initiated', date: '2026-05-20', detail: 'Rolled back by Super Admin - applied in error' },
     { action: 'Rollback Completed', date: '2026-05-20', detail: 'Restored to Bronze membership' },
   ], rollback: { possible: true, reason: 'Already rolled back', restores: ['Previous tier: Bronze (restored)', 'Previous allocations: Restored', 'Version Engine record created'] } },
-  { id: 24, transitionId: 'TR-2026-0024', memberName: 'Emma Watson', memberType: 'Consumer', memberId: 'CON-2026-0000', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Renewal', status: 'Scheduled', requestedBy: 'System', requestedDate: '2026-07-29', effectiveDate: '2026-08-15', reason: 'Annual renewal - auto-promotion based on engagement', approvalStatus: 'Pending', overviewMemberInfo: [
+  { id: '24', transitionId: 'TR-2026-0024', memberName: 'Emma Watson', memberType: 'Consumer', memberId: 'CON-2026-0000', currentPlan: 'Silver', targetPlan: 'Gold', transitionType: 'Renewal', status: 'Scheduled', requestedBy: 'System', requestedDate: '2026-07-29', effectiveDate: '2026-08-15', reason: 'Annual renewal - auto-promotion based on engagement', approvalStatus: 'Pending', overviewMemberInfo: [
     { label: 'Consumer', value: 'Emma Watson' }, { label: 'Consumer ID', value: 'CON-2026-0000' }, { label: 'Status', value: 'Active' }, { label: 'Linked Business', value: 'Oceanview Hotel & Spa' }
   ], currentMembership: [
     { label: 'Level', value: 'Silver' }, { label: 'Family', value: '2' }, { label: 'Friends', value: '2' }, { label: 'Additional Cards', value: '1' }
@@ -827,7 +827,7 @@ export default function UpgradesDowngradesPage() {
   const [periodFilter, setPeriodFilter] = useState('All')
   const [selectedTransition, setSelectedTransition] = useState<Transition | null>(null)
   const [workspaceTab, setWorkspaceTab] = useState('overview')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
@@ -861,7 +861,7 @@ export default function UpgradesDowngradesPage() {
     conflicts: TRANSITIONS.filter(t => ['Failed','Cancelled'].includes(t.status)).length,
   }
 
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
   }
 

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 /* ── Types ─────────────────────────────────────────────── */
 
 interface VersionRecord {
-  id: number
+  id: string
   vcardName: string
   type: 'Business VCard' | 'Consumer VCard'
   business: string
@@ -43,7 +43,7 @@ const AUTHORS = ['All', 'Admin', 'Designer', 'Business', 'Consumer', 'System']
 /* ── Mock Data ─────────────────────────────────────────── */
 
 const VERSIONS: VersionRecord[] = [
-  { id: 1, vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.4', createdBy: 'Admin', createdDate: '28 Jul 2026 09:21', status: 'Current', releaseType: 'Published', notes: 'Final version for Summer Campaign. Banner updated, gallery refreshed with seasonal images.', tags: ['Stable', 'Campaign'], locked: true, snapshotSummary: [
+  { id: '1', vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.4', createdBy: 'Admin', createdDate: '28 Jul 2026 09:21', status: 'Current', releaseType: 'Published', notes: 'Final version for Summer Campaign. Banner updated, gallery refreshed with seasonal images.', tags: ['Stable', 'Campaign'], locked: true, snapshotSummary: [
     { label: 'Components', value: '14 active' }, { label: 'Images', value: '8' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Weekly refresh' }, { label: 'Theme', value: 'Restaurant v3' },
   ], components: [
     { name: 'Banner Component', version: 'v4' }, { name: 'Gallery Component', version: 'v2' }, { name: 'Share Component', version: 'v8' }, { name: 'Contact Component', version: 'v3' },
@@ -52,31 +52,31 @@ const VERSIONS: VersionRecord[] = [
     { section: 'Gallery', type: 'added', detail: 'Added 4 new seasonal images' },
     { section: 'Testimonials', type: 'modified', detail: 'Added 2 new customer reviews' },
   ]},
-  { id: 2, vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.3', createdBy: 'Designer', createdDate: '25 Jul 2026 14:30', status: 'Historical', releaseType: 'Manual Save', notes: 'Pre-summer backup. Gallery reorganized.', tags: ['Pre-Campaign'], locked: false, snapshotSummary: [
+  { id: '2', vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.3', createdBy: 'Designer', createdDate: '25 Jul 2026 14:30', status: 'Historical', releaseType: 'Manual Save', notes: 'Pre-summer backup. Gallery reorganized.', tags: ['Pre-Campaign'], locked: false, snapshotSummary: [
     { label: 'Components', value: '13 active' }, { label: 'Images', value: '4' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Weekly refresh' }, { label: 'Theme', value: 'Restaurant v2' },
   ], components: [
     { name: 'Banner Component', version: 'v3' }, { name: 'Gallery Component', version: 'v1' }, { name: 'Share Component', version: 'v8' }, { name: 'Contact Component', version: 'v3' },
   ], qrConfig: 'Rule #1 — Joe\'s Coffee Dynamic VCard (Active, Weekly refresh)', changes: [
     { section: 'Gallery', type: 'modified', detail: 'Reordered images' },
   ]},
-  { id: 3, vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.2', createdBy: 'System', createdDate: '22 Jul 2026 00:00', status: 'Historical', releaseType: 'Auto Save', notes: 'Auto-save triggered by component library update.', tags: ['Auto'], locked: false, snapshotSummary: [
+  { id: '3', vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.2', createdBy: 'System', createdDate: '22 Jul 2026 00:00', status: 'Historical', releaseType: 'Auto Save', notes: 'Auto-save triggered by component library update.', tags: ['Auto'], locked: false, snapshotSummary: [
     { label: 'Components', value: '13 active' }, { label: 'Images', value: '4' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Weekly refresh' }, { label: 'Theme', value: 'Restaurant v2' },
   ], components: [
     { name: 'Banner Component', version: 'v2' }, { name: 'Gallery Component', version: 'v1' }, { name: 'Share Component', version: 'v8' }, { name: 'Contact Component', version: 'v3' },
   ], qrConfig: 'Rule #1 — Joe\'s Coffee Dynamic VCard (Active, Weekly refresh)', changes: [
     { section: 'Banner Component', type: 'modified', detail: 'Updated from v2 to v3' },
   ]},
-  { id: 4, vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.1', createdBy: 'Designer', createdDate: '20 Jul 2026 10:15', status: 'Restored', releaseType: 'Manual Save', notes: 'Manual checkpoint before QR rule change.', tags: ['Checkpoint'], locked: false, snapshotSummary: [
+  { id: '4', vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.1', createdBy: 'Designer', createdDate: '20 Jul 2026 10:15', status: 'Restored', releaseType: 'Manual Save', notes: 'Manual checkpoint before QR rule change.', tags: ['Checkpoint'], locked: false, snapshotSummary: [
     { label: 'Components', value: '12 active' }, { label: 'Images', value: '4' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Daily refresh' }, { label: 'Theme', value: 'Restaurant v2' },
   ], components: [
     { name: 'Banner Component', version: 'v2' }, { name: 'Gallery Component', version: 'v1' }, { name: 'Share Component', version: 'v7' }, { name: 'Contact Component', version: 'v3' },
   ], qrConfig: 'Rule #1 — Joe\'s Coffee Dynamic VCard (Active, Daily refresh — prior config)', changes: []},
-  { id: 5, vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.0', createdBy: 'Admin', createdDate: '15 Jul 2026 16:00', status: 'Published', releaseType: 'Published', notes: 'Major release — full redesign with new branding guidelines.', tags: ['Stable', 'Major Release'], locked: true, snapshotSummary: [
+  { id: '5', vcardName: 'Modern Café VCard', type: 'Business VCard', business: 'Modern Café', businessId: 'BIZ-001', consumer: '—', consumerId: '—', versionNumber: 'v2.0', createdBy: 'Admin', createdDate: '15 Jul 2026 16:00', status: 'Published', releaseType: 'Published', notes: 'Major release — full redesign with new branding guidelines.', tags: ['Stable', 'Major Release'], locked: true, snapshotSummary: [
     { label: 'Components', value: '12 active' }, { label: 'Images', value: '4' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Daily refresh' }, { label: 'Theme', value: 'Restaurant v2' },
   ], components: [
     { name: 'Banner Component', version: 'v2' }, { name: 'Gallery Component', version: 'v1' }, { name: 'Share Component', version: 'v7' }, { name: 'Contact Component', version: 'v2' },
   ], qrConfig: 'Rule #1 — Joe\'s Coffee Dynamic VCard (Active, Daily refresh)', changes: []},
-  { id: 6, vcardName: 'Sarah Johnson VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'Sarah Johnson', consumerId: 'CON-042', versionNumber: 'v3.1', createdBy: 'Consumer', createdDate: '27 Jul 2026 19:45', status: 'Current', releaseType: 'Manual Save', notes: 'Updated profile photo and contact details.', tags: [], locked: false, snapshotSummary: [
+  { id: '6', vcardName: 'Sarah Johnson VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'Sarah Johnson', consumerId: 'CON-042', versionNumber: 'v3.1', createdBy: 'Consumer', createdDate: '27 Jul 2026 19:45', status: 'Current', releaseType: 'Manual Save', notes: 'Updated profile photo and contact details.', tags: [], locked: false, snapshotSummary: [
     { label: 'Components', value: '10 active' }, { label: 'Images', value: '3' }, { label: 'Videos', value: '0' }, { label: 'Dynamic QR', value: 'Active — Gold tier' }, { label: 'Theme', value: 'Gold Elegance' },
   ], components: [
     { name: 'Profile Component', version: 'v5' }, { name: 'Contact Component', version: 'v3' }, { name: 'Share Component', version: 'v8' },
@@ -84,12 +84,12 @@ const VERSIONS: VersionRecord[] = [
     { section: 'Profile Photo', type: 'modified', detail: 'New profile photo uploaded' },
     { section: 'Contact Details', type: 'modified', detail: 'Phone number updated' },
   ]},
-  { id: 7, vcardName: 'Sarah Johnson VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'Sarah Johnson', consumerId: 'CON-042', versionNumber: 'v3.0', createdBy: 'Admin', createdDate: '20 Jul 2026 11:00', status: 'Published', releaseType: 'Published', notes: 'Gold tier upgrade — VCard updated with premium styling.', tags: ['Stable', 'Upgrade'], locked: true, snapshotSummary: [
+  { id: '7', vcardName: 'Sarah Johnson VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'Sarah Johnson', consumerId: 'CON-042', versionNumber: 'v3.0', createdBy: 'Admin', createdDate: '20 Jul 2026 11:00', status: 'Published', releaseType: 'Published', notes: 'Gold tier upgrade — VCard updated with premium styling.', tags: ['Stable', 'Upgrade'], locked: true, snapshotSummary: [
     { label: 'Components', value: '10 active' }, { label: 'Images', value: '2' }, { label: 'Videos', value: '0' }, { label: 'Dynamic QR', value: 'Active — Silver tier' }, { label: 'Theme', value: 'Silver Classic' },
   ], components: [
     { name: 'Profile Component', version: 'v4' }, { name: 'Contact Component', version: 'v2' }, { name: 'Share Component', version: 'v7' },
   ], qrConfig: 'Rule #2 — Gold Tier Rotating Offer (Active, Membership-based)', changes: []},
-  { id: 8, vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.2', createdBy: 'Designer', createdDate: '26 Jul 2026 08:30', status: 'Historical', releaseType: 'Draft', notes: 'WIP — new product showcase section being built. Not ready for review.', tags: ['WIP', 'Internal Review'], locked: false, snapshotSummary: [
+  { id: '8', vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.2', createdBy: 'Designer', createdDate: '26 Jul 2026 08:30', status: 'Historical', releaseType: 'Draft', notes: 'WIP — new product showcase section being built. Not ready for review.', tags: ['WIP', 'Internal Review'], locked: false, snapshotSummary: [
     { label: 'Components', value: '9 active' }, { label: 'Images', value: '2' }, { label: 'Videos', value: '0' }, { label: 'Dynamic QR', value: 'Inactive' }, { label: 'Theme', value: 'Corporate v1' },
   ], components: [
     { name: 'Products Component', version: 'v3-beta' }, { name: 'Banner Component', version: 'v2' }, { name: 'Contact Component', version: 'v3' },
@@ -97,24 +97,24 @@ const VERSIONS: VersionRecord[] = [
     { section: 'Products', type: 'added', detail: 'New product showcase with 6 items' },
     { section: 'Services', type: 'modified', detail: 'Updated service descriptions' },
   ]},
-  { id: 9, vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.1', createdBy: 'System', createdDate: '25 Jul 2026 00:00', status: 'Historical', releaseType: 'Auto Save', notes: 'Auto-save after component update.', tags: ['Auto'], locked: false, snapshotSummary: [
+  { id: '9', vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.1', createdBy: 'System', createdDate: '25 Jul 2026 00:00', status: 'Historical', releaseType: 'Auto Save', notes: 'Auto-save after component update.', tags: ['Auto'], locked: false, snapshotSummary: [
     { label: 'Components', value: '8 active' }, { label: 'Images', value: '2' }, { label: 'Videos', value: '0' }, { label: 'Dynamic QR', value: 'Inactive' }, { label: 'Theme', value: 'Corporate v1' },
   ], components: [
     { name: 'Banner Component', version: 'v2' }, { name: 'Contact Component', version: 'v3' },
   ], qrConfig: 'No active rule', changes: []},
-  { id: 10, vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.0', createdBy: 'Admin', createdDate: '20 Jul 2026 14:00', status: 'Archived', releaseType: 'Published', notes: 'Initial release — corporate profile with basic sections.', tags: ['Stable'], locked: false, snapshotSummary: [
+  { id: '10', vcardName: 'TechCorp Ltd VCard', type: 'Business VCard', business: 'TechCorp Ltd', businessId: 'BIZ-031', consumer: '—', consumerId: '—', versionNumber: 'v1.0', createdBy: 'Admin', createdDate: '20 Jul 2026 14:00', status: 'Archived', releaseType: 'Published', notes: 'Initial release — corporate profile with basic sections.', tags: ['Stable'], locked: false, snapshotSummary: [
     { label: 'Components', value: '7 active' }, { label: 'Images', value: '1' }, { label: 'Videos', value: '0' }, { label: 'Dynamic QR', value: 'Inactive' }, { label: 'Theme', value: 'Corporate v1' },
   ], components: [
     { name: 'Banner Component', version: 'v1' }, { name: 'Contact Component', version: 'v2' },
   ], qrConfig: 'No active rule', changes: []},
-  { id: 11, vcardName: 'Luxury Hotels Ltd VCard', type: 'Business VCard', business: 'Luxury Hotels Ltd', businessId: 'BIZ-003', consumer: '—', consumerId: '—', versionNumber: 'v1.8', createdBy: 'Admin', createdDate: '27 Jul 2026 10:00', status: 'Current', releaseType: 'Hotfix', notes: 'Emergency fix — booking widget was not loading on mobile devices.', tags: ['Emergency Fix'], locked: false, snapshotSummary: [
+  { id: '11', vcardName: 'Luxury Hotels Ltd VCard', type: 'Business VCard', business: 'Luxury Hotels Ltd', businessId: 'BIZ-003', consumer: '—', consumerId: '—', versionNumber: 'v1.8', createdBy: 'Admin', createdDate: '27 Jul 2026 10:00', status: 'Current', releaseType: 'Hotfix', notes: 'Emergency fix — booking widget was not loading on mobile devices.', tags: ['Emergency Fix'], locked: false, snapshotSummary: [
     { label: 'Components', value: '16 active' }, { label: 'Images', value: '12' }, { label: 'Videos', value: '2' }, { label: 'Dynamic QR', value: 'Active — Seasonal' }, { label: 'Theme', value: 'Luxury Hospitality v2' },
   ], components: [
     { name: 'Booking Component', version: 'v4-hotfix1' }, { name: 'Gallery Component', version: 'v3' }, { name: 'Banner Component', version: 'v4' },
   ], qrConfig: 'Rule #3 — Platinum Seasonal Redirect (Active, Membership-based)', changes: [
     { section: 'Booking Widget', type: 'modified', detail: 'Fixed mobile responsiveness issue' },
   ]},
-  { id: 12, vcardName: 'Fitness Studio Pro VCard', type: 'Business VCard', business: 'Fitness Studio Pro', businessId: 'BIZ-007', consumer: '—', consumerId: '—', versionNumber: 'v1.5', createdBy: 'Designer', createdDate: '27 Jul 2026 15:30', status: 'Current', releaseType: 'Manual Save', notes: 'New class schedule added. Trainer profiles expanded.', tags: ['Update'], locked: false, snapshotSummary: [
+  { id: '12', vcardName: 'Fitness Studio Pro VCard', type: 'Business VCard', business: 'Fitness Studio Pro', businessId: 'BIZ-007', consumer: '—', consumerId: '—', versionNumber: 'v1.5', createdBy: 'Designer', createdDate: '27 Jul 2026 15:30', status: 'Current', releaseType: 'Manual Save', notes: 'New class schedule added. Trainer profiles expanded.', tags: ['Update'], locked: false, snapshotSummary: [
     { label: 'Components', value: '11 active' }, { label: 'Images', value: '6' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Daily' }, { label: 'Theme', value: 'Fitness Pro v2' },
   ], components: [
     { name: 'Schedule Component', version: 'v2' }, { name: 'Team Component', version: 'v3' }, { name: 'Share Component', version: 'v8' },
@@ -122,12 +122,12 @@ const VERSIONS: VersionRecord[] = [
     { section: 'Class Schedule', type: 'modified', detail: 'Updated weekly class times' },
     { section: 'Trainer Profiles', type: 'added', detail: 'Added 2 new trainer profiles' },
   ]},
-  { id: 13, vcardName: 'Boutique Hotel VCard', type: 'Business VCard', business: 'Boutique Hotel', businessId: 'BIZ-006', consumer: '—', consumerId: '—', versionNumber: 'v1.0', createdBy: 'Admin', createdDate: '20 Oct 2025 09:00', status: 'Archived', releaseType: 'Archived', notes: 'Business closed. VCard archived per retention policy.', tags: [], locked: false, snapshotSummary: [
+  { id: '13', vcardName: 'Boutique Hotel VCard', type: 'Business VCard', business: 'Boutique Hotel', businessId: 'BIZ-006', consumer: '—', consumerId: '—', versionNumber: 'v1.0', createdBy: 'Admin', createdDate: '20 Oct 2025 09:00', status: 'Archived', releaseType: 'Archived', notes: 'Business closed. VCard archived per retention policy.', tags: [], locked: false, snapshotSummary: [
     { label: 'Components', value: '10 active' }, { label: 'Images', value: '5' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Inactive' }, { label: 'Theme', value: 'Hospitality v1' },
   ], components: [
     { name: 'Booking Component', version: 'v2' }, { name: 'Gallery Component', version: 'v2' },
   ], qrConfig: 'Disabled', changes: []},
-  { id: 14, vcardName: 'James Williams VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'James Williams', consumerId: 'CON-089', versionNumber: 'v2.3', createdBy: 'Admin', createdDate: '25 Jul 2026 13:00', status: 'Current', releaseType: 'Manual Save', notes: 'Updated after Platinum tier upgrade. Exclusive content sections enabled.', tags: ['Upgrade'], locked: false, snapshotSummary: [
+  { id: '14', vcardName: 'James Williams VCard', type: 'Consumer VCard', business: '—', businessId: '—', consumer: 'James Williams', consumerId: 'CON-089', versionNumber: 'v2.3', createdBy: 'Admin', createdDate: '25 Jul 2026 13:00', status: 'Current', releaseType: 'Manual Save', notes: 'Updated after Platinum tier upgrade. Exclusive content sections enabled.', tags: ['Upgrade'], locked: false, snapshotSummary: [
     { label: 'Components', value: '12 active' }, { label: 'Images', value: '4' }, { label: 'Videos', value: '1' }, { label: 'Dynamic QR', value: 'Active — Platinum' }, { label: 'Theme', value: 'Platinum Prestige' },
   ], components: [
     { name: 'Profile Component', version: 'v5' }, { name: 'Gallery Component', version: 'v3' }, { name: 'Share Component', version: 'v8' },
@@ -353,7 +353,7 @@ function ComparisonView({ versionA, versionB, onClose }: { versionA: VersionReco
 
 function VersionWorkspace({ version, versions, onClose }: { version: VersionRecord; versions: VersionRecord[]; onClose: () => void }) {
   const [tab, setTab] = useState<'overview' | 'changes' | 'components' | 'qr'>('overview')
-  const [compareTo, setCompareTo] = useState<number | ''>('')
+  const [compareTo, setCompareTo] = useState<string | ''>('')
   const [showComparison, setShowComparison] = useState(false)
   const [showRestore, setShowRestore] = useState(false)
   const [restoreReason, setRestoreReason] = useState('')
@@ -388,7 +388,7 @@ function VersionWorkspace({ version, versions, onClose }: { version: VersionReco
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <select value={compareTo} onChange={(e) => setCompareTo(e.target.value ? Number(e.target.value) : '')} className="text-[10px] border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+            <select value={compareTo} onChange={(e) => setCompareTo(e.target.value ? e.target.value : '')} className="text-[10px] border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">
               <option value="">Compare with...</option>
               {otherVersions.map(v => <option key={v.id} value={v.id}>{v.versionNumber} ({v.createdDate})</option>)}
             </select>
@@ -529,7 +529,7 @@ export default function VCardVersionHistoryPage() {
   const [releaseTypeFilter, setReleaseTypeFilter] = useState('')
   const [authorFilter, setAuthorFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [workspaceVersion, setWorkspaceVersion] = useState<VersionRecord | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -546,7 +546,7 @@ export default function VCardVersionHistoryPage() {
     return true
   })
 
-  const toggleId = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  const toggleId = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   const toggleAll = () => setSelectedIds(selectedIds.length === filtered.length ? [] : filtered.map(v => v.id))
 
   const bulkAction = (action: string) => {

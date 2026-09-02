@@ -35,6 +35,32 @@ export class ProductImageResponseDto {
   }
 }
 
+export class ExchangeItemResponseDto {
+  @ApiProperty({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' })
+  id!: string
+
+  @ApiProperty({ example: 'Signature Skincare Set' })
+  name!: string
+
+  @ApiPropertyOptional({ example: 'A curated set of skincare essentials' })
+  description!: string | null
+
+  @ApiPropertyOptional({ example: 49.99 })
+  price!: number | null
+
+  @ApiProperty({ example: 'GBP' })
+  currency!: string
+
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/product.png' })
+  image!: string | null
+
+  @ApiProperty({ example: 'The Glow Studio' })
+  business_name!: string | null
+
+  @ApiProperty({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' })
+  business_id!: string
+}
+
 export class ProductResponseDto {
   @ApiProperty({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' })
   id!: string

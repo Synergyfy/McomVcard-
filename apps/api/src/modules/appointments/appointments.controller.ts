@@ -141,6 +141,27 @@ export class AppointmentsController {
     return this.appointmentsService.createAvailability(id, user.id, body)
   }
 
+  @Patch('businesses/:id/availability')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Bulk upsert weekly availability slots', description: 'Creates or updates multiple weekly availability slots for a business owned by the authenticated user. Slots are matched by day_of_week.' })
+  @ApiBody({ type: [CreateAvailabilityDto], examples: { default: { summary: 'Full week schedule', value: [ { day_of_week: 1, start_time: '09:00', end_time: '17:00' }, { day_of_week: 2, start_time: '09:00', end_time: '17:00' }, { day_of_week: 3, start_time: '09:00', end_time: '17:00' }, { day_of_week: 4, start_time: '09:00', end_time: '17:00' }, { day_of_week: 5, start_time: '09:00', end_time: '17:00' } ] } } })
+  @ApiOkResponse({
+    description: 'Availability bulk upserted',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponse) },
+        { properties: { data: { type: 'array', items: { $ref: getSchemaPath(AvailabilityResponseDto) } } } },
+      ],
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @ApiForbiddenResponse({ description: 'You do not own this business' })
+  @ApiNotFoundResponse({ description: 'Business not found' })
+  @ApiBadRequestResponse({ description: 'Invalid input' })
+  async bulkUpsertAvailability(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: UserResponseDto, @Body() body: CreateAvailabilityDto[]) {
+    return this.appointmentsService.bulkUpsertAvailability(id, user.id, body)
+  }
+
   @Patch('availability/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a weekly availability slot', description: 'Updates an availability slot for a business owned by the authenticated user.' })

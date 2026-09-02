@@ -32,7 +32,7 @@ describe('Cards (e2e)', () => {
       return request(app.getHttpServer())
         .post('/api/cards')
         .set('Authorization', `Bearer ${token}`)
-        .send({ slug: `card-crud-${Date.now()}`, type: 'BUSINESS', business_id: businessId })
+        .send({ slug: `card-crud-${Date.now()}`, type: 'BUSINESS_VCARD', card_product: 'VCARD', audience: 'BUSINESS', business_id: businessId })
         .expect(201)
         .expect((res) => {
           cardId = res.body.data.id;
@@ -52,7 +52,7 @@ describe('Cards (e2e)', () => {
       return request(app.getHttpServer())
         .patch(`/api/cards/${cardId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ type: 'BUSINESS' })
+        .send({ type: 'BUSINESS_VCARD' })
         .expect(200);
     });
 
@@ -68,7 +68,7 @@ describe('Cards (e2e)', () => {
     it('no token create → 401', () => {
       return request(app.getHttpServer())
         .post('/api/cards')
-        .send({ slug: 'no-auth-card', type: 'BUSINESS', business_id: businessId })
+        .send({ slug: 'no-auth-card', type: 'BUSINESS_VCARD', card_product: 'VCARD', audience: 'BUSINESS', business_id: businessId })
         .expect(401);
     });
   });

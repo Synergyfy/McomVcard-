@@ -1,207 +1,439 @@
-import {
-  mockConsumers,
-  mockNearbyOffers,
-  mockExchangeItems,
-  mockRedeemItems,
-  mockConsumerNotifications,
-  type MockConsumer,
-  type NearbyOffer,
-  type ExchangeItem,
-  type ConsumerNotification,
-} from './mockData'
+import api from './api'
+import type { User } from '../types'
 
-const CONSUMER_ID = 1
-
-const ACTIVE_CONSUMER_KEY = 'mcom.consumer.active'
-
-const delay = () => new Promise((r) => setTimeout(r, 200))
-
-function api<T>(data: T): Promise<T> {
-  return delay().then(() => Promise.resolve(data))
+export interface ConsumerProfile {
+  id: string
+  name: string
+  email: string
+  phone: string
+  location: string
+  status: 'active' | 'inactive' | 'suspended'
+  joined: string
+  consumerId: string
+  centralUserId: string
+  membership: string
+  membershipStatus: string
+  vcardStatus: string
+  cardStatus: string
+  additionalEntitlements: number
+  allocatedAdditionalCards: number
+  familyAllocations: number
+  friendAllocations: number
+  unallocatedEntitlements: number
+  primaryIssuingBusiness: string
+  primaryIssuingBusinessId: number
+  businessCount: number
+  registrationSource: string
+  lastActivityAt: string
+  allocationType: string
+  wallet: { balance: number; points: number; cashback: number; giftCards: number; coupons: number; vouchers: number; pending?: number; locked?: number }
+  cardBalance?: number
+  stats: { cards: number; rewards: number; referrals: number; scans: number }
+  savedCards: { id: string; name: string; business: string; type: string; source?: string; editable?: boolean }[]
+  rewardHistory: { id: string; reward: string; points: number; date: string; status: string }[]
+  referrals: { name: string; email: string; joined: string; reward: string }[]
+  recentActivity: { action: string; time: string; type: string; status?: string; value?: string; source?: string; detailTo?: string }[]
+  cardId: string
+  cardTemplate: string
+  cardCreated: string
+  cardUpdated: string
+  cardSource: string
+  cardAcquisitionMethod: string
+  cardSourcePlatform: string
+  qrStatus: string
+  qrId: string
+  qrLastScanned: string
+  qrUpdateFrequency: string
+  qrLastContentUpdate: string
+  eCardStatus: string
+  eCardFaceValue: string
+  eCardSource: string
+  eCardId: string
+  eCardIssueDate: string
+  eCardExpiryDate: string
+  additionalCards: { id: string; name: string; relationship: string; status: string; locked: boolean; allocatedAt: string }[]
+  shareContent: { id: string; title: string; source: string; status: string; availableUntil: string }[]
+  cardActivity: { action: string; time: string; type: string; actor: string; source: string; status: string }[]
+  membershipHistory?: { state: string; date: string }[]
 }
 
-function getActiveConsumerId(): number | null {
-  try {
-    const raw = localStorage.getItem(ACTIVE_CONSUMER_KEY)
-    return raw ? Number(raw) : null
-  } catch {
-    return null
+export interface SavedCard {
+  id: string
+  name: string
+  business: string
+  type: string
+  source?: string
+  editable?: boolean
+}
+
+export interface RewardHistoryItem {
+  id: string
+  reward: string
+  points: number
+  date: string
+  status: string
+}
+
+export interface Referral {
+  name: string
+  email: string
+  joined: string
+  reward: string
+}
+
+export interface Wallet {
+  balance: number
+  points: number
+  cashback: number
+  giftCards: number
+  coupons: number
+  vouchers: number
+  pending?: number
+  locked?: number
+}
+
+export interface Membership {
+  id: string
+  user_id: number
+  membership_tier_id: number
+  tier: {
+    id: string
+    name: string
+    discount_type: string
+    discount_value: number
+  }
+  status: string
+  started_at: string
+  expires_at: string | null
+  created_at: string
+}
+
+export interface Card {
+  id: string
+  slug: string
+  type: string
+  name: string
+  category?: string
+  status: number
+  created_at: string
+  updated_at: string
+}
+
+function mapUserToConsumerProfile(user: User): ConsumerProfile {
+  return {
+    id: user.id,
+    name: user.name || user.email,
+    email: user.email,
+    phone: user.phone || '',
+    location: '',
+    status: user.status as 'active' | 'inactive' | 'suspended',
+    joined: user.created_at || '',
+    consumerId: '',
+    centralUserId: '',
+    membership: 'Bronze',
+    membershipStatus: 'Active',
+    vcardStatus: 'Active',
+    cardStatus: 'Active',
+    additionalEntitlements: 0,
+    allocatedAdditionalCards: 0,
+    familyAllocations: 0,
+    friendAllocations: 0,
+    unallocatedEntitlements: 0,
+    primaryIssuingBusiness: '',
+    primaryIssuingBusinessId: 0,
+    businessCount: 0,
+    registrationSource: 'Self',
+    lastActivityAt: user.updated_at || '',
+    allocationType: 'None',
+    wallet: { balance: 0, points: 0, cashback: 0, giftCards: 0, coupons: 0, vouchers: 0 },
+    cardBalance: 0,
+    stats: { cards: 0, rewards: 0, referrals: 0, scans: 0 },
+    savedCards: [],
+    rewardHistory: [],
+    referrals: [],
+    recentActivity: [],
+    cardId: '',
+    cardTemplate: '',
+    cardCreated: '',
+    cardUpdated: '',
+    cardSource: '',
+    cardAcquisitionMethod: '',
+    cardSourcePlatform: '',
+    qrStatus: '',
+    qrId: '',
+    qrLastScanned: '',
+    qrUpdateFrequency: '',
+    qrLastContentUpdate: '',
+    eCardStatus: '',
+    eCardFaceValue: '',
+    eCardSource: '',
+    eCardId: '',
+    eCardIssueDate: '',
+    eCardExpiryDate: '',
+    additionalCards: [],
+    shareContent: [],
+    cardActivity: [],
   }
 }
 
-function setActiveConsumerId(id: number) {
-  try {
-    localStorage.setItem(ACTIVE_CONSUMER_KEY, String(id))
-  } catch {
-    /* ignore quota errors */
+function mapWalletToConsumerWallet(wallet: any): Wallet {
+  return {
+    balance: wallet.balance || 0,
+    points: wallet.reward_balance?.balance || 0,
+    cashback: wallet.cashback || 0,
+    giftCards: wallet.gift_cards || 0,
+    coupons: wallet.coupons || 0,
+    vouchers: wallet.vouchers || 0,
+    pending: wallet.pending || 0,
+    locked: wallet.locked || 0,
   }
 }
 
-/** The consumer whose dashboard is shown — a locally created profile wins, else the seeded demo consumer. */
-function getConsumer(): MockConsumer {
-  const activeId = getActiveConsumerId()
-  const active = activeId != null ? mockConsumers.find((x) => x.id === activeId) : undefined
-  return active || mockConsumers.find((x) => x.id === CONSUMER_ID) || mockConsumers[0]
+function mapMembershipToConsumerMembership(membership: Membership): ConsumerProfile['membership'] {
+  return membership.tier?.name || 'Bronze'
+}
+
+function mapCardsToSavedCards(cards: Card[]): SavedCard[] {
+  return cards.map(card => ({
+    id: card.id,
+    name: card.name || card.slug,
+    business: card.category || 'Business',
+    type: 'Membership',
+    source: 'MCOMVCard',
+    editable: true,
+  }))
+}
+
+function mapRewardTransactionsToHistory(transactions: any[]): RewardHistoryItem[] {
+  return transactions.map((t, i) => ({
+    id: t.id || String(i + 1),
+    reward: t.description || 'Reward',
+    points: t.amount || 0,
+    date: t.created_at || new Date().toISOString().split('T')[0],
+    status: t.status || 'available',
+  }))
+}
+
+function mapReferralsToConsumerReferrals(referrals: any[]): Referral[] {
+  return referrals.map(r => ({
+    name: r.user_name || r.name || 'Unknown',
+    email: r.user_email || r.email || '',
+    joined: r.created_at || r.joined || '',
+    reward: r.reward || r.amount || '0 pts',
+  }))
+}
+
+function mapActivityToConsumerActivity(activities: any[]): ConsumerProfile['recentActivity'] {
+  return activities.map(a => ({
+    action: a.description || a.action || '',
+    time: a.created_at || a.time || '',
+    type: a.module || a.type || 'card',
+    status: a.status || 'Completed',
+    value: a.value,
+    source: a.source,
+    detailTo: a.detailTo,
+  }))
 }
 
 export const consumerService = {
-  async getProfile(): Promise<MockConsumer> {
-    return api(getConsumer())
+  async getProfile(): Promise<ConsumerProfile> {
+    const res = await api.get('/users/me')
+    return mapUserToConsumerProfile(res.data)
   },
-  /** New-vs-existing determination: returns the consumer profile matching an email, if one exists. */
-  async getProfileByEmail(email: string): Promise<MockConsumer | null> {
-    const match = mockConsumers.find((c) => c.email.toLowerCase() === email.toLowerCase())
-    return api(match || null)
+
+  async getProfileByEmail(email: string): Promise<ConsumerProfile | null> {
+    try {
+      const res = await api.get(`/users/by-email/${encodeURIComponent(email)}`)
+      const user = res.data.data || res.data
+      return user ? mapUserToConsumerProfile(user) : null
+    } catch {
+      return null
+    }
   },
-  /** Creates a brand-new consumer profile (first-time setup) and makes it the active one. */
-  async createProfile(data: { name: string; email: string; phone?: string; location?: string }): Promise<MockConsumer> {
-    return delay().then(() => {
-      const id = Math.max(0, ...mockConsumers.map((c) => c.id)) + 1
-      const consumer: MockConsumer = {
-        id,
-        name: data.name,
-        email: data.email,
-        phone: data.phone || '',
-        location: data.location || 'London, UK',
-        status: 'active',
-        joined: 'Just now',
-        consumerId: `MC-CNS-${String(id).padStart(6, '0')}`,
-        centralUserId: `MCOM-U-${String(id).padStart(6, '0')}`,
-        membership: 'Bronze',
-        membershipStatus: 'Active',
-        vcardStatus: 'Active',
-        cardStatus: 'Active',
-        additionalEntitlements: 2,
-        allocatedAdditionalCards: 0,
-        familyAllocations: 2,
-        friendAllocations: 0,
-        unallocatedEntitlements: 2,
-        primaryIssuingBusiness: '',
-        primaryIssuingBusinessId: 0,
-        businessCount: 0,
-        registrationSource: 'Self',
-        lastActivityAt: 'Just now',
-        allocationType: 'None',
-        wallet: { balance: 0, points: 0, cashback: 0, giftCards: 0, coupons: 0, vouchers: 0 },
-        stats: { cards: 1, rewards: 0, referrals: 0, scans: 0 },
-        savedCards: [],
-        rewardHistory: [],
-        referrals: [],
-        recentActivity: [{ action: 'Completed first-time setup', time: 'Just now', type: 'card' }],
-        cardId: `CARD-CNS-${String(id).padStart(6, '0')}`,
-        cardTemplate: 'Consumer Card — Bronze',
-        cardCreated: 'Just now',
-        cardUpdated: 'Just now',
-        cardSource: 'Self-Service',
-        cardAcquisitionMethod: 'First-Time Setup',
-        cardSourcePlatform: '',
-        qrStatus: 'Active',
-        qrId: `QR-CNS-${String(id).padStart(6, '0')}`,
-        qrLastScanned: 'Never',
-        qrUpdateFrequency: 'Weekly',
-        qrLastContentUpdate: 'Just now',
-        eCardStatus: 'Available',
-        eCardFaceValue: '£0.00',
-        eCardSource: 'Self-Service',
-        eCardId: `EC-CNS-${String(id).padStart(6, '0')}`,
-        eCardIssueDate: 'Just now',
-        eCardExpiryDate: '',
-        additionalCards: [],
-        shareContent: [],
-        cardActivity: [
-          { action: 'Consumer profile created', time: 'Just now', type: 'card', actor: data.name, source: 'MCOMVCard', status: 'Successful' },
-          { action: 'First-time setup completed', time: 'Just now', type: 'card', actor: data.name, source: 'MCOMVCard', status: 'Successful' },
-        ],
-      }
-      mockConsumers.push(consumer)
-      setActiveConsumerId(id)
-      return consumer
+
+  async createProfile(data: { name: string; email: string; phone?: string; location?: string }): Promise<ConsumerProfile> {
+    const res = await api.post('/register', {
+      firstName: data.name.split(' ')[0],
+      lastName: data.name.split(' ').slice(1).join(' ') || '',
+      email: data.email,
+      phone: data.phone,
     })
+    return mapUserToConsumerProfile(res.data.user)
   },
-  async getSavedCards(): Promise<MockConsumer['savedCards']> {
-    return api(getConsumer().savedCards || [])
-  },
-  async getRewardHistory(): Promise<MockConsumer['rewardHistory']> {
-    return api(getConsumer().rewardHistory || [])
-  },
-  async getReferrals(): Promise<MockConsumer['referrals']> {
-    return api(getConsumer().referrals || [])
-  },
-  async getWallet(): Promise<MockConsumer['wallet']> {
-    return api(getConsumer().wallet || { balance: 0, points: 0, cashback: 0, giftCards: 0, coupons: 0, vouchers: 0 })
-  },
-  async getCardBalance(): Promise<number> {
-    return api(getConsumer().cardBalance ?? 0)
-  },
-  async fundCard(amount: number, provider?: string): Promise<number> {
-    return delay().then(() => {
-      const via = provider ? ` via ${provider === 'paypal' ? 'PayPal' : 'Stripe'}` : ''
-      const c = getConsumer()
-      c.cardBalance = (c.cardBalance ?? 0) + amount
-      c.recentActivity = [
-        { action: `Added £${amount.toFixed(2)} to card balance${via}`, time: 'Just now', type: 'card' },
-        ...(c.recentActivity || []),
-      ]
-      c.cardActivity = [
-        { action: `Card funded with £${amount.toFixed(2)}${via}`, time: 'Just now', type: 'card', actor: c.name, source: 'MCOM Wallet', status: 'Successful' },
-        ...(c.cardActivity || []),
-      ]
-      return c.cardBalance
+
+  async updateProfile(data: { name?: string; email?: string; phone?: string; location?: string }): Promise<ConsumerProfile> {
+    const firstName = data.name?.split(' ')[0]
+    const lastName = data.name?.split(' ').slice(1).join(' ') || ''
+    const res = await api.patch('/users/me', {
+      first_name: firstName,
+      last_name: lastName,
+      email: data.email,
+      phone: data.phone,
     })
+    return mapUserToConsumerProfile(res.data)
   },
-  async getStats(): Promise<MockConsumer['stats']> {
-    return api(getConsumer().stats || { cards: 0, rewards: 0, referrals: 0, scans: 0 })
+
+  async getSavedCards(): Promise<SavedCard[]> {
+    const res = await api.get('/users/me/cards')
+    return mapCardsToSavedCards(res.data.data || res.data)
   },
-  async getRecentActivity(): Promise<MockConsumer['recentActivity']> {
-    return api(getConsumer().recentActivity || [])
+
+  async getRewardHistory(): Promise<RewardHistoryItem[]> {
+    const res = await api.get('/rewards/transactions')
+    return mapRewardTransactionsToHistory(res.data.data || res.data)
   },
-  async getFamilyCards(): Promise<MockConsumer['additionalCards']> {
-    return api(getConsumer().additionalCards || [])
+
+  async getReferrals(): Promise<Referral[]> {
+    const res = await api.get('/affiliates/me/referrals')
+    return mapReferralsToConsumerReferrals(res.data.data || res.data)
   },
-  async getShareContent(): Promise<MockConsumer['shareContent']> {
-    return api(getConsumer().shareContent || [])
+
+  async getWallet(): Promise<Wallet> {
+    const res = await api.get('/wallet')
+    return mapWalletToConsumerWallet(res.data.data || res.data)
   },
-  async getCardActivity(): Promise<MockConsumer['cardActivity']> {
-    return api(getConsumer().cardActivity || [])
+
+  async getMembership(): Promise<ConsumerProfile['membership']> {
+    const res = await api.get('/memberships')
+    const memberships = res.data.data || res.data
+    const activeMembership = memberships.find((m: Membership) => m.status === 'active') || memberships[0]
+    return activeMembership ? mapMembershipToConsumerMembership(activeMembership) : 'Bronze'
   },
-  async getNearbyOffers(): Promise<NearbyOffer[]> {
-    return api(mockNearbyOffers)
+
+  async getStats(): Promise<ConsumerProfile['stats']> {
+    // This would require a new endpoint or aggregation from multiple endpoints
+    // For now, return from profile or empty
+    const profile = await this.getProfile()
+    return profile.stats
   },
-  async getExchangeItems(): Promise<ExchangeItem[]> {
-    return api(mockExchangeItems)
+
+  async getRecentActivity(): Promise<ConsumerProfile['recentActivity']> {
+    try {
+      const res = await api.get('/activity')
+      const data = res.data.data || res.data
+      return mapActivityToConsumerActivity(Array.isArray(data) ? data : [])
+    } catch {
+      return []
+    }
   },
-  async getRedeemItems(): Promise<ExchangeItem[]> {
-    return api(mockRedeemItems)
+
+  async getFamilyCards(): Promise<ConsumerProfile['additionalCards']> {
+    try {
+      const profile = await this.getProfile()
+      const res = await api.get(`/users/${profile.id}/family-cards`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((c: any) => ({
+        id: c.id || '',
+        name: c.name || c.card_name || '',
+        relationship: c.relationship || 'Family',
+        status: c.status || 'active',
+        locked: !c.can_manage,
+        allocatedAt: c.created_at || '',
+      }))
+    } catch {
+      return []
+    }
   },
-  async getNotifications(): Promise<ConsumerNotification[]> {
-    return api(mockConsumerNotifications)
+
+  async getShareContent(): Promise<ConsumerProfile['shareContent']> {
+    try {
+      const profile = await this.getProfile()
+      const res = await api.get(`/users/${profile.id}/share-content`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((s: any) => ({
+        id: s.id || '',
+        title: s.card_title || s.title || '',
+        source: s.source || 'MCOMVCard',
+        status: s.status || 'active',
+        availableUntil: s.available_until || '',
+      }))
+    } catch {
+      return []
+    }
   },
+
+  async getCardActivity(): Promise<ConsumerProfile['cardActivity']> {
+    try {
+      const profile = await this.getProfile()
+      const cards = profile.savedCards || []
+      if (cards.length === 0) return []
+      const res = await api.get(`/cards/${cards[0].id}/activity`)
+      const data = res.data.data || res.data
+      return (Array.isArray(data) ? data : []).map((a: any) => ({
+        action: a.action || '',
+        time: a.time || a.created_at || '',
+        type: a.type || 'card',
+        actor: a.actor || 'System',
+        source: a.source || 'MCOMVCard',
+        status: a.status || 'Completed',
+      }))
+    } catch {
+      return []
+    }
+  },
+
+  async getNearbyOffers(): Promise<any[]> {
+    try {
+      const res = await api.get('/campaigns/nearby')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
+  },
+
+  async getExchangeItems(): Promise<any[]> {
+    try {
+      const res = await api.get('/products/exchange')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
+  },
+
+  async getRedeemItems(): Promise<any[]> {
+    try {
+      const res = await api.get('/vouchers/redeem/items')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
+  },
+
+  async getNotifications(): Promise<any[]> {
+    try {
+      const res = await api.get('/notifications')
+      return res.data.data || res.data || []
+    } catch {
+      return []
+    }
+  },
+
   async getUnreadNotificationCount(): Promise<number> {
-    return api(mockConsumerNotifications.filter((n) => !n.read).length)
+    const notifications = await this.getNotifications()
+    return notifications.filter((n: any) => !n.read).length
   },
-  async associateCard(cardId: string, business?: string): Promise<MockConsumer> {
-    return delay().then(() => {
-      const c = getConsumer()
-      const id = Math.max(0, ...(c.savedCards || []).map((s) => s.id)) + 1
-      c.savedCards = [
-        { id, name: business || cardId, business: business || 'Business', type: 'Membership', source: 'Card Link', editable: true },
-        ...(c.savedCards || []),
-      ]
-      c.recentActivity = [
-        { action: `Card added from ${business || cardId}`, time: 'Just now', type: 'card' },
-        ...(c.recentActivity || []),
-      ]
-      c.cardActivity = [
-        { action: `Connected to ${business || 'business'} and issued ${cardId}`, time: 'Just now', type: 'card', actor: c.name, source: 'MCOM Central', status: 'Successful' },
-        ...(c.cardActivity || []),
-      ]
-      if (business) {
-        c.primaryIssuingBusiness = business
-        c.primaryIssuingBusinessId = c.primaryIssuingBusinessId || 0
-        c.businessCount = Math.max(1, c.businessCount)
-        c.registrationSource = 'Business'
-      }
-      return c
+
+  async associateCard(cardId: string, business?: string): Promise<ConsumerProfile> {
+    // Use the claim template endpoint or card creation
+    // POST /cards/claim with template_id and business_id
+    const res = await api.post('/cards/claim', {
+      template_id: cardId,
+      business_id: business, // This might need to be a business ID, not name
     })
+    return mapUserToConsumerProfile({ ...res.data.data, ...res.data })
+  },
+
+  async getCardBalance(): Promise<number> {
+    const wallet = await this.getWallet()
+    return wallet.balance
+  },
+
+  async fundCard(amount: number, provider?: string): Promise<number> {
+    const res = await api.post('/wallet/transactions', {
+      type: 'CREDIT',
+      amount,
+      description: `Card funded via ${provider || 'Stripe'}`,
+    })
+    return res.data.data?.balance || amount
   },
 }

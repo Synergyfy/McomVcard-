@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
-import { mockTemplates } from '../../../services/mockData'
+import { adminService } from '../../../services/admin'
 import type { AdminTemplate } from '../../../types'
 
 const CATEGORIES = [
@@ -19,11 +19,38 @@ const TABS = [
 
 export default function TemplateListPage() {
   const navigate = useNavigate()
-  const [data, setData] = useState(mockTemplates)
+  const [data, setData] = useState<AdminTemplate[]>([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [preview, setPreview] = useState<AdminTemplate | null>(null)
   const [tab, setTab] = useState<'business' | 'consumer'>('business')
+
+  useEffect(() => {
+    let cancelled = false
+    adminService.getTemplates()
+      .then((res) => {
+        if (!cancelled) {
+          const items = (res.data ?? []).map((t: any) => ({
+            ...t,
+            status: t.status ?? 'published',
+            is_business: t.is_business ?? true,
+            is_consumer: t.is_consumer ?? false,
+            usage: t.usage ?? 0,
+            created: t.created ?? '',
+            font_family: t.font_family ?? '',
+            primary_color: t.primary_color ?? '#FF5C00',
+            secondary_color: t.secondary_color ?? '#000000',
+            button_style: t.button_style ?? 'rounded',
+            logo_position: t.logo_position ?? 'left',
+            bg_style: t.bg_style ?? 'solid',
+            sections: t.sections ?? {},
+          } as AdminTemplate))
+          setData(items)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const tabData = data.filter((t) => tab === 'business' ? t.is_business : t.is_consumer)
   const filtered = tabData.filter((t) => {
@@ -32,9 +59,9 @@ export default function TemplateListPage() {
     return matchSearch && matchCat
   })
 
-  const toggleStatus = (id: number) => {
-    setData((prev) => prev.map((t) => t.id === id ? { ...t, status: t.status === 'published' ? 'archived' as const : 'published' as const } : t))
-    const t = data.find((x) => x.id === id)
+  const toggleStatus = (id: string) => {
+    setData((prev) => prev.map((t) => String(t.id) === id ? { ...t, status: t.status === 'published' ? 'archived' as const : 'published' as const } : t))
+    const t = data.find((x) => String(x.id) === id)
     toast.success(`"${t?.name}" ${t?.status === 'published' ? 'archived' : 'published'}`)
   }
 

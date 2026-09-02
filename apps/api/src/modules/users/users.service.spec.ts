@@ -4,9 +4,9 @@ import { Repository } from 'typeorm'
 import { UsersService } from './users.service'
 import { User } from './entities/user.entity'
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>
+type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
-function createMockRepo<T = any>(): MockRepo<T> {
+function createMockRepo(): MockRepo {
   return {
     findOne: jest.fn(),
     find: jest.fn(),
@@ -18,10 +18,10 @@ function createMockRepo<T = any>(): MockRepo<T> {
 
 describe('UsersService', () => {
   let service: UsersService
-  let repo: MockRepo<User>
+  let repo: MockRepo
 
   beforeEach(async () => {
-    repo = createMockRepo<User>()
+    repo = createMockRepo()
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

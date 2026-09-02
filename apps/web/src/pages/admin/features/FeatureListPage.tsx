@@ -34,16 +34,16 @@ export default function FeatureListPage() {
 
   const handleSave = async () => {
     try {
-      if (editing && editing.id) await adminService.updateFrontFeature(editing.id, form)
+      if (editing && editing.id) await adminService.updateFrontFeature(String(editing.id), form)
       else await adminService.createFrontFeature(form)
       cancelEdit()
       adminService.getFrontFeatures().then(setItems).catch(() => {})
     } catch {}
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteFrontFeature(id); setItems(items.filter((i) => i.id !== id)) } catch { setItems(items.filter((i) => i.id !== id)) }
+    try { await adminService.deleteFrontFeature(String(id)); setItems(items.filter((i) => String(i.id) !== id)) } catch { setItems(items.filter((i) => String(i.id) !== id)) }
   }
 
   const filtered = items.filter((i) => {

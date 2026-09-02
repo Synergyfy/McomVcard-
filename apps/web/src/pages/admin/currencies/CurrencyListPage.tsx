@@ -7,14 +7,14 @@ import type { Currency } from '../../../types'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
 const MOCK_CURRENCIES: Currency[] = [
-  { id: 1, currency_name: 'US Dollar', currency_code: 'USD', currency_icon: '$' },
-  { id: 2, currency_name: 'Euro', currency_code: 'EUR', currency_icon: '€' },
-  { id: 3, currency_name: 'British Pound', currency_code: 'GBP', currency_icon: '£' },
-  { id: 4, currency_name: 'Japanese Yen', currency_code: 'JPY', currency_icon: '¥' },
-  { id: 5, currency_name: 'Australian Dollar', currency_code: 'AUD', currency_icon: 'A$' },
-  { id: 6, currency_name: 'Canadian Dollar', currency_code: 'CAD', currency_icon: 'C$' },
-  { id: 7, currency_name: 'Indian Rupee', currency_code: 'INR', currency_icon: '₹' },
-  { id: 8, currency_name: 'Brazilian Real', currency_code: 'BRL', currency_icon: 'R$' },
+  { id: '1', currency_name: 'US Dollar', currency_code: 'USD', currency_icon: '$' },
+  { id: '2', currency_name: 'Euro', currency_code: 'EUR', currency_icon: '€' },
+  { id: '3', currency_name: 'British Pound', currency_code: 'GBP', currency_icon: '£' },
+  { id: '4', currency_name: 'Japanese Yen', currency_code: 'JPY', currency_icon: '¥' },
+  { id: '5', currency_name: 'Australian Dollar', currency_code: 'AUD', currency_icon: 'A$' },
+  { id: '6', currency_name: 'Canadian Dollar', currency_code: 'CAD', currency_icon: 'C$' },
+  { id: '7', currency_name: 'Indian Rupee', currency_code: 'INR', currency_icon: '₹' },
+  { id: '8', currency_name: 'Brazilian Real', currency_code: 'BRL', currency_icon: 'R$' },
 ]
 
 export default function CurrencyListPage() {
@@ -33,9 +33,9 @@ export default function CurrencyListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('admin.confirm_delete'))) return
-    try { await adminService.deleteCurrency(id); setCurrencies(currencies.filter((c) => c.id !== id)) } catch { setCurrencies(currencies.filter((c) => c.id !== id)) }
+    try { await adminService.deleteCurrency(String(id)); setCurrencies(currencies.filter((c) => String(c.id) !== id)) } catch { setCurrencies(currencies.filter((c) => String(c.id) !== id)) }
   }
 
   const filtered = currencies.filter((c) => {

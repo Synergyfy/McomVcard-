@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm'
 import { Wishlist } from './wishlist.entity'
 import { Product } from '../../products/entities/product.entity'
+import { User } from '../../users/entities/user.entity'
 
 @Entity({ name: 'wishlist_items' })
 @Unique('uq_wishlist_items_product', ['wishlistId', 'productId'])
@@ -27,6 +28,13 @@ export class WishlistItem {
 
   @Column({ default: 0 })
   position!: number
+
+  @Column({ name: 'fulfilled_by', type: 'uuid', nullable: true })
+  fulfilledBy!: string | null
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'fulfilled_by' })
+  fulfilledByUser!: User | null
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date

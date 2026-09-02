@@ -60,7 +60,7 @@ export default function BusinessVCardTemplatesPage() {
   const [languageFilter, setLanguageFilter] = useState('All')
   const [qrTypeFilter, setQrTypeFilter] = useState('All')
   const [membershipFilter, setMembershipFilter] = useState('All')
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [workspaceTemplate, setWorkspaceTemplate] = useState<BizVCardTemplate | null>(null)
   const [previewTemplate, setPreviewTemplate] = useState<{ name: string; templateId: string; sections: unknown } | null>(null)
   const [activityFor, setActivityFor] = useState<BizVCardTemplate | null>(null)
@@ -85,7 +85,7 @@ export default function BusinessVCardTemplatesPage() {
     return <BusinessVCardWorkspace template={workspaceTemplate} onBack={() => setWorkspaceTemplate(null)} />
   }
 
-  const isStored = (id: number) => allStored.some(s => s.id === id)
+  const isStored = (id: string) => allStored.some(s => String(s.id) === id)
 
   const filtered = all.filter(t => {
     if (statusFilter !== 'all' && t.status.toLowerCase() !== statusFilter) return false
@@ -114,8 +114,8 @@ export default function BusinessVCardTemplatesPage() {
   })
 
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
-  const toggleAll = () => { setSelectedIds(allSelected ? [] : filtered.map(t => t.id)) }
-  const toggleOne = (id: number) => { setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
+  const toggleAll = () => { setSelectedIds(allSelected ? [] : filtered.map(t => String(t.id))) }
+  const toggleOne = (id: string) => { setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
 
   const handleBulkAction = (action: string) => {
     if (selectedIds.length === 0) { toast.error('Select templates first'); return }
@@ -200,7 +200,7 @@ export default function BusinessVCardTemplatesPage() {
     const headers = ['Template ID', 'Name', 'Version', 'Status', 'Category', 'Industry', 'Businesses', 'Claimed', 'QR Type', 'Updated', 'Updated By']
     const rows = filtered.map(t => [
       t.templateId, t.name, `v${t.version}`, t.status, t.category, t.industry,
-      String(t.businessesUsing), String(isStored(t.id) ? 0 : claimedCount(t.id)),
+      String(t.businessesUsing), String(isStored(String(t.id)) ? 0 : claimedCount(t.id)),
       t.qrType, t.lastUpdated, t.updatedBy,
     ])
     const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n')
@@ -393,7 +393,7 @@ export default function BusinessVCardTemplatesPage() {
                 <tr key={t.id} onClick={() => setWorkspaceTemplate(t)}
                   className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
                   <td className="px-2 py-1.5" onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleOne(t.id)}
+                    <input type="checkbox" checked={selectedIds.includes(String(t.id))} onChange={() => toggleOne(String(t.id))}
                       className="rounded border-gray-300 dark:border-gray-600 accent-orange-500" />
                   </td>
                   <td className="px-2 py-1.5">
@@ -431,7 +431,7 @@ export default function BusinessVCardTemplatesPage() {
                   <td className="px-2 py-1.5 text-right text-gray-700 dark:text-gray-300 font-medium">{t.businessesUsing.toLocaleString()}</td>
                   <td className="px-2 py-1.5 text-right">
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-600 text-[9px] font-semibold">
-                      {isStored(t.id) ? 0 : claimedCount(t.id)} claimed
+                      {isStored(String(t.id)) ? 0 : claimedCount(t.id)} claimed
                     </span>
                   </td>
                   <td className="px-2 py-1.5 text-center">
@@ -452,7 +452,7 @@ export default function BusinessVCardTemplatesPage() {
                       {
                         label: 'Preview', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zm-12.542 0C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z',
                         onClick: () => {
-                          if (isStored(t.id)) {
+                           if (isStored(String(t.id))) {
                             const s = allStored.find(x => x.id === t.id)!
                             setPreviewTemplate({ name: t.name, templateId: t.templateId, sections: s.builder.sections })
                           } else {

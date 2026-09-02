@@ -68,7 +68,7 @@ export default function BusinessPublicProfilePage() {
             setLoading(false)
             return
         }
-        participatingBusinessService.getById(numericId)
+        participatingBusinessService.getById(String(numericId))
             .then((b) => {
                 setBusiness(b ?? null)
                 setLoading(false)

@@ -17,9 +17,9 @@ import { User } from '../users/entities/user.entity'
 
 jest.mock('bcryptjs')
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>
+type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
-function createMockRepo<T = any>(): MockRepo<T> {
+function createMockRepo(): MockRepo {
   return {
     findOne: jest.fn(),
     find: jest.fn(),
@@ -55,7 +55,7 @@ describe('AuthService', () => {
   let service: AuthService
   let usersService: { findByEmail: jest.Mock; findById: jest.Mock; create: jest.Mock; update: jest.Mock }
   let jwtService: { sign: jest.Mock; verify: jest.Mock }
-  let refreshTokensRepo: MockRepo<RefreshToken>
+  let refreshTokensRepo: MockRepo
   let rolesService: { ensureDefaultRole: jest.Mock; assignDefaultRole: jest.Mock; getRoleNamesForUser: jest.Mock }
   let mailService: { sendPasswordResetLink: jest.Mock }
   let affiliatesService: { recordReferral: jest.Mock }
@@ -70,7 +70,7 @@ describe('AuthService', () => {
       update: jest.fn(),
     }
     jwtService = { sign: jest.fn().mockReturnValue('jwt-token'), verify: jest.fn() }
-    refreshTokensRepo = createMockRepo<RefreshToken>()
+    refreshTokensRepo = createMockRepo()
     rolesService = {
       ensureDefaultRole: jest.fn().mockResolvedValue(undefined),
       assignDefaultRole: jest.fn().mockResolvedValue(undefined),

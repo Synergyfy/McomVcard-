@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { userService } from '../../../services/user'
 import type { Service } from '../../../types'
 
-interface Props { vcardId: number }
+interface Props { vcardId: string }
 
 export default function VCardEditServicesTab({ vcardId }: Props) {
   const { t } = useTranslation()
@@ -24,7 +24,7 @@ export default function VCardEditServicesTab({ vcardId }: Props) {
 
   const startEdit = (item?: Service) => {
     if (item) { setEditing(item); setForm({ name: item.name, description: item.description || '', price: item.price || 0 }) }
-    else { setEditing({ id: 0, vcard_id: vcardId } as Service); setForm({ name: '', description: '', price: 0 }) }
+    else { setEditing({ id: '0', vcard_id: Number(vcardId) } as unknown as Service); setForm({ name: '', description: '', price: 0 }) }
   }
 
   const cancelEdit = () => { setEditing(null); setForm({ name: '', description: '', price: 0 }) }
@@ -37,15 +37,15 @@ export default function VCardEditServicesTab({ vcardId }: Props) {
       fd.append('description', form.description)
       fd.append('price', String(form.price))
       if (fileRef.current?.files?.[0]) fd.append('image', fileRef.current.files[0])
-      if (editing?.id) await userService.updateService(vcardId, editing.id, fd)
+      if (editing?.id && editing.id !== '0') await userService.updateService(editing.id, fd)
       else await userService.createService(vcardId, fd)
       cancelEdit(); fetch(); setMessage(t('user.saved'))
     } catch {}
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm(t('user.confirm_delete'))) return
-    try { await userService.deleteService(vcardId, id); fetch() } catch {}
+    try { await userService.deleteService(id); fetch() } catch {}
   }
 
   if (loading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
