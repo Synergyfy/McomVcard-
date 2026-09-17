@@ -2,7 +2,7 @@
 
 Tracked per the backend plan (Phases 1–18). Keep this file updated after every completed task.
 
-> Last updated: 2026-09-01 (session: 5 admin entity modules created — ActivityLog admin wiring, Newsletter, Subscriber, Country, CouponCode with entities/services/DTOs/modules/controllers)
+> Last updated: 2026-09-17 (session: migrated DB env to Supabase, renamed DB_* → POSTGRES_*, created missing currencies migration, verified health endpoint)
 > Working branch: `logic`
 > Latest commits: `7ce9c2a` (feat(api): replace 7 stubbed admin modules), `50c5793` (feat: complete mock-to-API migration), `a87ea3e` (feat: connect remaining mock services)
 
