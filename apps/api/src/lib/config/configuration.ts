@@ -7,11 +7,11 @@ export default () => ({
     expiresIn: process.env.JWT_EXPIRES_IN || '1h',
   },
   db: {
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT) || 5432,
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASS || 'postgres',
-    database: process.env.DB_NAME || 'mcomvcard',
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: Number(process.env.POSTGRES_PORT) || 5432,
+    username: process.env.POSTGRES_USERNAME || 'postgres',
+    password: process.env.POSTGRES_PASSWORD || 'postgres',
+    database: process.env.POSTGRES_NAME || 'mcomvcard',
   },
   mcom: {
     solutionsUrl: (process.env.MCOM_SOLUTIONS_URL || 'http://localhost:3010').replace(/\/+$/, ''),

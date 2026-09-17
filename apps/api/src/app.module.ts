@@ -45,11 +45,11 @@ import { APP_GUARD } from '@nestjs/core'
     ConfigModule.forRoot({ isGlobal: true, validationSchema }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASS || 'postgres',
-      database: process.env.DB_NAME || 'mcomvcard',
+      host: process.env.POSTGRES_HOST || 'localhost',
+      port: Number(process.env.POSTGRES_PORT) || 5432,
+      username: process.env.POSTGRES_USERNAME || 'postgres',
+      password: process.env.POSTGRES_PASSWORD || 'postgres',
+      database: process.env.POSTGRES_NAME || 'mcomvcard',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       // Disable synchronize in production regardless of TYPEORM_SYNC
       synchronize: process.env.NODE_ENV === 'production' ? false : process.env.TYPEORM_SYNC === 'true',
