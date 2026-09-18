@@ -2,8 +2,10 @@ import axios from 'axios'
 import { tokenStore } from './tokenStore'
 import { attach401Retry } from './retry401'
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: {
     'Accept': 'application/json',
   },
