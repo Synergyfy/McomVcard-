@@ -36,7 +36,7 @@ export default function ConsumerPath() {
                             Create your digital card, issue cards and vCards to your customers, and manage rewards, campaigns and bookings.
                         </p>
                         <Link
-                            to="/register"
+                            to="/login"
                             className="inline-block px-6 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all active:scale-[0.98]"
                         >
                             Start Your Business
@@ -93,7 +93,7 @@ export default function ConsumerPath() {
                     </div>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-6">
                         Already have a card or invitation? <Link to="/login" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">Sign in</Link> or{' '}
-                        <Link to="/register" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">create your MCOM account</Link>.
+                        <Link to="/login" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">create your MCOM account</Link>.
                     </p>
                 </div>
             </div>

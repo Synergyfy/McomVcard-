@@ -41,7 +41,7 @@ export default function ConsumerWelcomeGate({ cardId, business }: ConsumerWelcom
 
           <div className="mt-6 space-y-3">
             <Link
-              to={`/register?card=${encodeURIComponent(cardId)}&business=${encodeURIComponent(business || '')}`}
+              to={`/login?card=${encodeURIComponent(cardId)}&business=${encodeURIComponent(business || '')}`}
               className="block w-full py-3.5 text-center rounded-2xl bg-accent-500 text-white text-sm font-bold shadow-lg shadow-accent-500/25 hover:bg-accent-600 transition-colors"
             >
               Create an Account

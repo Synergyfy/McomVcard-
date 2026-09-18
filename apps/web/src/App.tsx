@@ -27,7 +27,6 @@ const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const ContactPage = lazy(() => import('./pages/ContactPage'))
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
-const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
 const AuthCallbackPage = lazy(() => import('./pages/auth/AuthCallbackPage'))
 const SsoLoginPage = lazy(() => import('./pages/auth/SsoLoginPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
@@ -233,7 +232,6 @@ export default function App() {
                 </Route>
 
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/auth/callback" element={<AuthCallbackPage />} />
                 <Route path="/sso-login" element={<SsoLoginPage />} />
                 <Route path="/onboarding/mcom-solutions" element={<MCOMSolutionsPage />} />
