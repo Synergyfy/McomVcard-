@@ -1,0 +1,33 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "api-init",
+    "dev",
+    "feat/centralized-mcom-wallet",
+    "feat/mcom-ecosystem-integration-spec",
+    "frank",
+    "logic",
+    "main",
+    "monorepo-migration"
+  ],
+  "parent": {
+    "api-init": "main",
+    "dev": "main",
+    "feat/centralized-mcom-wallet": "main",
+    "feat/mcom-ecosystem-integration-spec": "main",
+    "frank": "main",
+    "logic": "main",
+    "main": null,
+    "monorepo-migration": "main"
+  },
+  "order": [
+    "main",
+    "api-init",
+    "dev",
+    "feat/centralized-mcom-wallet",
+    "feat/mcom-ecosystem-integration-spec",
+    "frank",
+    "logic",
+    "monorepo-migration"
+  ]
+}
