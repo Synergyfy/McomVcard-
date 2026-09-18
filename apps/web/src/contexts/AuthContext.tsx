@@ -2,18 +2,15 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { authService } from '../services/auth'
 import { mcomService, type SsoCompleteResult } from '../services/mcom'
 import { tokenStore } from '../services/tokenStore'
-import type { User, LoginData, RegisterData } from '../types'
+import type { User } from '../types'
 
 interface AuthContextValue {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   isImpersonating: boolean
-  login: (data: LoginData) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   updateUser: (user: User) => void
-  impersonate: (userId: string) => Promise<void>
   stopImpersonating: () => Promise<void>
   loginWithMcom: (options?: { card?: string; business?: string; redirect?: string }) => Promise<void>
   completeMcomCallback: (code: string, state: string) => Promise<SsoCompleteResult>
@@ -72,22 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false))
   }, [setStoredUser])
 
-  const login = useCallback(
-    async (data: LoginData) => {
-      const res = await authService.login(data)
-      setStoredUser(res.user)
-    },
-    [setStoredUser],
-  )
-
-  const register = useCallback(
-    async (data: RegisterData) => {
-      const res = await authService.register(data)
-      setStoredUser(res.user)
-    },
-    [setStoredUser],
-  )
-
   const logout = useCallback(async () => {
     try {
       await authService.logout()
@@ -101,15 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = useCallback(
     (u: User) => {
       setStoredUser(u)
-    },
-    [setStoredUser],
-  )
-
-  const impersonate = useCallback(
-    async (userId: string) => {
-      const res = await authService.impersonate(userId)
-      setStoredUser(res.user)
-      setIsImpersonating(true)
     },
     [setStoredUser],
   )
@@ -164,11 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isLoading,
         isImpersonating,
-        login,
-        register,
         logout,
         updateUser,
-        impersonate,
         stopImpersonating,
         loginWithMcom,
         completeMcomCallback,

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { tokenStore } from './tokenStore'
 import { attach401Retry } from './retry401'
 import { mapApiUser, type ApiUserResponse } from '../types'
-import type { LoginData, RegisterData, ForgotPasswordData, ResetPasswordData, ProfileData, ChangePasswordData, AuthResponse, User } from '../types'
+import type { ForgotPasswordData, ResetPasswordData, ProfileData, ChangePasswordData, AuthResponse, User } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -21,28 +21,6 @@ api.interceptors.request.use((config) => {
 attach401Retry(api)
 
 export const authService = {
-  async login(data: LoginData): Promise<AuthResponse> {
-    const res = await api.post('/login', data)
-    const body = res.data.data
-    tokenStore.set(body.token)
-    return {
-      token: body.token,
-      refresh_token: body.refresh_token,
-      user: mapApiUser(body.user as ApiUserResponse),
-    }
-  },
-
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const res = await api.post('/register', data)
-    const body = res.data.data
-    tokenStore.set(body.token)
-    return {
-      token: body.token,
-      refresh_token: body.refresh_token,
-      user: mapApiUser(body.user as ApiUserResponse),
-    }
-  },
-
   async logout(): Promise<{ message: string }> {
     const res = await api.post('/logout')
     tokenStore.clear()

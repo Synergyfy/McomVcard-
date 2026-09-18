@@ -88,7 +88,7 @@ export default function ChooseMembership() {
                     </span>
                   )}
                 </div>
-                <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={() => navigate('/register')} />
+                <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={() => navigate('/login')} />
               </div>
 
               {/* Comparison */}
@@ -103,7 +103,7 @@ export default function ChooseMembership() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
               <Link
-                to="/register"
+                to="/login"
                 className="inline-flex items-center px-6 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all active:scale-[0.98]"
               >
                 Start Your Business
