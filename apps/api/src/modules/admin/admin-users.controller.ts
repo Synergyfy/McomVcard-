@@ -82,6 +82,88 @@ class CreateUserBodyDto {
   @IsOptional()
   @IsString()
   last_name?: string
+
+  @ApiPropertyOptional({ example: '+447700900123' })
+  @IsOptional()
+  @IsString()
+  phone?: string
+
+  @ApiPropertyOptional({ example: 'Managing Director' })
+  @IsOptional()
+  @IsString()
+  job_title?: string
+
+  @ApiPropertyOptional({ example: '1 High Street, London' })
+  @IsOptional()
+  @IsString()
+  address?: string
+
+  @ApiPropertyOptional({ example: 'https://example.com' })
+  @IsOptional()
+  @IsString()
+  company_website?: string
+
+  @ApiPropertyOptional({ enum: ['active', 'suspended'], example: 'active' })
+  @IsOptional()
+  @IsIn(['active', 'suspended'])
+  status?: 'active' | 'suspended'
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  is_verified?: boolean
+}
+
+class UpdateUserBodyDto {
+  @ApiPropertyOptional({ example: 'John' })
+  @IsOptional()
+  @IsString()
+  first_name?: string
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  @IsOptional()
+  @IsString()
+  last_name?: string
+
+  @ApiPropertyOptional({ example: 'user@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string
+
+  @ApiPropertyOptional({ example: '+447700900123' })
+  @IsOptional()
+  @IsString()
+  phone?: string
+
+  @ApiPropertyOptional({ example: 'Managing Director' })
+  @IsOptional()
+  @IsString()
+  job_title?: string
+
+  @ApiPropertyOptional({ example: '1 High Street, London' })
+  @IsOptional()
+  @IsString()
+  address?: string
+
+  @ApiPropertyOptional({ example: 'https://example.com' })
+  @IsOptional()
+  @IsString()
+  company_website?: string
+
+  @ApiPropertyOptional({ enum: ['active', 'suspended', 'banned', 'deactivated'] })
+  @IsOptional()
+  @IsIn(['active', 'suspended', 'banned', 'deactivated'])
+  status?: 'active' | 'suspended' | 'banned' | 'deactivated'
+
+  @ApiPropertyOptional({ example: 'secret123', description: 'New password (min 8 chars)' })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string
+
+  @ApiPropertyOptional({ example: 'secret123', description: 'Must match password' })
+  @IsOptional()
+  @IsString()
+  password_confirmation?: string
 }
 
 
@@ -114,9 +196,8 @@ export class AdminUsersController {
     const sortField = sortMap[sort] || 'u.createdAt'
 
     const qb = this.userRepo.createQueryBuilder('u')
-      .leftJoin('u.userRoles', 'ur')
-      .leftJoin('ur.role', 'r')
-      .addSelect('r.name', 'role_name')
+      .leftJoinAndSelect('u.userRoles', 'ur')
+      .leftJoinAndSelect('ur.role', 'r')
 
     if (search) {
       qb.andWhere(
@@ -153,6 +234,9 @@ export class AdminUsersController {
         first_name: user.firstName ?? null,
         last_name: user.lastName ?? null,
         phone: user.phone ?? null,
+        job_title: user.jobTitle ?? null,
+        address: user.address ?? null,
+        company_website: user.companyWebsite ?? null,
         status: user.status,
         is_verified: user.isVerified,
         created_at: user.createdAt,
@@ -210,6 +294,9 @@ export class AdminUsersController {
       first_name: user.firstName ?? null,
       last_name: user.lastName ?? null,
       phone: user.phone ?? null,
+      job_title: user.jobTitle ?? null,
+      address: user.address ?? null,
+      company_website: user.companyWebsite ?? null,
       status: user.status,
       is_verified: user.isVerified,
       created_at: user.createdAt,
@@ -219,6 +306,59 @@ export class AdminUsersController {
     return ApiResponse.success(data, 'User retrieved', 200)
   }
 
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a user (admin)' })
+  @ApiParam({ name: 'id', description: 'User UUID', type: String })
+  @ApiBody({ type: UpdateUserBodyDto })
+  @ApiOkResponse({ description: 'Updated user' })
+  async updateUser(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateUserBodyDto) {
+    const user = await this.userRepo.findOne({ where: { id } })
+    if (!user) return ApiResponse.message('User not found', 404)
+
+    if (body.email && body.email.toLowerCase() !== user.email) {
+      const existing = await this.userRepo.findOne({ where: { email: body.email.toLowerCase() } })
+      if (existing) return ApiResponse.message('Email already in use', 400)
+      user.email = body.email.toLowerCase()
+    }
+
+    if (body.first_name !== undefined) user.firstName = body.first_name
+    if (body.last_name !== undefined) user.lastName = body.last_name
+    if (body.phone !== undefined) user.phone = body.phone
+    if (body.job_title !== undefined) user.jobTitle = body.job_title
+    if (body.address !== undefined) user.address = body.address
+    if (body.company_website !== undefined) user.companyWebsite = body.company_website
+    if (body.status !== undefined) user.status = body.status
+
+    if (body.password !== undefined) {
+      if (body.password !== body.password_confirmation) {
+        return ApiResponse.message('Passwords do not match', 400)
+      }
+      user.passwordHash = await bcrypt.hash(body.password, 10)
+    }
+
+    const saved = await this.userRepo.save(user)
+    const roles = await this.rolesService.getRoleNamesForUser(saved.id)
+
+    return ApiResponse.success(
+      {
+        id: saved.id,
+        email: saved.email,
+        first_name: saved.firstName ?? null,
+        last_name: saved.lastName ?? null,
+        phone: saved.phone ?? null,
+        job_title: saved.jobTitle ?? null,
+        address: saved.address ?? null,
+        company_website: saved.companyWebsite ?? null,
+        status: saved.status,
+        is_verified: saved.isVerified,
+        created_at: saved.createdAt,
+        roles,
+      },
+      'User updated',
+      200,
+    )
+  }
 
   @Patch(':id/status')
   @ApiOperation({
@@ -261,6 +401,9 @@ export class AdminUsersController {
       first_name: user.firstName ?? null,
       last_name: user.lastName ?? null,
       phone: user.phone ?? null,
+      job_title: user.jobTitle ?? null,
+      address: user.address ?? null,
+      company_website: user.companyWebsite ?? null,
       status: user.status,
       is_verified: user.isVerified,
       created_at: user.createdAt,
@@ -326,7 +469,13 @@ export class AdminUsersController {
         passwordHash: hashed,
         firstName: body.first_name ?? null,
         lastName: body.last_name ?? null,
-        status: 'active',
+        phone: body.phone ?? null,
+        jobTitle: body.job_title ?? null,
+        address: body.address ?? null,
+        companyWebsite: body.company_website ?? null,
+        status: body.status ?? 'active',
+        isVerified: body.is_verified ?? false,
+        emailVerifiedAt: body.is_verified ? new Date() : null,
       }),
     )
 
@@ -383,6 +532,9 @@ export class AdminUsersController {
         first_name: user.firstName ?? null,
         last_name: user.lastName ?? null,
         phone: user.phone ?? null,
+        job_title: user.jobTitle ?? null,
+        address: user.address ?? null,
+        company_website: user.companyWebsite ?? null,
         status: user.status,
         is_verified: user.isVerified,
         created_at: user.createdAt,

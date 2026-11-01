@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { adminService } from '../../../services/admin'
 import type { Template } from '../../../types'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 const CATEGORIES = [
   'Restaurant', 'Café', 'Barber', 'Beauty Salon', 'Accountant', 'Estate Agent',
@@ -152,7 +153,7 @@ export default function TemplateCreatePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"><span className="flex items-center">Description<InfoTooltip text="Optional explanation shown to other administrators." /></span></label>
                   <textarea value={form.description} onChange={(e) => update('description', e.target.value)} rows={3} placeholder="Describe this template..." className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500" />
                 </div>
                 <div>
@@ -194,14 +195,14 @@ export default function TemplateCreatePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Primary Color</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"><span className="flex items-center">Primary Color<InfoTooltip text="Main brand colour used for buttons and active navigation." /></span></label>
                     <div className="flex items-center gap-3">
                       <input type="color" value={form.colorPrimary} onChange={(e) => update('colorPrimary', e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
                       <span className="text-sm text-gray-500 dark:text-gray-400">{form.colorPrimary}</span>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Secondary Color</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"><span className="flex items-center">Secondary Color<InfoTooltip text="Supporting brand colour used for highlights." /></span></label>
                     <div className="flex items-center gap-3">
                       <input type="color" value={form.colorSecondary} onChange={(e) => update('colorSecondary', e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
                       <span className="text-sm text-gray-500 dark:text-gray-400">{form.colorSecondary}</span>

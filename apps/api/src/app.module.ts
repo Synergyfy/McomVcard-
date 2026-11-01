@@ -40,11 +40,13 @@ import { ContactModule } from './modules/contact/contact.module'
 import { SystemPlansModule } from './modules/system-plans/system-plans.module'
 import { McomModule } from './modules/mcom/mcom.module'
 import { PaymentsModule } from './modules/payments/payments.module'
+import { CacheModule } from './lib/cache/cache.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], validationSchema }),
+    CacheModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',

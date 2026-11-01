@@ -4,14 +4,7 @@ import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 import InputField from '../../../components/auth/InputField'
 
-const MOCK = [
-  { id: 1, name: 'GreenLeaf QR', type: 'Card QR', business: 'GreenLeaf Coffee', scans: 1280, status: 'active', created: 'Jan 2026' },
-  { id: 2, name: 'Summer Campaign QR', type: 'Campaign QR', business: 'TechVision Inc', scans: 4500, status: 'active', created: 'Mar 2026' },
-  { id: 3, name: 'Reward Redemption', type: 'Reward QR', business: 'Pizza Roma', scans: 890, status: 'active', created: 'Apr 2026' },
-  { id: 4, name: 'Event Check-in', type: 'Event QR', business: 'Coastal Realty', scans: 2100, status: 'active', created: 'May 2026' },
-  { id: 5, name: 'Booking QR', type: 'Booking QR', business: 'FitLife Studio', scans: 560, status: 'inactive', created: 'Feb 2026' },
-  { id: 6, name: 'Store Link QR', type: 'Store QR', business: 'Bloom Beauty Salon', scans: 340, status: 'active', created: 'Jun 2026' },
-]
+
 
 const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) => (
   <label className="flex items-center gap-2.5 cursor-pointer">
@@ -24,7 +17,7 @@ const Toggle = ({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 )
 
 export default function QRCodeListPage() {
-  const [data] = useState(MOCK)
+  const [data] = useState<any[]>([])
   const [settings, setSettings] = useState({ default_size: 300, foreground_color: '#000000', background_color: '#FFFFFF', error_correction: 'M', default_format: 'png', include_logo: true, logo_size: 60, corner_style: 'square' })
   const [saving, setSaving] = useState(false)
 
@@ -45,7 +38,7 @@ export default function QRCodeListPage() {
         <StatsCard title="Total QR Codes" value={data.length} color="blue" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>} />
         <StatsCard title="Active" value={data.filter((q) => q.status === 'active').length} color="green" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         <StatsCard title="Total Scans" value={data.reduce((s, q) => s + q.scans, 0).toLocaleString()} color="purple" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>} />
-        <StatsCard title="Avg Scans/Code" value={Math.round(data.reduce((s, q) => s + q.scans, 0) / data.length).toLocaleString()} color="orange" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
+        <StatsCard title="Avg Scans/Code" value={(data.length ? Math.round(data.reduce((s, q) => s + q.scans, 0) / data.length) : 0).toLocaleString()} color="orange" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-x-auto">
         <table className="w-full">

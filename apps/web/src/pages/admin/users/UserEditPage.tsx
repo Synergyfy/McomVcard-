@@ -2,24 +2,15 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 import toast from 'react-hot-toast'
 
-const MOCK_SUBSCRIPTIONS = [
-  { id: 1, plan_name: 'Pro', status: 'active', start_date: '2025-03-01', end_date: '2025-07-01', payment_type: 'stripe' },
-  { id: 2, plan_name: 'Free', status: 'expired', start_date: '2025-01-01', end_date: '2025-03-01', payment_type: '' },
-]
 
-const MOCK_VCARDS = [
-  { id: 1, name: 'Business Card', url_slug: 'sarah-business', status: 1, created_at: '2025-03-15' },
-  { id: 2, name: 'Personal Card', url_slug: 'sarah-personal', status: 1, created_at: '2025-04-01' },
-]
 
-const MOCK_ACTIVITY = [
-  { action: 'Logged in', time: '2 hours ago' },
-  { action: 'Updated profile', time: '1 day ago' },
-  { action: 'Created new vCard', time: '3 days ago' },
-  { action: 'Subscribed to Pro plan', time: '1 week ago' },
-]
+
+
+
 
 export default function UserEditPage() {
   const navigate = useNavigate()
@@ -35,6 +26,10 @@ export default function UserEditPage() {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [activeTab, setActiveTab] = useState<'edit' | 'password' | 'subscriptions' | 'vcards' | 'activity'>('edit')
+  const [subscriptions, setSubscriptions] = useState<any[]>([])
+  const [userCards, setUserCards] = useState<any[]>([])
+  const [activity, setActivity] = useState<any[]>([])
+  const [, setTabLoading] = useState(false)
 
   const userName = `${form.first_name} ${form.last_name}`.trim() || 'Loading...'
   const initial = userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -45,8 +40,8 @@ export default function UserEditPage() {
       .then((u: any) => {
         setForm({
           first_name: u.first_name || '', last_name: u.last_name || '',
-          email: u.email, contact: u.phone || u.contact || '', location: u.location || '',
-          occupation: u.occupation || '', website: u.website || '', bio: u.description || '',
+          email: u.email, contact: u.phone || u.contact || '', location: u.address || u.location || '',
+          occupation: u.job_title || u.occupation || '', website: u.company_website || u.website || '', bio: u.description || '',
           is_active: u.status === 'active' || u.is_active, is_verified: u.is_verified,
         })
       })
@@ -54,18 +49,54 @@ export default function UserEditPage() {
       .finally(() => setFetching(false))
   }, [id])
 
+
   const update = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }))
+
+  useEffect(() => {
+    if (!id || activeTab === 'edit' || activeTab === 'password') return
+    let cancelled = false
+    setTabLoading(true)
+    const request = activeTab === 'subscriptions'
+      ? adminService.getSubscribedUserPlans({ page: 1, limit: 100, search: form.email || undefined }).then((res) => rowsOf(res).filter((plan: any) => String(plan.user_id) === String(id) || plan.user_email === form.email))
+      : activeTab === 'vcards'
+        ? adminService.getVcards({ page: 1, limit: 100 }).then((res) => rowsOf(res).filter((card: any) => String(card.owner?.id ?? card.owner_id) === String(id)))
+        : adminService.getActivityLogs({ page: 1, limit: 50, userId: id as string }).then((res) => rowsOf(res))
+    request.then((rows) => {
+      if (cancelled) return
+      if (activeTab === 'subscriptions') setSubscriptions(rows)
+      else if (activeTab === 'vcards') setUserCards(rows)
+      else setActivity(rows)
+    }).catch(() => {}).finally(() => { if (!cancelled) setTabLoading(false) })
+    return () => { cancelled = true }
+  }, [activeTab, id, form.email])
+
+  const validateForm = () => {
+    const next: Record<string, string> = {}
+    if (!form.first_name.trim()) next.first_name = 'First name is required'
+    if (!form.email.trim()) next.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) next.email = 'Enter a valid email address'
+    if (form.website && !/^https?:\/\/.+/i.test(form.website)) next.website = 'Website must start with http:// or https://'
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
+    if (!validateForm()) return
     setLoading(true)
     try {
       await adminService.updateUser(id as string, {
-        first_name: form.first_name || undefined, last_name: form.last_name || undefined,
-        email: form.email, phone: form.contact || undefined,
-        status: form.is_active ? 'active' : 'inactive',
-      })
+        first_name: form.first_name || undefined,
+        last_name: form.last_name || undefined,
+        email: form.email.trim().toLowerCase(),
+        phone: form.contact || undefined,
+        job_title: form.occupation || undefined,
+        address: form.location || undefined,
+        company_website: form.website || undefined,
+        status: form.is_active ? 'active' : 'deactivated',
+      } as any)
       toast.success('User updated successfully')
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'An error occurred'
@@ -82,8 +113,8 @@ export default function UserEditPage() {
   }
 
   const handlePasswordChange = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters')
+    if (!newPassword || newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters')
       return
     }
     setLoading(true)
@@ -156,41 +187,37 @@ export default function UserEditPage() {
           <div className="p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name<InfoTooltip text="The user's given name, used on cards and in transactional email greetings." /></label>
                 <input type="text" value={form.first_name} onChange={(e) => update('first_name', e.target.value)} className={inputClass('first_name')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name<InfoTooltip text="The user's family name. Optional but recommended for display." /></label>
                 <input type="text" value={form.last_name} onChange={(e) => update('last_name', e.target.value)} className={inputClass('last_name')} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email<InfoTooltip text="The sign-in address and destination for transactional email. Must be unique." /></label>
               <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className={inputClass('email')} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone<InfoTooltip text="Contact number stored on the profile and shared on the public card when enabled." /></label>
                 <input type="text" value={form.contact} onChange={(e) => update('contact', e.target.value)} className={inputClass('contact')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location<InfoTooltip text="Postal address shown on the user's profile." /></label>
                 <input type="text" value={form.location} onChange={(e) => update('location', e.target.value)} className={inputClass('location')} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Occupation</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Occupation<InfoTooltip text="Job title or role displayed on the user's VCard." /></label>
                 <input type="text" value={form.occupation} onChange={(e) => update('occupation', e.target.value)} className={inputClass('occupation')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website</label>
+                <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website<InfoTooltip text="Public website or portfolio URL. Must include http:// or https://." /></label>
                 <input type="url" value={form.website} onChange={(e) => update('website', e.target.value)} className={inputClass('website')} />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
-              <textarea value={form.bio} onChange={(e) => update('bio', e.target.value)} rows={3} className={inputClass('bio')} />
             </div>
           </div>
           <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
@@ -218,7 +245,7 @@ export default function UserEditPage() {
           </div>
           <div className="p-6 space-y-5">
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+              <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
               <div className="relative">
                 <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" className={inputClass('password')} />
                 <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -254,7 +281,7 @@ export default function UserEditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                {MOCK_SUBSCRIPTIONS.map((sub) => (
+                {subscriptions.length === 0 ? <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400">No subscriptions found for this user.</td></tr> : subscriptions.map((sub) => (
                   <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{sub.plan_name}</td>
                     <td className="px-6 py-3">
@@ -289,16 +316,16 @@ export default function UserEditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                {MOCK_VCARDS.map((vc) => (
+                {userCards.length === 0 ? <tr><td colSpan={4} className="px-6 py-10 text-center text-sm text-gray-400">No cards found for this user.</td></tr> : userCards.map((vc) => (
                   <tr key={vc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{vc.name}</td>
-                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">/{vc.url_slug}</td>
+                    <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{vc.name || vc.slug}</td>
+                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">/{vc.slug ?? vc.url_slug}</td>
                     <td className="px-6 py-3">
                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${vc.status ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-50 text-red-700'}`}>
                         {vc.status ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{vc.created_at}</td>
+                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{vc.created_at ? new Date(vc.created_at).toLocaleDateString() : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -313,11 +340,11 @@ export default function UserEditPage() {
             <h2 className="font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
           </div>
           <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-            {MOCK_ACTIVITY.map((a, i) => (
+            {activity.length === 0 ? <div className="px-6 py-10 text-center text-sm text-gray-400">No activity recorded for this user.</div> : activity.map((a, i) => (
               <div key={i} className="px-6 py-4 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{a.action}</p>
-                <p className="text-xs text-gray-400">{a.time}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{a.title || a.action}</p>
+                <p className="text-xs text-gray-400">{a.created_at ? new Date(a.created_at).toLocaleString() : a.time}</p>
               </div>
             ))}
           </div>

@@ -2,16 +2,9 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_FEATURES: any[] = [
-  { id: 1, name: 'QR Code Generation', description: 'Generate unique QR codes for each vCard that link directly to your digital business card.' },
-  { id: 2, name: 'Social Media Links', description: 'Add links to all your social media profiles including Instagram, LinkedIn, Twitter, and Facebook.' },
-  { id: 3, name: 'Analytics Dashboard', description: 'Track views, clicks, and engagement with detailed analytics for each of your vCards.' },
-  { id: 4, name: 'Custom Branding', description: 'Customize the look and feel of your vCard with your own colors, fonts, and logo.' },
-  { id: 5, name: 'Multiple Templates', description: 'Choose from a wide variety of professionally designed templates for your vCard.' },
-  { id: 6, name: 'Contact Sharing', description: 'Share your vCard with one tap via email, text message, or any messaging platform.' },
-]
 
 export default function FeatureListPage() {
   const { t } = useTranslation()
@@ -24,8 +17,8 @@ export default function FeatureListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getFrontFeatures()
-      .then((res) => setItems(res.length ? res : MOCK_FEATURES))
-      .catch(() => setItems(MOCK_FEATURES))
+      .then((res) => setItems(rowsOf(res)))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
 

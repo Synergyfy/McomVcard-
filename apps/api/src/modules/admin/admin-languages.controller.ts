@@ -55,7 +55,12 @@ export class AdminLanguagesController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
   async create(@Body() body: any) {
-    return ApiResponse.success({ id: 'placeholder', ...body }, 'Language created', 201)
+    const language = await this.languagesService.create({
+      code: body.code,
+      name: body.name,
+      isActive: body.isActive ?? body.is_active ?? true,
+    })
+    return ApiResponse.success(language, 'Language created', 201)
   }
 
   @Get(':id')
@@ -79,7 +84,12 @@ export class AdminLanguagesController {
   @ApiNotFoundResponse({ description: 'Language not found' })
   @ApiBadRequestResponse({ description: 'Invalid input' })
   async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() body: any) {
-    return ApiResponse.success({ id, ...body }, 'Language updated', 200)
+    const language = await this.languagesService.update(id, {
+      code: body.code,
+      name: body.name,
+      isActive: body.isActive ?? body.is_active,
+    })
+    return ApiResponse.success(language, 'Language updated', 200)
   }
 
   @Delete(':id')
@@ -90,6 +100,7 @@ export class AdminLanguagesController {
   @ApiForbiddenResponse({ description: 'Insufficient permissions (not ADMIN)' })
   @ApiNotFoundResponse({ description: 'Language not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.languagesService.remove(id)
     return ApiResponse.message('Language deleted', 200)
   }
 

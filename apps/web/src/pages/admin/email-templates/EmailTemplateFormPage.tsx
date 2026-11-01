@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
 import toast from 'react-hot-toast'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 export default function EmailTemplateFormPage() {
   const { t } = useTranslation()
@@ -40,11 +41,11 @@ export default function EmailTemplateFormPage() {
       </div>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.email_subject')}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.email_subject')}<InfoTooltip text="Subject line sent to recipients. Template variables are supported." /></span></label>
           <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.email_body')}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.email_body')}<InfoTooltip text="HTML email body delivered through Resend." /></span></label>
           <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={15} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-mono" />
         </div>
         <div className="flex gap-3 pt-2">
