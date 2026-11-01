@@ -45,6 +45,7 @@ adminApi.interceptors.response.use((res) => {
 
 type RetriableConfig = Parameters<typeof adminApi.request>[0] & { _adminRetried?: boolean }
 let refreshInFlight: Promise<boolean> | null = null
+let restoreInFlight: Promise<{ user: User; roles: string[] } | null> | null = null
 
 async function refreshAdminToken(): Promise<boolean> {
   if (!refreshInFlight) {
@@ -97,13 +98,18 @@ export const adminAuthService = {
 
   async restore(): Promise<{ user: User; roles: string[] } | null> {
     if (!adminSession.hasSession()) return null
-    try {
-      const res = await adminApi.post<AdminAuthPayload>('/admin/auth/refresh')
-      return toSession(res.data)
-    } catch (error: any) {
-      if (error?.response?.status === 401 || error?.response?.status === 403) adminSession.clear()
-      return null
-    }
+    if (restoreInFlight) return restoreInFlight
+
+    restoreInFlight = adminApi
+      .post<AdminAuthPayload>('/admin/auth/refresh')
+      .then((res) => toSession(res.data))
+      .catch((error: any) => {
+        if (error?.response?.status === 401 || error?.response?.status === 403) adminSession.clear()
+        return null
+      })
+      .finally(() => { restoreInFlight = null })
+
+    return restoreInFlight
   },
 
   async me(): Promise<{ user: User; roles: string[] }> {
