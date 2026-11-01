@@ -40,9 +40,34 @@ export interface SsoStatusResponse {
   active_plan?: ActivePlan | null
 }
 
+/** Unified entitlement returned by Central Hub Solution for every platform. */
+export interface McomEntitlement {
+  access?: {
+    hasAccess?: boolean
+    reason?: string | null
+    accessType?: string | null
+    upgradeUrl?: string | null
+  } | null
+  whitelabel?: {
+    enabled?: boolean
+    granted?: boolean
+    roleEligible?: boolean
+    grantedAt?: string | null
+  } | null
+  plan?: {
+    planId?: string | null
+    planName?: string | null
+    quotas?: Record<string, unknown>
+  } | null
+  trialContext?: {
+    programmeTasks?: unknown[]
+  } | null
+}
+
 export interface SsoCompleteResult {
   user: User
   returnTo?: string
+  entitlement?: McomEntitlement | null
 }
 
 export const mcomService = {
@@ -55,7 +80,7 @@ export const mcomService = {
     const qs = params.toString()
     const res = await api.get<SsoStartResponse>(`/v1/auth/sso/login${qs ? `?${qs}` : ''}`)
     const authorizeUrl = (res.data as unknown as SsoStartResponse)?.authorizeUrl
-    if (!authorizeUrl) throw new Error('MCOM did not return an authorize URL')
+    if (!authorizeUrl) throw new Error('Central Hub Solution did not return an authorize URL')
 
     window.location.assign(authorizeUrl)
   },
@@ -63,11 +88,17 @@ export const mcomService = {
   /** Complete the OAuth callback: exchange code + validate state against the cookie. */
   async completeLogin(code: string, state: string): Promise<SsoCompleteResult> {
     const res = await api.post('/v1/auth/sso/callback', { code, state })
-    const body = res.data as { token: string; user: ApiUserResponse; return_to?: string }
+    const body = res.data as {
+      token: string
+      user: ApiUserResponse
+      return_to?: string
+      entitlement?: McomEntitlement | null
+    }
     tokenStore.set(body.token)
     return {
       user: mapApiUser(body.user as ApiUserResponse),
       returnTo: body.return_to,
+      entitlement: body.entitlement ?? null,
     }
   },
 

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { mcomService } from '../../services/mcom'
 
 /**
  * Route guard that enforces MCOM platform access.
@@ -13,6 +14,23 @@ export default function RequireVcardAccess() {
   const { user, isAuthenticated, isLoading, refreshMcomStatus } = useAuth()
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState('')
+  const [membershipUrl, setMembershipUrl] = useState('')
+
+  const hasAccess = user?.permissions?.can_access_vcard === true
+
+  // The Central Hub Solution page where a user can buy/upgrade a membership.
+  // Prefer the URL Central attached to the user's entitlement, then the
+  // secret-free config endpoint. Only needed when access is missing.
+  useEffect(() => {
+    if (hasAccess) return
+    mcomService
+      .getConfig()
+      .then((config) => setMembershipUrl(config.membershipUrl))
+      .catch(() => setMembershipUrl(''))
+  }, [hasAccess])
+
+  const centralMembershipUrl =
+    user?.upgrade_url || membershipUrl || 'http://localhost:3010'
 
   if (isLoading) {
     return (
@@ -25,8 +43,6 @@ export default function RequireVcardAccess() {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
-
-  const hasAccess = user?.permissions?.can_access_vcard === true
 
   if (!hasAccess) {
     const handleResync = async () => {
@@ -51,23 +67,47 @@ export default function RequireVcardAccess() {
               </svg>
             </div>
 
-            <h1 className="text-xl font-extrabold text-gray-900 mt-6">MCOM VCard access required</h1>
+            <h1 className="text-xl font-extrabold text-gray-900 mt-6">Get access to MCOM VCard</h1>
             <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-              Your MCOM Solutions account does not have an active package for MCOM VCard. Choose a plan to unlock the
-              dashboard — payments are processed securely by MCOM Solutions.
+              You're signed in, but your account doesn't have an active plan, membership or trial yet. Choose how
+              you'd like to get access:
             </p>
+
+            {user?.access_reason === 'TRIAL_EXPIRED' && (
+              <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2.5">
+                Your trial has ended. Pick a plan or membership below to continue.
+              </p>
+            )}
 
             {syncError && (
               <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600">{syncError}</div>
             )}
 
-            <div className="mt-6 space-y-2">
+            <div className="mt-6 grid gap-3">
               <Link
-                to="/b/payment"
-                className="block w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-bold hover:opacity-95 transition-all shadow-md shadow-blue-200"
+                to="/plans"
+                className="block w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:opacity-95 transition-all shadow-md shadow-blue-200"
               >
-                Choose a plan & pay
+                <span className="block text-sm font-bold">Buy MCOM VCard plans</span>
+                <span className="block text-[11px] text-white/80 mt-0.5">
+                  Choose Standard, Pro or Pro+ right here
+                </span>
               </Link>
+
+              <a
+                href={centralMembershipUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full py-3 rounded-xl border-2 border-blue-600 text-blue-700 hover:bg-blue-50 transition-all"
+              >
+                <span className="block text-sm font-bold">Buy membership on Central Hub Solution</span>
+                <span className="block text-[11px] text-blue-500 mt-0.5">
+                  Opens your Central Hub membership page
+                </span>
+              </a>
+            </div>
+
+            <div className="mt-4 space-y-2">
               <button
                 type="button"
                 onClick={handleResync}

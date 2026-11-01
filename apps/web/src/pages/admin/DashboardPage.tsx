@@ -1,98 +1,87 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
+import { adminService } from '../../services/admin'
 
-const MOCK = {
-  businesses: 2450,
-  consumers: 8642,
-  totalVCards: 5420,
-  totalCards: 8750,
-  activeVCards: 4950,
-  activeCards: 8300,
-  pendingVCards: 470,
-  pendingCards: 450,
-  activeMemberships: 3200,
-  newBusinesses: 45,
-  newConsumers: 320,
-  businessVCards: { total: 2100, active: 1950, pending: 150 },
-  consumerVCards: { total: 3320, active: 3000, pending: 320 },
-  businessCards: { total: 2300, active: 2200, pending: 100 },
-  consumerCards: { total: 6450, active: 6100, pending: 350 },
-  additionalEntitlements: { available: 1250, allocated: 3400, active: 3050, pending: 350 },
-  businessActivity: [
-    { business: 'ABC Consulting', action: 'Created Business VCard', time: '5 minutes ago', type: 'vcard' },
-    { business: 'XYZ Restaurant', action: 'Activated Business Card', time: '20 minutes ago', type: 'card' },
-    { business: "John's Barber Shop", action: 'Updated Business VCard', time: '1 hour ago', type: 'vcard' },
-    { business: 'Green Café', action: 'Joined Bronze Membership', time: '2 hours ago', type: 'membership' },
-    { business: 'TechVision Inc', action: 'Activated Business VCard', time: '3 hours ago', type: 'vcard' },
-  ],
-  consumerActivity: [
-    { consumer: 'John Smith', action: 'Created Consumer VCard', time: '10 minutes ago', type: 'vcard' },
-    { consumer: 'Sarah Jones', action: 'Activated Consumer Card', time: '30 minutes ago', type: 'card' },
-    { consumer: 'David Brown', action: 'Received Additional Card Entitlement', time: '1 hour ago', type: 'entitlement' },
-    { consumer: 'Emma Wilson', action: 'Updated Consumer VCard', time: '2 hours ago', type: 'vcard' },
-    { consumer: 'Mike Patel', action: 'Activated Consumer VCard', time: '4 hours ago', type: 'vcard' },
-  ],
-  recentBusinesses: [
-    { name: 'ABC Ltd', owner: 'John Doe', membership: 'Bronze', vcard: 'Active', card: 'Active', status: 'Active', registered: '10 mins ago' },
-    { name: 'XYZ Ltd', owner: 'Sarah Smith', membership: 'Silver', vcard: 'Pending', card: 'Active', status: 'Active', registered: '20 mins ago' },
-    { name: 'GreenLeaf Coffee', owner: 'Mike Green', membership: 'Bronze', vcard: 'Active', card: 'Pending', status: 'Active', registered: '35 mins ago' },
-    { name: 'TechVision Inc', owner: 'Lisa Chen', membership: 'Enterprise', vcard: 'Active', card: 'Active', status: 'Active', registered: '1 hour ago' },
-    { name: 'FitLife Studio', owner: 'Anna White', membership: 'Bronze', vcard: 'Pending', card: 'Pending', status: 'Pending', registered: '2 hours ago' },
-  ],
-  recentConsumers: [
-    { name: 'John Smith', membership: 'Bronze Pro+', vcard: 'Active', card: 'Active', additional: '3 Available', status: 'Active', registered: 'Today' },
-    { name: 'Sarah Jones', membership: 'Bronze', vcard: 'Active', card: 'Active', additional: '1 Available', status: 'Active', registered: 'Today' },
-    { name: 'David Brown', membership: 'Silver Pro+', vcard: 'Pending', card: 'Active', additional: '5 Available', status: 'Active', registered: 'Yesterday' },
-    { name: 'Emma Wilson', membership: 'Bronze', vcard: 'Active', card: 'Pending', additional: '0', status: 'Active', registered: 'Yesterday' },
-    { name: 'Mike Patel', membership: 'Bronze Pro+', vcard: 'Active', card: 'Active', additional: '2 Available', status: 'Active', registered: '2 days ago' },
-  ],
-  vcardActivity: [
-    { type: 'Business', name: 'ABC Restaurant', action: 'Updated profile', time: '10 minutes ago' },
-    { type: 'Consumer', name: 'John Smith', action: 'VCard activated', time: '20 minutes ago' },
-    { type: 'Business', name: 'TechVision Inc', action: 'VCard created', time: '1 hour ago' },
-    { type: 'Consumer', name: 'Sarah Jones', action: 'VCard shared', time: '2 hours ago' },
-    { type: 'Business', name: 'Green Café', action: 'VCard level changed', time: '3 hours ago' },
-  ],
-  cardActivity: [
-    { type: 'Business', name: 'ABC Restaurant', action: 'Card activated', time: '10 minutes ago' },
-    { type: 'Consumer', name: 'John Smith', action: 'Card shared', time: '25 minutes ago' },
-    { type: 'Consumer', name: 'Sarah Jones', action: 'Dynamic content viewed', time: '1 hour ago' },
-    { type: 'Business', name: 'XYZ Ltd', action: 'Card deactivated', time: '2 hours ago' },
-    { type: 'Consumer', name: 'David Brown', action: 'Card QR scanned', time: '3 hours ago' },
-  ],
-  membershipActivity: [
-    { name: 'John Smith', action: 'Upgraded Bronze → Bronze Pro+', detail: '3 additional card entitlements available', time: '1 hour ago' },
-    { name: 'ABC Consulting', action: 'Joined Enterprise Plan', detail: 'Unlimited VCards & Cards', time: '2 hours ago' },
-    { name: 'Green Café', action: 'Joined Bronze Membership', detail: 'Basic features activated', time: '3 hours ago' },
-    { name: 'Sarah Jones', action: 'Membership upgraded', detail: 'Additional card slot added', time: '5 hours ago' },
-  ],
-  integrations: [
-    { name: 'MCOM Solutions Central Auth', status: 'connected', lastSync: '5 minutes ago' },
-    { name: 'MCOM Rewards', status: 'coming-soon' },
-    { name: 'MCOMMall Cashback', status: 'coming-soon' },
-    { name: 'MCOMSpin Gamification', status: 'coming-soon' },
-    { name: 'FundOrDonate', status: 'coming-soon' },
-    { name: 'E-Card System', status: 'coming-soon' },
-  ],
-  regTrend: [
-    { period: 'Mon', businesses: 4, consumers: 28 },
-    { period: 'Tue', businesses: 6, consumers: 35 },
-    { period: 'Wed', businesses: 5, consumers: 42 },
-    { period: 'Thu', businesses: 8, consumers: 38 },
-    { period: 'Fri', businesses: 7, consumers: 45 },
-    { period: 'Sat', businesses: 3, consumers: 52 },
-    { period: 'Sun', businesses: 2, consumers: 30 },
-  ],
-  cardGrowth: [
-    { period: 'Mon', bizVcards: 12, conVcards: 45, bizCards: 8, conCards: 60 },
-    { period: 'Tue', bizVcards: 15, conVcards: 52, bizCards: 10, conCards: 72 },
-    { period: 'Wed', bizVcards: 10, conVcards: 48, bizCards: 14, conCards: 65 },
-    { period: 'Thu', bizVcards: 18, conVcards: 55, bizCards: 12, conCards: 80 },
-    { period: 'Fri', bizVcards: 14, conVcards: 60, bizCards: 16, conCards: 75 },
-    { period: 'Sat', bizVcards: 8, conVcards: 42, bizCards: 6, conCards: 55 },
-    { period: 'Sun', bizVcards: 6, conVcards: 35, bizCards: 4, conCards: 40 },
-  ],
+interface DashboardData {
+  businesses: number; consumers: number; totalVCards: number; totalCards: number
+  activeVCards: number; activeCards: number; pendingVCards: number; pendingCards: number
+  activeMemberships: number; newBusinesses: number; newConsumers: number
+  businessVCards: { total: number; active: number; pending: number }
+  consumerVCards: { total: number; active: number; pending: number }
+  businessCards: { total: number; active: number; pending: number }
+  consumerCards: { total: number; active: number; pending: number }
+  additionalEntitlements: { available: number; allocated: number; active: number; pending: number }
+  businessActivity: Array<{ business: string; action: string; time: string; type: string }>
+  consumerActivity: Array<{ consumer: string; action: string; time: string; type: string }>
+  recentBusinesses: Array<{ name: string; owner: string; membership: string; vcard: string; card: string; status: string; registered: string }>
+  recentConsumers: Array<{ name: string; membership: string; vcard: string; card: string; additional: string; status: string; registered: string }>
+  vcardActivity: Array<{ type: string; name: string; action: string; time: string }>
+  cardActivity: Array<{ type: string; name: string; action: string; time: string }>
+  membershipActivity: Array<{ name: string; action: string; detail: string; time: string }>
+  integrations: Array<{ name: string; status: string; lastSync?: string }>
+  regTrend: Array<{ period: string; businesses: number; consumers: number }>
+  cardGrowth: Array<{ period: string; bizVcards: number; conVcards: number; bizCards: number; conCards: number }>
+}
+
+const EMPTY_DASHBOARD: DashboardData = {
+  businesses: 0, consumers: 0, totalVCards: 0, totalCards: 0, activeVCards: 0, activeCards: 0,
+  pendingVCards: 0, pendingCards: 0, activeMemberships: 0, newBusinesses: 0, newConsumers: 0,
+  businessVCards: { total: 0, active: 0, pending: 0 }, consumerVCards: { total: 0, active: 0, pending: 0 },
+  businessCards: { total: 0, active: 0, pending: 0 }, consumerCards: { total: 0, active: 0, pending: 0 },
+  additionalEntitlements: { available: 0, allocated: 0, active: 0, pending: 0 },
+  businessActivity: [], consumerActivity: [], recentBusinesses: [], recentConsumers: [],
+  vcardActivity: [], cardActivity: [], membershipActivity: [], integrations: [], regTrend: [], cardGrowth: [],
+}
+
+function relative(value: unknown): string {
+  if (!value) return ''
+  const timestamp = new Date(String(value)).getTime()
+  if (!Number.isFinite(timestamp)) return ''
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000))
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
+}
+
+function normalizeDashboard(payload: any): DashboardData {
+  const activity = (rows: any) => (Array.isArray(rows) ? rows : []).map((row: any) => ({
+    business: row.business ?? row.name ?? 'Platform',
+    consumer: row.consumer ?? row.name ?? 'Platform',
+    name: row.name ?? row.business ?? 'Platform',
+    action: row.action ?? row.detail ?? '',
+    detail: row.detail ?? '',
+    time: row.time ? relative(row.time) : '',
+    type: row.type ?? 'activity',
+  }))
+  return {
+    ...EMPTY_DASHBOARD, ...payload,
+    businessVCards: { ...EMPTY_DASHBOARD.businessVCards, ...(payload?.businessVCards ?? {}) },
+    consumerVCards: { ...EMPTY_DASHBOARD.consumerVCards, ...(payload?.consumerVCards ?? {}) },
+    businessCards: { ...EMPTY_DASHBOARD.businessCards, ...(payload?.businessCards ?? {}) },
+    consumerCards: { ...EMPTY_DASHBOARD.consumerCards, ...(payload?.consumerCards ?? {}) },
+    additionalEntitlements: { ...EMPTY_DASHBOARD.additionalEntitlements, ...(payload?.additionalEntitlements ?? {}) },
+    businessActivity: activity(payload?.businessActivity),
+    consumerActivity: activity(payload?.consumerActivity),
+    vcardActivity: activity(payload?.vcardActivity),
+    cardActivity: activity(payload?.cardActivity),
+    membershipActivity: activity(payload?.membershipActivity),
+    recentBusinesses: (Array.isArray(payload?.recentBusinesses) ? payload.recentBusinesses : []).map((row: any) => ({
+      name: row.name ?? '—', owner: row.owner ?? '—', membership: row.membership ?? '—', vcard: row.vcard ?? '—',
+      card: row.card ?? '—', status: row.status ?? 'Active', registered: row.registered ? relative(row.registered) : '',
+    })),
+    recentConsumers: (Array.isArray(payload?.recentConsumers) ? payload.recentConsumers : []).map((row: any) => ({
+      name: row.name ?? row.email ?? '—', membership: row.membership ?? '—', vcard: row.vcard ?? '—',
+      card: row.card ?? '—', additional: row.additional ?? '—', status: row.status ?? 'Active',
+      registered: row.registered ? relative(row.registered) : '',
+    })),
+    integrations: Array.isArray(payload?.integrations) ? payload.integrations : [],
+    regTrend: Array.isArray(payload?.regTrend) ? payload.regTrend : [],
+    cardGrowth: Array.isArray(payload?.cardGrowth) ? payload.cardGrowth : [],
+  }
 }
 
 type DateFilter = 'Today' | '7 Days' | '30 Days' | '90 Days' | 'Custom'
@@ -125,15 +114,26 @@ function KpiCard({ title, value, subtitle, icon, color, link, children }: {
 }
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [dateFilter, setDateFilter] = useState<DateFilter>('7 Days')
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('All')
   const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter>('All')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All')
 
-  const data = MOCK
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    adminService.getStats()
+      .then((payload) => { if (!cancelled) setData(normalizeDashboard(payload)) })
+      .catch((err) => { if (!cancelled) { setData(EMPTY_DASHBOARD); setLoadError(err?.response?.data?.message || 'Unable to load dashboard statistics') } })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
-  const maxReg = Math.max(...data.regTrend.map((r) => Math.max(r.businesses, r.consumers)))
-  const maxGrowth = Math.max(...data.cardGrowth.map((r) => Math.max(r.bizVcards, r.conVcards, r.bizCards, r.conCards)))
+  const maxReg = Math.max(1, ...data.regTrend.map((r) => Math.max(r.businesses, r.consumers)))
+  const maxGrowth = Math.max(1, ...data.cardGrowth.map((r) => Math.max(r.bizVcards, r.conVcards, r.bizCards, r.conCards)))
 
   return (
     <div className="space-y-6">
@@ -152,6 +152,9 @@ export default function AdminDashboardPage() {
           </span>
         </div>
       </div>
+
+      {loadError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">{loadError}</div>}
+      {loading && <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}
 
       {/* Global Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
@@ -194,8 +197,8 @@ export default function AdminDashboardPage() {
       <div>
         <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Key Metrics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <KpiCard title="Total Businesses" value={data.businesses.toLocaleString()} subtitle="↑ 12% this month" icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" color="blue" link="/admin/businesses" />
-          <KpiCard title="Total Consumers" value={data.consumers.toLocaleString()} subtitle="↑ 8% this month" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" color="green" link="/admin/consumers" />
+          <KpiCard title="Total Businesses" value={data.businesses.toLocaleString()} subtitle={`${data.newBusinesses} new in the last 7 days`} icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" color="blue" link="/admin/businesses" />
+          <KpiCard title="Total Consumers" value={data.consumers.toLocaleString()} subtitle={`${data.newConsumers} new in the last 7 days`} icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" color="green" link="/admin/consumers" />
           <KpiCard title="Total VCards" value={data.totalVCards.toLocaleString()} color="purple" link="/admin/vcards">
             <div className="flex gap-3 mt-1.5 text-xs">
               <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessVCards.total}</span>
@@ -208,7 +211,7 @@ export default function AdminDashboardPage() {
               <span className="text-green-600 dark:text-green-400">Con: {data.consumerCards.total}</span>
             </div>
           </KpiCard>
-          <KpiCard title="Active Memberships" value={data.activeMemberships.toLocaleString()} subtitle="↑ 5% this month" icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="teal" link="/admin/plans" />
+          <KpiCard title="Active Memberships" value={data.activeMemberships.toLocaleString()} subtitle="Currently active subscriptions" icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" color="teal" link="/admin/plans" />
           <KpiCard title="Active VCards" value={data.activeVCards.toLocaleString()} color="purple" link="/admin/vcards">
             <div className="flex gap-3 mt-1.5 text-xs">
               <span className="text-blue-600 dark:text-blue-400">Biz: {data.businessVCards.active}</span>
@@ -554,7 +557,7 @@ export default function AdminDashboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{int.name}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {int.status === 'connected' ? `● Connected · ${int.lastSync}` : int.status === 'coming-soon' ? '○ Coming Soon' : '● Connection Error'}
+                  {int.status === 'connected' ? `● Connected${int.lastSync ? ` · ${int.lastSync}` : ''}` : int.status === 'in-memory' ? '● Connected (in-memory fallback)' : int.status === 'not-configured' ? '○ Not configured' : '● Connection Error'}
                 </p>
               </div>
             </Link>

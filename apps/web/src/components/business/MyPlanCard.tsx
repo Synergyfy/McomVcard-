@@ -69,7 +69,7 @@ export default function MyPlanCard() {
           Pick a plan to unlock the full VCard suite. Payments are processed securely by MCOM Solutions.
         </p>
         <Link
-          to="/b/payment"
+          to="/plans"
           className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold hover:opacity-95 transition-all"
         >
           View plans &amp; upgrade
@@ -156,7 +156,7 @@ export default function MyPlanCard() {
 
       <div className="mt-5 flex gap-2">
         <Link
-          to="/b/payment"
+          to="/plans"
           className="flex-1 py-3 min-h-[44px] rounded-xl bg-white text-orange-600 text-sm font-bold text-center hover:opacity-95 transition-all"
         >
           Upgrade

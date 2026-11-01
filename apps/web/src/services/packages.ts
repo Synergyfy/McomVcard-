@@ -1,32 +1,63 @@
 import api from './api'
 
-export interface PurchasablePlan {
-  id: string
+export type PlanVariantKey = 'standard' | 'pro' | 'pro_plus'
+export type PlanPaymentProvider = 'wallet' | 'stripe' | 'paypal'
+
+export interface PurchasableVariant {
+  key: PlanVariantKey
   name: string
-  level: string
-  monthlyPrice: number
-  quarterlyPrice: number
-  annualPrice: number
-  trialDuration?: number
+  durationDays: number
+  price: number
+  setupFee: number
+  trialDays: number
+  description: string
   features: string[]
   configuration?: Record<string, unknown> | null
 }
 
-export interface InitiateResult {
-  clientSecret?: string
-  approvalUrl?: string
-  /** Stripe intent kind: 'payment' (pi_…) for paid plans, 'setup' (seti_…) for trial/£0 plans. */
-  type?: 'payment' | 'setup'
-  plan?: Record<string, unknown>
+export interface PurchasablePlan {
+  id: string
+  name: string
+  description: string
+  audience: string
+  currency: string
+  variants: PurchasableVariant[]
 }
 
-export type BillingCycle = 'monthly' | 'quarterly' | 'annual'
-export type PaymentProvider = 'stripe' | 'paypal'
+export interface AppCharge {
+  id: string
+  amountMinor: string
+  currency: string
+  feeMinor: string
+  netMinor: string
+  method: PlanPaymentProvider
+  status: 'pending' | 'paid' | 'refunding' | 'partially_refunded' | 'refunded' | 'failed' | 'cancelled'
+  reference?: string | null
+  description?: string | null
+  clientSecret?: string | null
+  approvalUrl?: string | null
+  walletDebitAmount?: string | null
+  paidAt?: string | null
+  createdAt: string
+}
+
+export interface PlanPurchaseResult {
+  charge: AppCharge
+  clientSecret?: string | null
+  approvalUrl?: string | null
+  plan: {
+    id: string
+    name: string | null
+    variant: PlanVariantKey
+    durationDays: number
+    price: number
+  }
+  canAccessVcard: boolean
+}
 
 /**
- * In-app plan purchases proxied through the VCard API to the centralized MCOM
- * Solutions billing engine. Stripe returns a clientSecret to confirm in the
- * browser; PayPal returns an approvalUrl to redirect to.
+ * In-app plan purchases. Every charge is created server-side and processed by
+ * MCOM Pay (wallet, Stripe or PayPal) — the browser never sets the amount.
  */
 export const packagesService = {
   async listPlans(): Promise<PurchasablePlan[]> {
@@ -36,25 +67,22 @@ export const packagesService = {
 
   async initiate(opts: {
     externalPlanId: string
-    billingCycle: BillingCycle
-    provider: PaymentProvider
-  }): Promise<InitiateResult> {
+    variant: PlanVariantKey
+    provider: PlanPaymentProvider
+    idempotencyKey: string
+  }): Promise<PlanPurchaseResult> {
     const res = await api.post('/v1/mcom/packages/purchase/initiate', opts)
-    return res.data as InitiateResult
+    return res.data as PlanPurchaseResult
   },
 
-  async confirmStripe(opts: {
+  async confirm(opts: {
     externalPlanId: string
-    billingCycle: BillingCycle
+    variant: PlanVariantKey
+    chargeId: string
     paymentIntentId?: string
-    setupIntentId?: string
-  }): Promise<{ canAccessVcard?: boolean }> {
+    orderId?: string
+  }): Promise<PlanPurchaseResult> {
     const res = await api.post('/v1/mcom/packages/purchase/confirm', opts)
-    return res.data as { canAccessVcard?: boolean }
-  },
-
-  async capturePaypal(orderId: string): Promise<{ canAccessVcard?: boolean }> {
-    const res = await api.post('/v1/mcom/packages/purchase/capture', { orderId })
-    return res.data as { canAccessVcard?: boolean }
+    return res.data as PlanPurchaseResult
   },
 }

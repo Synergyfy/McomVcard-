@@ -2,11 +2,11 @@ import { UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { SystemApiKeyGuard } from './system-api-key.guard'
 
-function makeContext(headerValue?: string): any {
+function makeContext(headerValue?: string, headerName = 'x-mcom-solution-api-key'): any {
   return {
     switchToHttp: () => ({
       getRequest: () => ({
-        headers: headerValue === undefined ? {} : { 'x-mcom-solution-api-key': headerValue },
+        headers: headerValue === undefined ? {} : { [headerName]: headerValue },
       }),
     }),
   }
@@ -17,10 +17,16 @@ function makeConfigMock(key: string): { get: jest.Mock } {
 }
 
 describe('SystemApiKeyGuard', () => {
-  it('allows a request whose header matches MCOM_SOLUTION_API_KEY', () => {
+  it('allows a request whose x-mcom-solution-api-key matches MCOM_API_KEY', () => {
     const guard = new SystemApiKeyGuard(makeConfigMock('secret-key') as unknown as ConfigService)
 
     expect(guard.canActivate(makeContext('secret-key'))).toBe(true)
+  })
+
+  it('allows a request whose x-api-key matches MCOM_API_KEY', () => {
+    const guard = new SystemApiKeyGuard(makeConfigMock('secret-key') as unknown as ConfigService)
+
+    expect(guard.canActivate(makeContext('secret-key', 'x-api-key'))).toBe(true)
   })
 
   it('rejects a request with a missing header', () => {
@@ -35,11 +41,11 @@ describe('SystemApiKeyGuard', () => {
     expect(() => guard.canActivate(makeContext('wrong-key'))).toThrow(UnauthorizedException)
   })
 
-  it('rejects when MCOM_SOLUTION_API_KEY is not configured on the server', () => {
+  it('rejects when MCOM_API_KEY is not configured on the server', () => {
     const guard = new SystemApiKeyGuard(makeConfigMock('') as unknown as ConfigService)
 
     expect(() => guard.canActivate(makeContext('secret-key'))).toThrow(
-      'MCOM_SOLUTION_API_KEY not configured on server',
+      'MCOM_API_KEY not configured on server',
     )
   })
 })

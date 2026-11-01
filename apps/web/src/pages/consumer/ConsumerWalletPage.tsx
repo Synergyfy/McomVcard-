@@ -8,6 +8,7 @@ import { businessService, type Wallet, type WalletTransaction } from '../../serv
 import BottomSheet from '../../components/business/primitives/BottomSheet'
 import FundCardSheet from '../../components/consumer/wallet/FundCardSheet'
 import ErrorState from '../../components/common/ErrorState'
+import { paymentsService, type WalletSummary } from '../../services/payments'
 
 interface ExchangeItem { id: string; title: string; type: string; business: string; value: string; expires: string; icon: string; color: string }
 interface NearbyOffer { id: string; business: string; category: string; offer: string; discount: string; distance: string; icon: string; gradient: string }
@@ -17,6 +18,7 @@ type WalletKey = 'giftCards' | 'vouchers' | 'coupons' | 'deals' | 'cashback' | '
 export default function ConsumerWalletPage() {
     const [wallet, setWallet] = useState<{ balance: number; points: number; cashback: number; giftCards: number; coupons: number; vouchers: number; pending?: number; locked?: number } | null>(null)
     const [centralWallet, setCentralWallet] = useState<Wallet | null>(null)
+    const [walletSummary, setWalletSummary] = useState<WalletSummary | null>(null)
     const [cardBalance, setCardBalance] = useState(0)
     const [transactions, setTransactions] = useState<WalletTransaction[]>([])
     const [fundOpen, setFundOpen] = useState(false)
@@ -39,12 +41,14 @@ export default function ConsumerWalletPage() {
             businessService.getWalletTransactions(),
             api.get('/vouchers/redeem/items').then((r) => r.data as ExchangeItem[]).catch(() => [] as ExchangeItem[]),
             api.get('/campaigns/nearby').then((r) => r.data as NearbyOffer[]).catch(() => [] as NearbyOffer[]),
+            paymentsService.getWallet().catch(() => null),
         ])
-            .then(([w, b, wish, cw, txs, redeem, offers]) => {
+            .then(([w, b, wish, cw, txs, redeem, offers, ws]) => {
                 setWallet(w)
                 setCardBalance(b)
                 setWishCount(wish.length)
                 setCentralWallet(cw)
+                setWalletSummary(ws)
                 setTransactions(txs || [])
                 setRedeemItems(redeem)
                 setNearbyOffers(offers)
@@ -145,10 +149,24 @@ export default function ConsumerWalletPage() {
 
             {/* Wallet balance — separate from card balance. Sourced from the centralized MCOM Wallet. */}
             <section className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Wallet balance</p>
-                <p className="text-4xl font-extrabold mt-1 text-gray-900 dark:text-white">
-                    {centralBalance.toFixed(2)} <span className="text-base font-semibold text-gray-400 dark:text-gray-500">MCOM</span>
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Wallet balance</p>
+                        <p className="text-4xl font-extrabold mt-1 text-gray-900 dark:text-white">
+                            {centralBalance.toFixed(2)} <span className="text-base font-semibold text-gray-400 dark:text-gray-500">MCOM</span>
+                        </p>
+                    </div>
+                    {walletSummary?.topUpUrl && (
+                        <a
+                            href={walletSummary.topUpUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="shrink-0 px-4 h-10 inline-flex items-center rounded-2xl bg-accent-500 text-white text-xs font-bold shadow-lg shadow-accent-500/25"
+                        >
+                            Top up
+                        </a>
+                    )}
+                </div>
                 <div className="grid grid-cols-2 gap-4 mt-4">
                     <div>
                         <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">Available</p>

@@ -41,6 +41,13 @@ export class SubscribedPlan {
   @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
   expiresAt!: Date | null
 
+  /**
+   * MCOM Pay charge id that activated this period. Activation is idempotent on
+   * this reference so retries / webhook replays never extend access twice.
+   */
+  @Column({ name: 'payment_reference', type: 'varchar', length: 255, nullable: true })
+  paymentReference!: string | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

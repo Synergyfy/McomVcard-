@@ -58,18 +58,22 @@ Overview of external services required for production deployment.
 ## 2. Not Yet Integrated (needed for go-live)
 
 ### Payment Processing
-- **Purpose:** Voucher purchases, wallet top-ups, cashback payouts, rewards
-- **Recommended:** [Stripe](https://stripe.com/)
-  - Stripe Connect for marketplace payments (business owners receive payouts)
-  - Stripe Billing for subscriptions (membership tiers)
-  - Stripe Webhooks for payment status updates
-- **Env vars:**
+- **Handled by:** MCOM Central Hub Solution (MCOM Wallet + MCOM Pay)
+  - All VCard charges are created server-side by MCOM Pay and settled from the
+    customer's centralized MCOM Wallet. Card (Stripe) and PayPal are only used
+    when the customer tops up their wallet on Central Hub.
+  - VCard stores no card details and holds no gateway secret keys.
+- **VCard env vars:**
   ```
-  STRIPE_SECRET_KEY=sk_live_xxx
-  STRIPE_PUBLISHABLE_KEY=pk_live_xxx
-  STRIPE_WEBHOOK_SECRET=whsec_xxx
-  STRIPE_API_VERSION=2024-12-18.acacia
+  MCOM_SOLUTIONS_URL=https://central.example.com
+  MCOM_CLIENT_ID=mcom-vcards
+  MCOM_HMAC_SECRET=hm_xxx
+  MCOM_WEBHOOK_SECRET=whsec_xxx
+  MCOM_WALLET_ENABLED=true
+  MCOM_PAY_ENABLED=true
   ```
+- **Central Console:** set the app's Webhook URL to
+  `https://<vcard-api>/api/v1/mcom/webhook` (lifecycle + `payment.*` events).
 
 ### SMS / Phone Verification
 - **Purpose:** Phone number verification, 2FA, transactional SMS

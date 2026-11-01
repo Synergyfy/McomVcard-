@@ -47,6 +47,27 @@ async function bootstrap() {
   // HttpOnly refresh-token cookie parsing
   app.use(cookieParser())
 
+  // MCOM Central redirects the OAuth authorization response to the URI
+  // registered for this app (MCOM_REDIRECT_URI — the API host in this
+  // deployment). Bridge it to the SPA callback page, preserving ?code&state
+  // (and error params). This route intentionally lives outside the /api prefix.
+  const webPublicUrl = (config.get<string>('WEB_PUBLIC_URL') || 'http://localhost:9023').replace(/\/+$/, '')
+  app.use('/auth/callback', (req, res) => {
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' })
+      return
+    }
+
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === 'string') params.set(key, value)
+      else if (Array.isArray(value)) value.forEach((item) => params.append(key, String(item)))
+    }
+
+    const query = params.toString()
+    res.redirect(302, `${webPublicUrl}/auth/callback${query ? `?${query}` : ''}`)
+  })
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

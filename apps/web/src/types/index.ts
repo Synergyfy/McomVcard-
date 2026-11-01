@@ -150,6 +150,24 @@ export interface User {
   membership_level?: string | null
   /** MCOM membership status (Central) or null for local accounts */
   membership_status?: string | null
+  /** Why Central denied platform access (e.g. TRIAL_EXPIRED) */
+  access_reason?: string | null
+  /** Central Hub Solution page where the user can buy a membership */
+  upgrade_url?: string | null
+  /** Canonical Central Hub Solution role (BUSINESS | CUSTOMER | AGENT | ...) */
+  role?: string | null
+  /** Central profile discriminator — tells which role profile is populated */
+  profile_type?: string | null
+  is_affiliate?: boolean
+  job_title?: string | null
+  address?: string | null
+  postcode?: string | null
+  country?: string | null
+  company_name?: string | null
+  company_type?: string | null
+  company_industry?: string | null
+  company_website?: string | null
+  company_logo?: string | null
 }
 
 export interface AuthResponse {
@@ -650,6 +668,20 @@ export interface ApiUserResponse {
   permissions?: { can_access_vcard?: boolean } | null
   membership_level?: string | null
   membership_status?: string | null
+  access_reason?: string | null
+  upgrade_url?: string | null
+  role?: string | null
+  profile_type?: string | null
+  is_affiliate?: boolean
+  job_title?: string | null
+  address?: string | null
+  postcode?: string | null
+  country?: string | null
+  company_name?: string | null
+  company_type?: string | null
+  company_industry?: string | null
+  company_website?: string | null
+  company_logo?: string | null
 }
 
 /** Standard API envelope wrapping data in { success, data, message } */

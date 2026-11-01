@@ -15,7 +15,9 @@ import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
 import { encryptMcomToken } from '../../lib/utils/mcom-crypto.util'
 import { User } from '../users/entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
 import { EmailVerificationService } from '../email-verification/email-verification.service'
+import { type McomEntitlement, type McomUserInfo, hasVcardAccess } from '../mcom/mcom.service'
 
 const DUMMY_PASSWORD_HASH = '$2a$10$RF/CnYUA.cgdY7yxwC5m3ejBtM4Oqnj1Ka.LUGy7j29woMBj4B2HW'
 
@@ -31,19 +33,8 @@ interface PasswordResetJwt {
   type: 'password_reset'
 }
 
-/** Normalized MCOM Central profile used for JIT provisioning. */
-export interface McomUserInfo {
-  sub: string
-  email: string
-  firstName?: string | null
-  lastName?: string | null
-  name?: string | null
-  phone?: string | null
-  membershipLevel?: string | null
-  membershipTier?: string | null
-  membershipStatus?: string | null
-  permissions?: Record<string, boolean>
-}
+// Re-exported for existing imports (controllers/tests) that read it from here.
+export type { McomUserInfo } from '../mcom/mcom.service'
 
 /** Identity carried by the shared-JWT Direct Dashboard Handshake (spec §3.3). */
 export interface DirectHandshakeJwt {
@@ -62,6 +53,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
+    @InjectRepository(SubscribedPlan) private subscribedPlansRepo: Repository<SubscribedPlan>,
     private config: ConfigService,
     private emailVerificationService: EmailVerificationService,
     private rolesService: RolesService,
@@ -144,6 +136,50 @@ export class AuthService {
   }
 
 
+  /**
+   * Dedicated admin-dashboard login. It validates the same credentials as the
+   * standard login, then enforces the ADMIN role before any token is issued so
+   * a normal platform account can never obtain an admin session.
+   */
+  async adminLogin(email: string, password: string, meta?: TokenMeta) {
+    email = email.trim().toLowerCase()
+
+    const user = await this.usersService.findByEmail(email)
+
+    if (!user) {
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH)
+      throw new UnauthorizedException('Invalid email or password')
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash || '')
+    if (!ok) throw new UnauthorizedException('Invalid email or password')
+
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Account is deactivated')
+    }
+
+    const roles = await this.rolesService.getRoleNamesForUser(user.id)
+    if (!roles.includes('ADMIN')) {
+      // Deliberately identical to bad credentials so the endpoint cannot be
+      // used to discover which accounts hold admin privileges.
+      throw new UnauthorizedException('Invalid email or password')
+    }
+
+    const auth = await this.issueTokens(user.id, meta)
+
+    return ApiResponse.success(
+      {
+        token: auth.accessToken,
+        refresh_token: auth.refreshToken,
+        user: UserResponseDto.fromEntity(user),
+        roles,
+      },
+      'Admin login successful',
+      200,
+    )
+  }
+
+
   async impersonate(userId: string, meta?: TokenMeta) {
     const user = await this.usersService.findById(userId)
     if (!user) throw new UnauthorizedException('User not found')
@@ -162,7 +198,7 @@ export class AuthService {
   }
 
 
-  async refresh(refreshToken: string | undefined, meta?: TokenMeta) {
+  async refresh(refreshToken: string | undefined, meta?: TokenMeta, requiredRole?: string) {
     if (!refreshToken) throw new UnauthorizedException('Refresh token is required')
 
     const stored = await this.refreshTokensRepo.findOne({ where: { tokenHash: this.hashToken(refreshToken) } })
@@ -192,11 +228,21 @@ export class AuthService {
     }
 
     const roles = await this.rolesService.getRoleNamesForUser(user.id)
+
+    if (requiredRole && !roles.includes(requiredRole)) {
+      await this.revokeAllForUser(user.id)
+      throw new UnauthorizedException('Admin privileges are required')
+    }
+
     const accessToken = this.jwtService.sign({ user_id: user.id, roles })
     const newRefreshToken = await this.rotateRefreshToken(stored, meta)
 
+    // A paid local VCard plan is an entitlement in its own right (partner apps
+    // own their subscriptions — see the MCOM Partner Integration Guide, Part C).
+    const currentUser = await this.reconcileLocalPlanAccess(user)
+
     return ApiResponse.success(
-      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(user) },
+      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(currentUser), roles },
       'Token refreshed',
       200,
     )
@@ -316,32 +362,24 @@ async mcomProvisionAndIssue(
     mcomRefreshToken: string,
     meta?: TokenMeta,
     accessTokenExpiresIn?: number,
+    entitlement?: McomEntitlement | null,
   ) {
     const email = userInfo.email?.trim().toLowerCase()
-    if (!email) throw new BadRequestException('MCOM profile is missing an email')
+    if (!email) throw new BadRequestException('Central Hub Solution profile is missing an email')
 
     let user = await this.usersService.findByEmail(email)
 
-    const platformSlug = this.config.get('MCOM_PLATFORM_SLUG') || 'vcard'
-    const permissionKey = `canAccess_${platformSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
-    const permissions = userInfo.permissions ?? {}
-    const canAccessVcard = permissions[permissionKey] === true || permissions.can_access_vcard === true
-
     const patch: Partial<User> = {
-      firstName: userInfo.firstName ?? userInfo.name?.split(' ')[0] ?? null,
-      lastName: userInfo.lastName ?? (userInfo.name?.split(' ').slice(1).join(' ') || null),
-      phone: userInfo.phone ?? null,
-      isVerified: true,
-      status: 'active',
-      mcomUserId: userInfo.sub,
-      mcomMembershipLevel: userInfo.membershipLevel ?? null,
-      mcomMembershipTier: userInfo.membershipTier ?? null,
-      mcomMembershipStatus: userInfo.membershipStatus ?? null,
-      mcomCanAccessVcard: canAccessVcard,
+      ...this.buildMcomIdentityPatch(userInfo, user, entitlement),
       mcomAccessToken: encryptMcomToken(mcomAccessToken),
       mcomRefreshToken: encryptMcomToken(mcomRefreshToken),
       mcomTokenExpiresAt: this.tokenExpiry(accessTokenExpiresIn),
       mcomTokensUpdatedAt: new Date(),
+    }
+
+    // Local paid plans survive a Central sync that reports no platform package.
+    if (user && patch.mcomCanAccessVcard !== true) {
+      patch.mcomCanAccessVcard = await this.hasActiveLocalPlan(user.id)
     }
 
     if (user) {
@@ -373,30 +411,154 @@ async syncMcomSession(
     mcomAccessToken: string,
     userInfo: McomUserInfo,
     accessTokenExpiresIn?: number,
+    entitlement?: McomEntitlement | null,
   ): Promise<UserResponseDto> {
     const user = await this.usersService.findById(userId)
     if (!user) throw new UnauthorizedException('Authentication required')
 
-    const platformSlug = this.config.get('MCOM_PLATFORM_SLUG') || 'vcard'
-    const permissionKey = `canAccess_${platformSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
-    const permissions = userInfo.permissions ?? {}
-    const canAccessVcard = permissions[permissionKey] === true || permissions.can_access_vcard === true
-
-    const updated = (await this.usersService.update(userId, {
-      firstName: userInfo.firstName ?? userInfo.name?.split(' ')[0] ?? null,
-      lastName: userInfo.lastName ?? (userInfo.name?.split(' ').slice(1).join(' ') || null),
-      phone: userInfo.phone ?? null,
-      mcomUserId: userInfo.sub,
-      mcomMembershipLevel: userInfo.membershipLevel ?? null,
-      mcomMembershipTier: userInfo.membershipTier ?? null,
-      mcomMembershipStatus: userInfo.membershipStatus ?? null,
-      mcomCanAccessVcard: canAccessVcard,
+    const patch: Partial<User> = {
+      ...this.buildMcomIdentityPatch(userInfo, user, entitlement),
       mcomAccessToken: encryptMcomToken(mcomAccessToken),
       mcomTokenExpiresAt: this.tokenExpiry(accessTokenExpiresIn),
       mcomTokensUpdatedAt: new Date(),
-    })) ?? user
+    }
+
+    if (patch.mcomCanAccessVcard !== true) {
+      patch.mcomCanAccessVcard = await this.hasActiveLocalPlan(user.id)
+    }
+
+    const updated = (await this.usersService.update(userId, patch)) ?? user
 
     return UserResponseDto.fromEntity(updated)
+  }
+
+  /** True when the user has a locally paid, unexpired VCard plan. */
+  private async hasActiveLocalPlan(userId: string): Promise<boolean> {
+    const active = await this.subscribedPlansRepo.findOne({
+      where: { userId, status: 'active' },
+      order: { expiresAt: 'DESC' },
+    })
+    if (!active) return false
+    return !active.expiresAt || active.expiresAt.getTime() > Date.now()
+  }
+
+  /**
+   * Reconcile the local access flag with the paid-plan ledger.
+   *
+   * - An unexpired local plan grants access (even if Central reports none).
+   * - Once it expires, revoke only when Central explicitly reports no access;
+   *   when entitlement is unknown, keep the existing flag rather than risk
+   *   locking out a Central-granted user.
+   */
+  private async reconcileLocalPlanAccess(user: User): Promise<User> {
+    const localAccess = await this.hasActiveLocalPlan(user.id)
+
+    if (localAccess) {
+      if (user.mcomCanAccessVcard === true) return user
+      return (
+        (await this.usersService.update(user.id, {
+          mcomCanAccessVcard: true,
+          mcomMembershipStatus: 'active',
+        })) ?? user
+      )
+    }
+
+    const entitlement = (user.mcomEntitlement ?? null) as McomEntitlement | null
+    if (entitlement?.access?.hasAccess === false && user.mcomCanAccessVcard === true) {
+      return (
+        (await this.usersService.update(user.id, {
+          mcomCanAccessVcard: false,
+          mcomMembershipStatus: 'expired',
+        })) ?? user
+      )
+    }
+
+    return user
+  }
+
+  /**
+   * Build the local identity snapshot from Central's canonical user object.
+   * Central is the source of truth: explicit `null` values clear local data,
+   * while fields the response omits preserve the existing value.
+   */
+  private buildMcomIdentityPatch(
+    userInfo: McomUserInfo,
+    current: User | null,
+    entitlement?: McomEntitlement | null,
+  ): Partial<User> {
+    const keep = <T>(incoming: T | null | undefined, existing: T | null): T | null =>
+      incoming === undefined ? existing : incoming
+
+    const business = (userInfo.businessProfile ?? null) as Record<string, unknown> | null
+    const roleProfile =
+      userInfo.businessProfile ??
+      userInfo.customerProfile ??
+      userInfo.agentProfile ??
+      userInfo.consultantProfile ??
+      userInfo.accountManagerProfile ??
+      null
+
+    const businessField = (key: string): string | null => {
+      const value = business?.[key]
+      return typeof value === 'string' && value.length > 0 ? value : null
+    }
+
+    const fullName = userInfo.fullName?.trim() || userInfo.name?.trim() || null
+    const nameParts = fullName ? fullName.split(/\s+/) : []
+    const firstFromFullName = nameParts[0] ?? null
+    const lastFromFullName = nameParts.slice(1).join(' ') || null
+
+    // Central's unified entitlement wins over the legacy permission map. If
+    // neither is present (e.g. a transient lookup failure) keep the existing
+    // local value rather than revoking access accidentally.
+    const accessGranted =
+      entitlement?.access?.hasAccess === true ||
+      (entitlement?.access?.hasAccess !== false &&
+        (hasVcardAccess(userInfo.permissions) ||
+          (entitlement?.whitelabel?.enabled === true && entitlement.whitelabel?.granted === true))) ||
+      (entitlement == null &&
+        userInfo.permissions === undefined &&
+        current?.mcomCanAccessVcard === true)
+
+    return {
+      firstName: keep(userInfo.firstName, current?.firstName ?? null) ?? firstFromFullName,
+      lastName: keep(userInfo.lastName, current?.lastName ?? null) ?? lastFromFullName,
+      phone: keep(userInfo.phone ?? businessField('phone'), current?.phone ?? null),
+      jobTitle: keep(userInfo.jobTitle, current?.jobTitle ?? null),
+      address: keep(userInfo.address ?? businessField('address'), current?.address ?? null),
+      postcode: keep(userInfo.postcode ?? businessField('postcode'), current?.postcode ?? null),
+      country: keep(userInfo.country ?? businessField('country'), current?.country ?? null),
+      isVerified: true,
+      status: 'active',
+      mcomUserId: userInfo.id ?? userInfo.sub,
+      mcomRole: keep(userInfo.role, current?.mcomRole ?? null),
+      mcomProfileType: keep(userInfo.profileType, current?.mcomProfileType ?? null),
+      isAffiliate: userInfo.isAffiliate ?? current?.isAffiliate ?? false,
+      companyName: keep(userInfo.businessName ?? businessField('businessName'), current?.companyName ?? null),
+      companyType: keep(businessField('businessType'), current?.companyType ?? null),
+      companyIndustry: keep(businessField('industry'), current?.companyIndustry ?? null),
+      companyWebsite: keep(businessField('website'), current?.companyWebsite ?? null),
+      companyLogo: keep(userInfo.avatarUrl ?? businessField('logoUrl'), current?.companyLogo ?? null),
+      mcomBusinessId: keep(userInfo.businessId, current?.mcomBusinessId ?? null),
+      mcomMembershipLevel: keep(
+        userInfo.membershipLevel ?? businessField('membershipLevel'),
+        current?.mcomMembershipLevel ?? null,
+      ),
+      mcomMembershipTier: keep(
+        userInfo.membershipTier ?? businessField('membershipTier'),
+        current?.mcomMembershipTier ?? null,
+      ),
+      mcomMembershipStatus: keep(
+        userInfo.membershipStatus ?? businessField('membershipStatus'),
+        current?.mcomMembershipStatus ?? null,
+      ),
+      mcomCanAccessVcard: accessGranted,
+      mcomProfile: keep(roleProfile as Record<string, unknown> | null, current?.mcomProfile ?? null),
+      mcomEntitlement: entitlement
+        ? (entitlement as Record<string, unknown>)
+        : current?.mcomEntitlement ?? null,
+      mcomLastSyncAt: new Date(),
+    }
   }
 
   private tokenExpiry(expiresIn?: number): Date | null {
@@ -426,6 +588,8 @@ async syncMcomSession(
       isVerified: true,
       status: 'active',
       mcomUserId: identity.userId,
+      mcomLastSyncAt: new Date(),
+      ...(identity.role ? { mcomRole: identity.role, mcomProfileType: identity.role } : {}),
     }
 
     if (user) {

@@ -565,3 +565,51 @@ Frontend:
 **What:** Before, the business "current plan" UIs were hardcoded mock (`mockMembership.plan` = "Gold Pro") or the local memberships table; the real MCOM-purchased package (`active_plan`) was computed by the backend but never rendered. Now `/b/membership` and the business dashboard show the actual MCOM VCard plan (name, level, price, trial/expiry, features, quotas/flags) with a graceful empty state linking to the proxied checkout.
 
 **Verified:** api + web builds clean; mcom suites pass (14 tests for service+packages); live `GET /v1/auth/sso/status` returns `{ ...permissions, active_plan: null }` for a non-MCOM user (graceful) and the enriched shape when a package resolves. Test user cleaned up.
+
+---
+
+## 26. [BACKEND + FRONTEND] All payments moved to the centralized MCOM Wallet (MCOM Pay)
+
+**Date:** 2026-11-01
+**Files changed:**
+- `apps/api/src/app.module.ts` — load the typed configuration factory (fixes `mcom.walletEnabled` / `mcom.payEnabled` never resolving)
+- `apps/api/src/lib/config/{configuration,validation}.ts`, `apps/api/.env.example` — `MCOM_PAY_ENABLED`, `MCOM_WALLET_ENABLED`, optional `MCOM_WALLET_TOPUP_URL`
+- `apps/api/src/modules/mcom/mcom-pay.service.ts` (new) + spec — full MCOM Pay partner client (`/api/v1/app-payments`): HMAC body signing, deterministic idempotency keys and 409/429/5xx retries
+- `apps/api/src/modules/mcom/packages/*` — wallet-only plan checkout: server-priced `method: "wallet"` charges, free-variant activation, confirm/replay, and webhook-driven activation
+- `apps/api/src/modules/payments/*` (new) — `GET /v1/payments/wallet`, `GET /v1/payments/card-balance`, `POST /v1/payments/card-topup`
+- `apps/api/src/modules/finance/wallet.service.ts` + DTOs — centralized transfers, child allocations and debits; top-ups rejected with a Central Hub link; local card ledger mirrors are idempotent
+- `apps/api/src/modules/wishlists/wishlists.service.ts` — wishlist fulfilment charges the MCOM Wallet
+- `apps/api/src/modules/subscriptions/*` + migrations 044/045 — local paid-plan entitlements with idempotent `payment_reference`, active-plan lookup, expiry/cancel handling
+- `apps/api/src/modules/auth/auth.service.ts` — local paid plans survive a Central sync and are honoured by `/refresh`
+- `apps/api/src/modules/mcom/mcom.controller.ts` — `active_plan` falls back to the local paid plan
+- `apps/api/src/modules/mcom/webhooks/*` — accepts `payment.succeeded` / `payment.refunded` and activates/revokes plans
+- `apps/web/src/services/payments.ts` (new), `components/payments/WalletPayPanel.tsx` (new)
+- `apps/web/src/pages/business/PlanCheckoutPage.tsx` — wallet-only checkout with balance, top-up link and 402 handling (Stripe Elements removed)
+- `apps/web/src/components/consumer/wallet/FundCardSheet.tsx` — funds the card from the MCOM Wallet (fake card/PayPal forms removed)
+- Deleted demo payment pages: `onboarding/PaymentPage`, `onboarding/MembershipConfirmationPage`, `business/MembershipPaymentPage`, `services/payment.ts`; `/onboarding/payment`, `/onboarding/confirmation` and `/b/membership/payment` now redirect to the real wallet checkout
+
+**What:** MCOM Pay (wallet method) is now the only way money moves in VCard. Plan amounts are resolved server-side from the stored plan variant, charged in pence with an idempotency key, and the local plan entitlement is activated from the MCOM Pay charge (or its `payment.succeeded` webhook). Card funding, wallet transfers, child allocations and wishlist fulfilment all debit the centralized wallet. Customers top up on Central Hub — the app no longer mints credits or accepts card details.
+
+**Verified:** api + web production builds clean; 217 unit tests pass; migrations 044–045 applied; live vs Central: HMAC-authenticated wallet balance, MCOM Pay wallet charge → `paid`, full refund → wallet restored, free-plan activation, and retry with the same idempotency key leaving the subscription expiry unchanged. Test subscription/user flags/plan variants cleaned up.
+
+---
+
+## 27. [FRONTEND + BACKEND] Enterprise checkout at /plans with Wallet, Stripe and PayPal
+
+**Date:** 2026-11-01
+**Files changed:**
+- `apps/web/src/App.tsx` — `/b/payment` → `/plans`; `/b/payment/success` → `/plans/success`; onboarding/renewal redirects updated
+- all internal links (`RequireVcardAccess`, `MyPlanCard`, `AuthCallbackPage`, `MembershipPage`, `MembershipPlansPage`, `PaymentSuccessPage`) now point at `/plans`
+- `apps/web/src/pages/business/PlanCheckoutPage.tsx` — full enterprise redesign:
+  - Standard / Pro / Pro+ **variant tabs** above the plan grid
+  - all plans (Bronze, Silver, Gold) shown side by side in the active variant
+  - three payment methods: MCOM Wallet, Card (official Stripe Elements), PayPal (approval window + polling)
+  - sticky order summary, step indicator, trust chips, mobile-first spacing/buttons, free-variant activation
+- `apps/web/src/pages/business/PaymentSuccessPage.tsx` — handles the Stripe 3-D Secure redirect and confirms the charge
+- `apps/web/src/services/packages.ts` — provider-aware initiate/confirm with `clientSecret` / `approvalUrl` / `paymentIntentId` / `orderId`
+- `apps/api/src/modules/mcom/packages/*` — `InitiatePurchaseDto.provider` now accepts `wallet | stripe | paypal`; confirm settles Stripe/PayPal through MCOM Pay
+- `apps/web/.env.example`, `apps/web/.env` — Stripe publishable key restored (must match MCOM Central Hub's Stripe account)
+
+**What:** The checkout now opens at `/plans` (not `/b/payment`) and presents plans the way they are actually compared: choose the access length tab (Standard 90d, Pro 180d, Pro+ 365d), then pick Bronze/Silver/Gold. MCOM Wallet pays instantly, Stripe uses the official Payment Element (with redirect fallback), and PayPal opens a secure approval window while the page polls MCOM Pay and activates the plan automatically. Amounts remain server-side from the selected plan variant.
+
+**Verified:** web `tsc` + production build clean; api `tsc` clean; 222 unit tests pass; browser smoke test at `http://localhost:9023/plans` (authenticated): tab switching, plan selection, order summary, wallet/card/PayPal method panels and mobile-stacked layout render correctly.

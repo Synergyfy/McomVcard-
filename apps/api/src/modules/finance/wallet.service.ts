@@ -7,7 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, QueryFailedError, Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
 import { Wallet } from './entities/wallet.entity'
 import { WalletTransaction } from './entities/wallet-transaction.entity'
@@ -39,6 +39,11 @@ export class WalletService {
    */
   private get centralEnabled(): boolean {
     return this.mcomWallet.enabled
+  }
+
+  /** True when balances/writes live on the centralized MCOM Wallet. */
+  get usesCentralWallet(): boolean {
+    return this.centralEnabled
   }
 
   /**
@@ -78,10 +83,113 @@ export class WalletService {
     throw new HttpException({ error: err.code || 'WALLET_ERROR', message: err.message }, err.httpStatus || 400)
   }
 
+  // ── centralized helpers used by other modules ─────────────────────────────
+
+  /** The local VCard card balance (never the centralized wallet balance). */
+  async getCardBalance(userId: string): Promise<{ balance: number; currency: string }> {
+    const wallet = await this.walletsRepo.findOne({ where: { userId } })
+    return { balance: wallet?.balance ?? 0, currency: wallet?.currency ?? 'GBP' }
+  }
+
+  /**
+   * Mirror a successful centralized wallet debit onto the local card ledger.
+   * Idempotent when an `idempotencyKey` is supplied.
+   */
+  async creditCardBalance(
+    userId: string,
+    amount: number,
+    opts: { description?: string; reference?: string; idempotencyKey?: string } = {},
+  ): Promise<{ balance: number; currency: string }> {
+    if (opts.idempotencyKey) {
+      const existing = await this.walletTransactionsRepo.findOne({
+        where: { idempotencyKey: opts.idempotencyKey },
+      })
+      if (existing) {
+        const wallet = await this.walletsRepo.findOne({ where: { userId } })
+        return { balance: wallet?.balance ?? existing.balanceAfter, currency: wallet?.currency ?? 'GBP' }
+      }
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        let wallet = await manager.findOne(Wallet, { where: { userId } })
+        if (!wallet) {
+          wallet = await manager.save(
+            manager.create(Wallet, { userId, balance: 0, currency: 'GBP', status: 'active' }),
+          )
+        }
+
+        const balanceAfter = Number((wallet.balance + amount).toFixed(2))
+
+        await manager.save(
+          this.walletTransactionsRepo.create({
+            walletId: wallet.id,
+            type: 'CREDIT',
+            amount,
+            balanceAfter,
+            description: opts.description ?? 'Card funded from MCOM Wallet',
+            idempotencyKey: opts.idempotencyKey ?? null,
+          }),
+        )
+        await manager.update(Wallet, { id: wallet.id }, { balance: balanceAfter })
+
+        return { balance: balanceAfter, currency: wallet.currency }
+      })
+    } catch (err) {
+      // A concurrent retry won the unique idempotency index — return its result
+      // instead of surfacing a 500 (and never refund a completed top-up).
+      if (opts.idempotencyKey && this.isUniqueViolation(err)) {
+        const existing = await this.walletTransactionsRepo.findOne({
+          where: { idempotencyKey: opts.idempotencyKey },
+        })
+        if (existing) {
+          const wallet = await this.walletsRepo.findOne({ where: { userId } })
+          return { balance: wallet?.balance ?? existing.balanceAfter, currency: wallet?.currency ?? 'GBP' }
+        }
+      }
+      throw err
+    }
+  }
+
+  private isUniqueViolation(err: unknown): boolean {
+    return err instanceof QueryFailedError && (err as any)?.driverError?.code === '23505'
+  }
+
+  /** Debit the centralized wallet. Only valid when {@link usesCentralWallet}. */
+  async debitMcomWallet(
+    userId: string,
+    amount: number,
+    opts: { category: 'SUBSCRIPTION' | 'PURCHASE' | 'SERVICE_FEE'; description?: string; reference?: string; metadata?: Record<string, unknown> },
+    idempotencyKey: string,
+  ): Promise<{ balance: number; transactionId: string }> {
+    const mcomUserId = await this.resolveCentralUserId(userId)
+    try {
+      const receipt = await this.mcomWallet.debit(mcomUserId, amount, opts, idempotencyKey)
+      return { balance: receipt.balanceAfter, transactionId: receipt.transactionId }
+    } catch (err) {
+      this.rethrowCentralError(err as McomWalletError)
+    }
+  }
+
+  /** Credit the centralized wallet (reward/refund/cashback). */
+  async creditMcomWallet(
+    userId: string,
+    amount: number,
+    opts: { category: 'REWARD' | 'REFUND' | 'ADMIN_CREDIT' | 'TRANSFER_IN'; description?: string; reference?: string; metadata?: Record<string, unknown> },
+    idempotencyKey: string,
+  ): Promise<{ balance: number; transactionId: string }> {
+    const mcomUserId = await this.resolveCentralUserId(userId)
+    try {
+      const receipt = await this.mcomWallet.credit(mcomUserId, amount, opts, idempotencyKey)
+      return { balance: receipt.balanceAfter, transactionId: receipt.transactionId }
+    } catch (err) {
+      this.rethrowCentralError(err as McomWalletError)
+    }
+  }
+
   // ── read / wallet ──────────────────────────────────────────────────────────
 
-  async getMyWallet(userId: string) {
-    if (this.centralEnabled) {
+  async getMyWallet(userId: string) {    if (this.centralEnabled) {
       const mcomUserId = await this.resolveCentralUserId(userId)
       try {
         const balance = await this.mcomWallet.getBalance(mcomUserId)
@@ -172,24 +280,33 @@ export class WalletService {
    */
   async createTransaction(userId: string, dto: CreateWalletTransactionDto) {
     if (this.centralEnabled) {
+      // Top-ups are performed on Central Hub; this app must never mint credits.
+      if (dto.type === 'CREDIT') {
+        const solutionsUrl = this.config.get<string>('MCOM_SOLUTIONS_URL') || 'http://localhost:3010'
+        throw new HttpException(
+          {
+            error: 'WALLET_TOPUP_REQUIRED',
+            message: 'Top up your MCOM Wallet on Central Hub Solution.',
+            topUpUrl: `${solutionsUrl.replace(/\/+$/, '')}/dashboard/wallet`,
+          },
+          400,
+        )
+      }
+
+      if (!dto.idempotencyKey) {
+        throw new BadRequestException('X-Idempotency-Key is required for centralized wallet debits')
+      }
+
       const mcomUserId = await this.resolveCentralUserId(userId)
-      const idempotencyKey = this.mcomWallet.idempotencyKey('wallet-txn', userId, randomUUID())
+      const idempotencyKey = this.mcomWallet.idempotencyKey('wallet-debit', userId, dto.idempotencyKey)
 
       try {
-        const receipt =
-          dto.type === 'CREDIT'
-            ? await this.mcomWallet.credit(
-                mcomUserId,
-                dto.amount,
-                { category: 'ADMIN_CREDIT', description: dto.description ?? 'Wallet credit' },
-                idempotencyKey,
-              )
-            : await this.mcomWallet.debit(
-                mcomUserId,
-                dto.amount,
-                { category: 'PURCHASE', description: dto.description ?? 'Wallet debit' },
-                idempotencyKey,
-              )
+        const receipt = await this.mcomWallet.debit(
+          mcomUserId,
+          dto.amount,
+          { category: 'PURCHASE', description: dto.description ?? 'Wallet debit' },
+          idempotencyKey,
+        )
 
         return ApiResponse.success(
           {
@@ -245,6 +362,51 @@ export class WalletService {
   async transfer(userId: string, dto: WalletTransferDto) {
     if (userId === dto.recipient_id) {
       throw new BadRequestException('Cannot transfer funds to yourself')
+    }
+
+    if (this.centralEnabled) {
+      const eventKey = dto.idempotencyKey || randomUUID()
+      const senderMcomId = await this.resolveCentralUserId(userId)
+      const recipientMcomId = await this.resolveCentralUserId(dto.recipient_id)
+      const description = dto.description ?? `Transfer to ${dto.recipient_id}`
+      const reference = `vcards:transfer:${eventKey}`.slice(0, 255)
+
+      const debitKey = this.mcomWallet.idempotencyKey('transfer-debit', userId, eventKey)
+      const creditKey = this.mcomWallet.idempotencyKey('transfer-credit', userId, eventKey)
+
+      let debit
+      try {
+        debit = await this.mcomWallet.debit(
+          senderMcomId,
+          dto.amount,
+          { category: 'PURCHASE', description, reference, metadata: { recipientUserId: dto.recipient_id } },
+          debitKey,
+        )
+      } catch (err) {
+        this.rethrowCentralError(err as McomWalletError)
+      }
+
+      try {
+        await this.mcomWallet.credit(
+          recipientMcomId,
+          dto.amount,
+          { category: 'TRANSFER_IN', description: `Transfer from ${userId}`, reference, metadata: { senderUserId: userId } },
+          creditKey,
+        )
+      } catch (err) {
+        // The sender was debited but the recipient credit failed — return the funds.
+        await this.mcomWallet
+          .credit(
+            senderMcomId,
+            dto.amount,
+            { category: 'REFUND', description: `Refund — failed transfer ${reference}`, reference },
+            this.mcomWallet.idempotencyKey('transfer-refund', userId, eventKey),
+          )
+          .catch(() => undefined)
+        this.rethrowCentralError(err as McomWalletError)
+      }
+
+      return ApiResponse.success({ balance: debit.balanceAfter }, 'Transfer completed successfully', 200)
     }
 
     const senderWallet = await this.getOwnedWallet(userId)
@@ -305,6 +467,72 @@ export class WalletService {
   }
 
   async allocateToChild(userId: string, dto: AllocateToChildDto) {
+    if (this.centralEnabled) {
+      const childCard = await this.childCardsRepo.findOne({
+        where: { id: dto.child_card_id },
+        relations: { card: true },
+      })
+      if (!childCard) throw new NotFoundException('Child card not found')
+      if (childCard.card.ownerId !== userId) {
+        throw new ForbiddenException('Only the card owner can allocate funds to a child')
+      }
+
+      const eventKey = dto.idempotencyKey || randomUUID()
+      const mcomUserId = await this.resolveCentralUserId(userId)
+      if (childCard.lastAllocationKey === eventKey) {
+        const balance = await this.mcomWallet.getBalance(mcomUserId).catch(() => null)
+        return ApiResponse.success(
+          { wallet_allocation: childCard.walletAllocation ?? 0, balance: balance?.balance ?? null },
+          'Funds already allocated to child card',
+          200,
+        )
+      }
+
+      const reference = `vcards:child-allocation:${eventKey}`.slice(0, 255)
+      const debitKey = this.mcomWallet.idempotencyKey('child-allocation', userId, eventKey)
+
+      let receipt
+      try {
+        receipt = await this.mcomWallet.debit(
+          mcomUserId,
+          dto.amount,
+          {
+            category: 'PURCHASE',
+            description: `Allocation to child card ${dto.child_card_id}`,
+            reference,
+            metadata: { childCardId: dto.child_card_id },
+          },
+          debitKey,
+        )
+      } catch (err) {
+        this.rethrowCentralError(err as McomWalletError)
+      }
+
+      const newAllocation = Number(((childCard.walletAllocation ?? 0) + dto.amount).toFixed(2))
+      try {
+        await this.childCardsRepo.update(
+          { id: dto.child_card_id },
+          { walletAllocation: newAllocation, lastAllocationKey: eventKey },
+        )
+      } catch (err) {
+        await this.mcomWallet
+          .credit(
+            mcomUserId,
+            dto.amount,
+            { category: 'REFUND', description: `Refund — child allocation failed ${reference}`, reference },
+            this.mcomWallet.idempotencyKey('child-allocation-refund', userId, eventKey),
+          )
+          .catch(() => undefined)
+        throw err
+      }
+
+      return ApiResponse.success(
+        { wallet_allocation: newAllocation, balance: receipt.balanceAfter },
+        'Funds allocated to child card',
+        200,
+      )
+    }
+
     const wallet = await this.getOwnedWallet(userId)
 
     if (wallet.status !== 'active') throw new BadRequestException('Wallet is not active')

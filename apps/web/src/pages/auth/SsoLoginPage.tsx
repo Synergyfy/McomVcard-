@@ -7,8 +7,8 @@ import { useAuth } from '../../contexts/AuthContext'
 /**
  * Direct Dashboard Handshake landing page (spec §3.3).
  *
- * MCOM Central redirects the browser here with `?token=<JWT>` (shared-secret
- * signed, ~60s TTL). This page hands the token to
+ * Central Hub Solution redirects the browser here with `?token=<JWT>`
+ * (shared-secret signed, ~60s TTL). This page hands the token to
  * GET /api/v1/auth/sso-login, which verifies it, JIT-provisions the user and
  * issues a local session, then forwards to the dashboard.
  *
@@ -59,7 +59,7 @@ export default function SsoLoginPage() {
   }, [searchParams, completeMcomHandshake, navigate])
 
   return (
-    <AuthLayout title="Signing you in" subtitle="Connecting you from MCOM Solutions…">
+    <AuthLayout title="Signing you in" subtitle="Connecting you from the Central Hub Solution…">
       <Helmet>
         <title>Signing you in - Mobile VCard Link</title>
       </Helmet>
@@ -67,7 +67,7 @@ export default function SsoLoginPage() {
       {!handled && !error && (
         <div className="flex flex-col items-center justify-center py-10">
           <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="mt-4 text-sm text-gray-500">Verifying your MCOM identity…</p>
+          <p className="mt-4 text-sm text-gray-500">Verifying your Central Hub Solution identity…</p>
         </div>
       )}
 

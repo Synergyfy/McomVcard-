@@ -2,32 +2,21 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_SUBSCRIBERS = [
-  { id: 1, email: 'alice@example.com', created_at: '2025-06-01' },
-  { id: 2, email: 'bob@example.com', created_at: '2025-06-03' },
-  { id: 3, email: 'carol@example.com', created_at: '2025-06-10' },
-  { id: 4, email: 'dave@example.com', created_at: '2025-06-15' },
-  { id: 5, email: 'eve@example.com', created_at: '2025-06-20' },
-  { id: 6, email: 'frank@example.com', created_at: '2025-07-01' },
-  { id: 7, email: 'grace@example.com', created_at: '2025-07-05' },
-  { id: 8, email: 'henry@example.com', created_at: '2025-07-10' },
-  { id: 9, email: 'iris@example.com', created_at: '2025-07-12' },
-  { id: 10, email: 'jack@example.com', created_at: '2025-07-14' },
-]
 
 export default function SubscriberListPage() {
   const { t } = useTranslation()
-  const [items, setItems] = useState<typeof MOCK_SUBSCRIBERS>([])
+  const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     setLoading(true)
     adminService.getSubscribers()
-      .then((res: any) => setItems(res.length ? res : MOCK_SUBSCRIBERS))
-      .catch(() => setItems(MOCK_SUBSCRIBERS))
+      .then((res: any) => setItems(rowsOf(res)))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
 

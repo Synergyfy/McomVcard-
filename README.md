@@ -55,14 +55,14 @@ Start development server:
    ```bash
    pnpm dev:api
    ```
-Available at: http://localhost:3001/api
+Available at: http://localhost:9024/api
 
 ### Web App
 Start development server:
    ```bash
    pnpm dev:web
    ```
-Available at: http://localhost:3000
+Available at: http://localhost:9023
 
 ## Database Setup
 Configure PostgreSQL locally or via Docker:

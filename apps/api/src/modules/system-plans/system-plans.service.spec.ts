@@ -16,36 +16,52 @@ function makePlansServiceMock(): MockPlansService {
   }
 }
 
+function makeVariant(
+  key: 'standard' | 'pro' | 'pro_plus',
+  name: string,
+  durationDays: number,
+  price: number,
+  trialDays = 14,
+) {
+  return {
+    key,
+    name,
+    durationDays,
+    price,
+    setupFee: 0,
+    trialDays,
+    description: `${durationDays} days of access`,
+    features: null,
+    rules: null,
+    configuration: null,
+    stripePriceId: null,
+    paypalPlanId: null,
+    isActive: true,
+  }
+}
+
 function makePlan(overrides: Partial<PlanResponseDto> = {}): PlanResponseDto {
   return {
     id: 'plan-1',
-    level: 'Gold',
+    level: null,
     audience: 'business',
-    name: 'Gold',
-    tagline: 'High-tier access',
+    name: 'Business Growth',
+    description: 'High-tier access',
     popular: false,
-    sortOrder: 2,
+    sortOrder: 0,
     features: [{ text: '50 Business VCards', description: '', scope: 'All' }],
     rules: [],
-    tiers: {
-      Normal: { monthly: 10, quarterly: 27, semiannual: 54, annual: 100, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-      Pro: { monthly: 10, quarterly: 27, semiannual: 54, annual: 100, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-      'Pro+': { monthly: 10, quarterly: 27, semiannual: 54, annual: 100, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-    },
-    sections: { price: { description: '' }, feature: { description: '' }, rule: { description: '' } },
-    annualDiscount: { type: 'months', value: 2 },
+    configuration: null,
     currency: 'GBP',
     status: 'active',
-    configuration: null,
     type: 'STANDARD',
     seasonId: null,
     isDefault: false,
-    stripeMonthlyPriceId: null,
-    stripeQuarterlyPriceId: null,
-    stripeAnnualPriceId: null,
-    paypalMonthlyPlanId: null,
-    paypalQuarterlyPlanId: null,
-    paypalAnnualPlanId: null,
+    variants: [
+      makeVariant('standard', 'Standard', 90, 27),
+      makeVariant('pro', 'Pro', 180, 54),
+      makeVariant('pro_plus', 'Pro+', 365, 100),
+    ],
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
     updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     ...overrides,
@@ -72,11 +88,11 @@ describe('SystemPlansService', () => {
   afterEach(() => jest.clearAllMocks())
 
   describe('create', () => {
-    it('maps a flat connector plan onto the business Gold plan (Pro-tier pricing)', async () => {
+    it('maps flat connector pricing onto the three variants', async () => {
       plansService.create!.mockResolvedValue(makePlan())
 
       const result = await service.create({
-        name: 'Gold',
+        name: 'Business Growth',
         description: 'High-tier access',
         monthlyPrice: 10,
         trialDuration: 14,
@@ -87,10 +103,9 @@ describe('SystemPlansService', () => {
 
       expect(plansService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          level: 'Gold',
           audience: 'business',
-          name: 'Gold',
-          tagline: 'High-tier access',
+          name: 'Business Growth',
+          description: 'High-tier access',
           isDefault: false,
           configuration: { quotas: { maxVCards: 50 }, featureFlags: { customDomains: true } },
           features: [{ text: '50 Business VCards', description: '', scope: 'All' }],
@@ -98,25 +113,20 @@ describe('SystemPlansService', () => {
       )
 
       const createArg = plansService.create!.mock.calls[0][0] as any
-      expect(createArg.tiers.Pro).toEqual({
-        monthly: 10,
-        quarterly: 27,
-        semiannual: 54,
-        annual: 100,
-        setupFee: 0,
-        trialDays: 14,
-        description: '',
-        scope: 'All',
-      })
-      expect(createArg.tiers.Normal.trialDays).toBe(14)
-      expect(createArg.tiers['Pro+'].monthly).toBe(10)
+      expect(createArg.level).toBeUndefined()
+      expect(createArg.variants).toEqual([
+        expect.objectContaining({ key: 'standard', price: 10, trialDays: 14 }),
+        expect.objectContaining({ key: 'pro', price: 30, trialDays: 14 }),
+        expect.objectContaining({ key: 'pro_plus', price: 120, trialDays: 14 }),
+      ])
 
-      // Read side surfaces Pro-tier pricing
+      // Read side surfaces the variant prices on the flat connector fields.
       expect(result).toMatchObject({
         id: 'plan-1',
-        name: 'Gold',
-        monthlyPrice: 10,
-        quarterlyPrice: 27,
+        name: 'Business Growth',
+        monthlyPrice: 27,
+        quarterlyPrice: 54,
+        semiannualPrice: 54,
         annualPrice: 100,
         trialDuration: 14,
         isActive: true,
@@ -125,22 +135,63 @@ describe('SystemPlansService', () => {
       })
     })
 
-    it('infers the plan level from the name', async () => {
-      plansService.create!.mockResolvedValue(makePlan({ level: 'Platinum', name: 'Platinum' }))
-
-      await service.create({ name: 'Platinum', monthlyPrice: 1499 })
-
-      const createArg = plansService.create!.mock.calls[0][0] as any
-      expect(createArg.level).toBe('Platinum')
-    })
-
-    it('defaults to Gold level when the name does not match a known level', async () => {
+    it('prefers explicit variant prices over monthly multiplication', async () => {
       plansService.create!.mockResolvedValue(makePlan())
 
-      await service.create({ name: 'Custom Plan', monthlyPrice: 5 })
+      await service.create({
+        name: 'Growth',
+        monthlyPrice: 10,
+        quarterlyPrice: 35,
+        semiannualPrice: 60,
+        annualPrice: 110,
+      })
 
       const createArg = plansService.create!.mock.calls[0][0] as any
-      expect(createArg.level).toBe('Gold')
+      expect(createArg.variants).toEqual([
+        expect.objectContaining({ key: 'standard', price: 10 }),
+        expect.objectContaining({ key: 'pro', price: 35 }),
+        expect.objectContaining({ key: 'pro_plus', price: 110 }),
+      ])
+    })
+
+    it('accepts canonical Standard/Pro/Pro+ variants from the Central connector', async () => {
+      plansService.create!.mockResolvedValue(makePlan())
+
+      await service.create({
+        name: 'Variant Plan',
+        variants: [
+          {
+            tier: 'STANDARD',
+            price: 12,
+            features: ['Standard feature'],
+            configuration: { quotas: { maxVCards: 5 } },
+            stripePriceId: 'price_std',
+          },
+          {
+            tier: 'PRO',
+            price: 24,
+            features: ['Pro feature'],
+            configuration: { quotas: { maxVCards: 10 } },
+          },
+          {
+            tier: 'PRO_PLUS',
+            price: 48,
+            features: ['Pro+ feature'],
+            configuration: { quotas: { maxVCards: 20 } },
+          },
+        ],
+      })
+
+      const createArg = plansService.create!.mock.calls[0][0] as any
+      expect(createArg.variants[0]).toMatchObject({
+        key: 'standard',
+        price: 12,
+        features: [{ text: 'Standard feature', description: '', scope: 'All' }],
+        configuration: { quotas: { maxVCards: 5 } },
+        stripePriceId: 'price_std',
+      })
+      expect(createArg.variants[1]).toMatchObject({ key: 'pro', price: 24 })
+      expect(createArg.variants[2]).toMatchObject({ key: 'pro_plus', price: 48 })
     })
 
     it('keeps the connector name verbatim for arbitrary plan names', async () => {
@@ -150,25 +201,25 @@ describe('SystemPlansService', () => {
 
       const createArg = plansService.create!.mock.calls[0][0] as any
       expect(createArg.name).toBe('Tes Plan')
+      expect(createArg.level).toBeUndefined()
     })
 
     it('uses a 14-day trial when type is TRIAL and no trialDuration given', async () => {
       plansService.create!.mockResolvedValue(makePlan())
 
-      await service.create({ name: 'Gold', monthlyPrice: 10, type: 'TRIAL' })
+      await service.create({ name: 'Trial Plan', monthlyPrice: 10, type: 'TRIAL' })
 
       const createArg = plansService.create!.mock.calls[0][0] as any
-      expect(createArg.tiers.Pro.trialDays).toBe(14)
+      expect(createArg.variants[0].trialDays).toBe(14)
     })
 
-    it('marks the plan as the free/default tier when isDefault is true', async () => {
+    it('marks the plan as the free/default plan when isDefault is true', async () => {
       plansService.create!.mockResolvedValue(makePlan({ isDefault: true }))
 
-      await service.create({ name: 'Bronze', monthlyPrice: 0, isDefault: true })
+      await service.create({ name: 'Starter', monthlyPrice: 0, isDefault: true })
 
       const createArg = plansService.create!.mock.calls[0][0] as any
       expect(createArg.isDefault).toBe(true)
-      expect(createArg.level).toBe('Bronze')
     })
   })
 
@@ -182,9 +233,9 @@ describe('SystemPlansService', () => {
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({
         id: 'plan-1',
-        name: 'Gold',
-        monthlyPrice: 10,
-        quarterlyPrice: 27,
+        name: 'Business Growth',
+        quarterlyPrice: 54,
+        semiannualPrice: 54,
         annualPrice: 100,
         isActive: true,
         isDefault: false,
@@ -209,7 +260,9 @@ describe('SystemPlansService', () => {
 
       expect(plansService.findOne).toHaveBeenCalledWith('plan-1')
       expect(result.id).toBe('plan-1')
-      expect(result.monthlyPrice).toBe(10)
+      expect(result.quarterlyPrice).toBe(54)
+      expect(result.semiannualPrice).toBe(54)
+      expect(result.annualPrice).toBe(100)
     })
 
     it('propagates NotFound when the plan does not exist', async () => {
@@ -220,24 +273,22 @@ describe('SystemPlansService', () => {
   })
 
   describe('update', () => {
-    it('merges pricing updates with the current tiers and maps isActive to status', async () => {
-      const current = makePlan()
-      plansService.findOne!.mockResolvedValue(current)
+    it('updates variant prices and maps isActive to status', async () => {
+      plansService.findOne!.mockResolvedValue(makePlan())
       plansService.update!.mockResolvedValue(makePlan({ status: 'inactive' }))
 
       const result = await service.update('plan-1', { monthlyPrice: 20, isActive: false })
 
       expect(plansService.update).toHaveBeenCalledWith(
         'plan-1',
-        expect.objectContaining({
-          status: 'inactive',
-        }),
+        expect.objectContaining({ status: 'inactive' }),
       )
       const updateArg = plansService.update!.mock.calls[0][1] as any
-      expect(updateArg.tiers.Pro.monthly).toBe(20)
-      // Unchanged fields preserved from the current plan
-      expect(updateArg.tiers.Pro.quarterly).toBe(27)
-      expect(updateArg.tiers.Pro.annual).toBe(100)
+      expect(updateArg.variants).toEqual([
+        expect.objectContaining({ key: 'standard', price: 20 }),
+        expect.objectContaining({ key: 'pro', price: 60 }),
+        expect.objectContaining({ key: 'pro_plus', price: 240 }),
+      ])
       expect(result.isActive).toBe(false)
     })
 
@@ -251,7 +302,7 @@ describe('SystemPlansService', () => {
       })
 
       const updateArg = plansService.update!.mock.calls[0][1] as any
-      expect(updateArg.tagline).toBe('New tagline')
+      expect(updateArg.description).toBe('New tagline')
       expect(updateArg.features).toEqual([
         { text: 'Feature A', description: '', scope: 'All' },
         { text: 'Feature B', description: '', scope: 'All' },

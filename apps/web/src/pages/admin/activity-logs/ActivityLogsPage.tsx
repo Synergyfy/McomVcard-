@@ -1,19 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 
-const MOCK_LOGS: any[] = [
-  { id: 1, admin_name: 'Super Admin', action: 'login', module: 'Auth', description: 'Admin logged in', ip_address: '192.168.1.1', created_at: '2025-07-14 09:00:00' },
-  { id: 2, admin_name: 'Super Admin', action: 'create', module: 'Users', description: 'Created user Sarah Johnson', ip_address: '192.168.1.1', created_at: '2025-07-14 08:45:00' },
-  { id: 3, admin_name: 'Super Admin', action: 'update', module: 'Plans', description: 'Updated Pro plan pricing', ip_address: '192.168.1.1', created_at: '2025-07-13 16:30:00' },
-  { id: 4, admin_name: 'Super Admin', action: 'delete', module: 'vCards', description: 'Deleted vCard #12', ip_address: '192.168.1.1', created_at: '2025-07-13 14:20:00' },
-  { id: 5, admin_name: 'Super Admin', action: 'approve', module: 'Cash Payments', description: 'Approved cash payment #3', ip_address: '192.168.1.1', created_at: '2025-07-12 11:15:00' },
-  { id: 6, admin_name: 'Super Admin', action: 'update', module: 'Settings', description: 'Updated general settings', ip_address: '192.168.1.1', created_at: '2025-07-12 10:00:00' },
-  { id: 7, admin_name: 'Super Admin', action: 'create', module: 'Coupons', description: 'Created coupon SUMMER25', ip_address: '192.168.1.1', created_at: '2025-07-11 09:30:00' },
-  { id: 8, admin_name: 'Super Admin', action: 'reject', module: 'Withdraw', description: 'Rejected withdrawal #5', ip_address: '192.168.1.1', created_at: '2025-07-11 08:00:00' },
-  { id: 9, admin_name: 'Super Admin', action: 'login', module: 'Auth', description: 'Admin logged in', ip_address: '192.168.1.1', created_at: '2025-07-10 17:45:00' },
-  { id: 10, admin_name: 'Super Admin', action: 'send', module: 'Newsletter', description: 'Sent newsletter campaign #2', ip_address: '192.168.1.1', created_at: '2025-07-10 15:20:00' },
-]
 
 const actionColors: Record<string, string> = {
   login: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -35,8 +24,8 @@ export default function ActivityLogsPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getActivityLogs()
-      .then((res) => setLogs(res.data && res.data.length ? res.data : MOCK_LOGS))
-      .catch(() => setLogs(MOCK_LOGS))
+      .then((res) => setLogs(rowsOf(res)))
+      .catch(() => setLogs([]))
       .finally(() => setLoading(false))
   }, [])
 

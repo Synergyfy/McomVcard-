@@ -88,25 +88,48 @@ export class McomWebhookController {
     }
 
     const data = body.data as Record<string, unknown>
-    if (typeof data.packageId !== 'string' || typeof data.mcomUserId !== 'string') {
-      throw new BadRequestException('Webhook data must include packageId and mcomUserId')
+    const isPaymentEvent = body.event === 'payment.succeeded' || body.event === 'payment.refunded'
+
+    if (isPaymentEvent) {
+      if (typeof data.chargeId !== 'string' || !data.chargeId) {
+        throw new BadRequestException('Payment webhook data must include chargeId')
+      }
+    } else {
+      if (typeof data.packageId !== 'string' || typeof data.mcomUserId !== 'string') {
+        throw new BadRequestException('Webhook data must include packageId and mcomUserId')
+      }
     }
+
+    const stringField = (key: string): string | undefined =>
+      typeof data[key] === 'string' ? (data[key] as string) : undefined
 
     return {
       event: body.event as McomWebhookDto['event'],
       platform: body.platform,
       timestamp: typeof body.timestamp === 'string' ? body.timestamp : undefined,
       data: {
-        packageId: data.packageId,
-        mcomUserId: data.mcomUserId,
-        externalPlanId: typeof data.externalPlanId === 'string' ? data.externalPlanId : undefined,
-        packageName: typeof data.packageName === 'string' ? data.packageName : undefined,
-        planType: typeof data.planType === 'string' ? data.planType : undefined,
-        status: typeof data.status === 'string' ? data.status : undefined,
-        billingCycle: typeof data.billingCycle === 'string' ? data.billingCycle : undefined,
+        packageId: stringField('packageId'),
+        mcomUserId: stringField('mcomUserId'),
+        chargeId: stringField('chargeId'),
+        reference: stringField('reference'),
+        externalCustomerId: stringField('externalCustomerId'),
+        amountMinor: stringField('amountMinor'),
+        netMinor: stringField('netMinor'),
+        feeMinor: stringField('feeMinor'),
+        chargeAmountMinor: stringField('chargeAmountMinor'),
+        totalRefundedMinor: stringField('totalRefundedMinor'),
+        method: stringField('method'),
+        provider: stringField('provider'),
+        providerRef: stringField('providerRef'),
+        status: stringField('status'),
+        paidAt: stringField('paidAt'),
+        externalPlanId: stringField('externalPlanId'),
+        packageName: stringField('packageName'),
+        planType: stringField('planType'),
+        billingCycle: stringField('billingCycle'),
         amount: typeof data.amount === 'number' ? data.amount : undefined,
-        currency: typeof data.currency === 'string' ? data.currency : undefined,
-        expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
+        currency: stringField('currency'),
+        expiresAt: stringField('expiresAt'),
         limits: typeof data.limits === 'object' && data.limits !== null ? (data.limits as Record<string, unknown>) : undefined,
       },
     }

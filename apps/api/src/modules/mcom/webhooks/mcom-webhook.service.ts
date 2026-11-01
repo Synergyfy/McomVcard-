@@ -6,6 +6,7 @@ import { createHash } from 'crypto'
 import { UsersService } from '../../users/users.service'
 import { McomWebhookEvent } from './mcom-webhook-event.entity'
 import { McomWebhookDto } from '../dto/mcom-webhook.dto'
+import { McomPackagesService } from '../packages/mcom-packages.service'
 
 export interface WebhookProcessResult {
   handled: boolean
@@ -31,8 +32,11 @@ export class McomWebhookService {
     @InjectRepository(McomWebhookEvent) private readonly eventsRepo: Repository<McomWebhookEvent>,
     private readonly config: ConfigService,
     private readonly usersService: UsersService,
+    private readonly packagesService: McomPackagesService,
   ) {
-    this.platformSlug = (this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcard').toLowerCase()
+    this.platformSlug = (this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcards')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
   }
 
   /**
@@ -40,7 +44,11 @@ export class McomWebhookService {
    * signed (used for dedupe only — signature verification happens upstream).
    */
   async process(rawBody: Buffer | string, dto: McomWebhookDto): Promise<WebhookProcessResult> {
-    if (String(dto.platform || '').toLowerCase() !== this.platformSlug) {
+    // Accept the current slug (`vcards`) and the legacy `vcard` spelling.
+    const incomingPlatform = String(dto.platform || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+    if (incomingPlatform !== this.platformSlug && !incomingPlatform.includes('vcard')) {
       // Webhook for another platform slug — acknowledge but do nothing.
       return { handled: false, alreadyProcessed: false, action: 'platform-mismatch' }
     }
@@ -58,7 +66,7 @@ export class McomWebhookService {
       eventHash,
       event: dto.event,
       platform: dto.platform,
-      packageId: dto.data?.packageId ?? null,
+      packageId: dto.data?.packageId ?? dto.data?.chargeId ?? null,
     })
 
     return { handled: true, alreadyProcessed: false, action: dto.event }
@@ -67,11 +75,18 @@ export class McomWebhookService {
   // ── per-event application logic ───────────────────────────────────────────
 
   private async applyEvent(dto: McomWebhookDto): Promise<void> {
-    const user = await this.usersService.findByMcomUserId(dto.data.mcomUserId)
+    const user =
+      (dto.data.externalCustomerId
+        ? await this.usersService.findById(dto.data.externalCustomerId).catch(() => null)
+        : null) ??
+      (dto.data.mcomUserId ? await this.usersService.findByMcomUserId(dto.data.mcomUserId) : null)
+
     if (!user) {
       // The account may not exist locally yet (user has never visited this
       // platform). Nothing to update — the OAuth SSO flow provisions them.
-      this.logger.log(`Webhook ${dto.event} for unknown mcom user ${dto.data.mcomUserId} — skipped`)
+      this.logger.log(
+        `Webhook ${dto.event} for unknown user ${dto.data.externalCustomerId ?? dto.data.mcomUserId} — skipped`,
+      )
       return
     }
 
@@ -116,6 +131,42 @@ export class McomWebhookService {
         // keep current access until the retry/grace window elapses.
         await this.usersService.update(user.id, { mcomMembershipStatus: 'payment_failed' })
         this.logger.warn(`payment.failed flagged billing for ${dto.data.mcomUserId}`)
+        break
+      }
+
+      case 'payment.succeeded': {
+        // Backstop for a plan charge the browser never confirmed. Activation is
+        // idempotent on the MCOM Pay charge id.
+        const activated = await this.packagesService.activateFromCharge({
+          id: dto.data.chargeId as string,
+          status: dto.data.status || 'paid',
+          reference: dto.data.reference ?? null,
+          externalCustomerId: user.id,
+        })
+        this.logger.log(
+          activated
+            ? `payment.succeeded activated the paid plan for ${user.id}`
+            : `payment.succeeded received for ${user.id} (not a plan charge)`,
+        )
+        break
+      }
+
+      case 'payment.refunded': {
+        const chargeTotal = dto.data.chargeAmountMinor
+        const refunded = dto.data.totalRefundedMinor ?? dto.data.amountMinor
+        const fullyRefunded = Boolean(chargeTotal && refunded && BigInt(refunded) >= BigInt(chargeTotal))
+
+        if (fullyRefunded) {
+          await this.packagesService.revokeFromCharge({
+            id: dto.data.chargeId as string,
+            status: 'refunded',
+            reference: dto.data.reference ?? null,
+            externalCustomerId: user.id,
+          })
+          this.logger.log(`payment.refunded revoked the plan for ${user.id}`)
+        } else {
+          this.logger.log(`payment.refunded partially refunded charge ${dto.data.chargeId} — access kept`)
+        }
         break
       }
     }

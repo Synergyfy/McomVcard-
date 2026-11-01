@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
 import InputField from '../../../components/auth/InputField'
-import type { DashboardMeta, EmailSetting, PaymentSetting } from '../../../types'
+import type { DashboardMeta, EmailSetting } from '../../../types'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 type Tab = 'general' | 'branding' | 'email' | 'payment' | 'sms' | 'notifications' | 'booking'
 
@@ -19,8 +20,7 @@ export default function SettingsPage() {
   // Email
   const [email, setEmail] = useState<EmailSetting>({ mail_driver: '', mail_host: '', mail_port: '', mail_username: '', mail_password: '', mail_encryption: '', mail_from_address: '', mail_from_name: '' })
 
-  // Payment
-  const [payment, setPayment] = useState<PaymentSetting>({ stripe_key: '', stripe_secret: '', stripe_enabled: false, paypal_client_id: '', paypal_secret: '', paypal_enabled: false, currency: '' })
+  // Payment settings are owned by MCOM Central Hub Solution — nothing to edit here.
 
   // Branding
   const [branding, setBranding] = useState({ logo_url: '/logo.png', favicon_url: '/favicon.ico', primary_color: '#FF5C00', secondary_color: '#1F2937', accent_color: '#10B981', custom_css: '', custom_js: '' })
@@ -35,16 +35,14 @@ export default function SettingsPage() {
   const [bookingSettings, setBookingSettings] = useState({ buffer_minutes: 15, max_bookings_per_slot: 1, allow_cancellation: true, cancellation_deadline_hours: 24, require_confirmation: true, max_future_days: 60, min_notice_hours: 2, auto_confirm: false })
 
   useEffect(() => {
-    adminService.getGeneralSettings().then(setMeta).catch(() => {})
-    adminService.getEmailSettings().then(setEmail).catch(() => {})
-    adminService.getPaymentSettings().then(setPayment).catch(() => {})
+    adminService.getGeneralSettings().then((data: any) => setMeta((prev) => ({ ...prev, ...data }))).catch(() => {})
+    adminService.getEmailSettings().then((data: any) => setEmail((prev) => ({ ...prev, ...data }))).catch(() => {})
   }, [])
 
   const showSuccess = () => { setMessage(t('admin.saved')); setTimeout(() => setMessage(''), 3000) }
 
   const handleGeneralSave = async () => { setLoading(true); setMessage(''); try { await adminService.updateGeneralSettings(meta); showSuccess() } catch {} finally { setLoading(false) } }
   const handleEmailSave = async () => { setLoading(true); setMessage(''); try { await adminService.updateEmailSettings(email); showSuccess() } catch {} finally { setLoading(false) } }
-  const handlePaymentSave = async () => { setLoading(true); setMessage(''); try { await adminService.updatePaymentSettings(payment); showSuccess() } catch {} finally { setLoading(false) } }
   const handleBrandingSave = async () => { setLoading(true); setMessage(''); try { showSuccess() } catch {} finally { setLoading(false) } }
   const handleSmsSave = async () => { setLoading(true); setMessage(''); try { showSuccess() } catch {} finally { setLoading(false) } }
   const handleNotificationsSave = async () => { setLoading(true); setMessage(''); try { showSuccess() } catch {} finally { setLoading(false) } }
@@ -107,31 +105,31 @@ export default function SettingsPage() {
           <form onSubmit={(e) => { e.preventDefault(); handleBrandingSave() }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Logo URL<InfoTooltip text="Public URL of the brand logo shown in the dashboard and emails." /></span></label>
                 <input type="text" value={branding.logo_url} onChange={(e) => setBranding({ ...branding, logo_url: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favicon URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Favicon URL<InfoTooltip text="Public URL of the browser tab icon." /></span></label>
                 <input type="text" value={branding.favicon_url} onChange={(e) => setBranding({ ...branding, favicon_url: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Primary Color<InfoTooltip text="Main brand colour used for buttons and active navigation." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.primary_color} onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.primary_color} onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Secondary Color<InfoTooltip text="Supporting brand colour used for highlights." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.secondary_color} onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.secondary_color} onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Accent Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Accent Color<InfoTooltip text="Accent colour used for badges and call-to-action details." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.accent_color} onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.accent_color} onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
@@ -139,7 +137,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Custom CSS</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Custom CSS<InfoTooltip text="Optional CSS applied to the public front end." /></span></label>
               <textarea value={branding.custom_css} onChange={(e) => setBranding({ ...branding, custom_css: e.target.value })} rows={4} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm font-mono text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="/* custom styles */" />
             </div>
             <button type="submit" disabled={loading} className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50 shadow-sm shadow-orange-200 dark:shadow-none">
@@ -178,24 +176,24 @@ export default function SettingsPage() {
         )}
 
         {tab === 'payment' && (
-          <form onSubmit={(e) => { e.preventDefault(); handlePaymentSave() }} className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('admin.stripe')}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <InputField label={t('admin.stripe_key')} value={payment.stripe_key} onChange={(e) => setPayment({ ...payment, stripe_key: e.target.value })} />
-              <InputField label={t('admin.stripe_secret')} type="password" value={payment.stripe_secret} onChange={(e) => setPayment({ ...payment, stripe_secret: e.target.value })} />
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500">Managed by MCOM</p>
+              <h3 className="mt-1 text-base font-extrabold text-gray-900 dark:text-white">Centralized payments</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                Stripe, PayPal and the MCOM Wallet are configured and processed by MCOM Central Hub Solution. VCard
+                never stores card details or gateway secrets.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                <li className="flex items-start gap-2"><span className="text-blue-500">✓</span> Customers pay from their MCOM Wallet balance.</li>
+                <li className="flex items-start gap-2"><span className="text-blue-500">✓</span> Wallet top-ups, fees and refunds are managed on Central Hub.</li>
+                <li className="flex items-start gap-2"><span className="text-blue-500">✓</span> Every charge is written to MCOM's immutable ledger.</li>
+              </ul>
             </div>
-            <Toggle checked={payment.stripe_enabled} onChange={(v) => setPayment({ ...payment, stripe_enabled: v })} label={t('admin.enable_stripe')} />
-            <hr className="border-gray-100 dark:border-gray-700" />
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">PayPal</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <InputField label={t('admin.paypal_client_id')} value={payment.paypal_client_id} onChange={(e) => setPayment({ ...payment, paypal_client_id: e.target.value })} />
-              <InputField label={t('admin.paypal_secret')} type="password" value={payment.paypal_secret} onChange={(e) => setPayment({ ...payment, paypal_secret: e.target.value })} />
-            </div>
-            <Toggle checked={payment.paypal_enabled} onChange={(v) => setPayment({ ...payment, paypal_enabled: v })} label={t('admin.enable_paypal')} />
-            <button type="submit" disabled={loading} className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50 shadow-sm shadow-orange-200 dark:shadow-none">
-              {loading ? t('common.loading') : t('admin.save')}
-            </button>
-          </form>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              To change your fee split, webhook URL or HMAC secret, open MCOM Console → MCOM Pay / your app.
+            </p>
+          </div>
         )}
 
         {tab === 'sms' && (

@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Query, Req, Res, HttpCode, UseGuards, BadRequestException } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Req,
+  Res,
+  HttpCode,
+  UseGuards,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common'
 import {
   ApiTags,
   ApiOperation,
@@ -11,10 +23,11 @@ import {
 import { Request, Response } from 'express'
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { ConfigService } from '@nestjs/config'
-import { McomService } from './mcom.service'
+import { McomEntitlement, McomService, hasVcardAccess } from './mcom.service'
 import { AuthService, McomUserInfo } from '../auth/auth.service'
 import { UsersService } from '../users/users.service'
 import { PlansService } from '../plans/plans.service'
+import { SubscriptionsService } from '../subscriptions/subscriptions.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { SsoCallbackDto } from './dto/sso-callback.dto'
@@ -54,6 +67,7 @@ export class McomController {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly plansService: PlansService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   /**
@@ -77,7 +91,7 @@ export class McomController {
     const safeRedirect = safeReturnPath(redirect)
     // Preserve the card-invite context so the SPA callback can restore the
     // consumer card-association flow after the SSO round trip, plus an optional
-    // post-login redirect (e.g. back to /b/payment after a re-auth).
+    // post-login redirect (e.g. back to /plans after a re-auth).
     if (card || business || safeRedirect) {
       setOauthReturnCookie(res, JSON.stringify({ card: card || '', business: business || '', redirect: safeRedirect || '' }))
     }
@@ -108,7 +122,13 @@ export class McomController {
       throw new BadRequestException('OAuth state mismatch — possible CSRF attempt')
     }
 
-    const { accessToken, refreshToken, expiresIn, user } = await this.mcomService.exchangeCode(body.code)
+    const { accessToken, refreshToken, expiresIn, user, entitlement } = await this.mcomService.exchangeCode(body.code)
+
+    // ── Unified entitlement policy ──
+    // Normal platforms allow sign-in without access so the user can reach the
+    // in-app purchase gate; the dashboard stays locked by RequireVcardAccess.
+    // White-label platforms are grant-only and deny sign-in without a grant.
+    this.assertEntitled(user, entitlement)
 
     const result = await this.authService.mcomProvisionAndIssue(
       user,
@@ -119,6 +139,7 @@ export class McomController {
         ip: req.ip,
       },
       expiresIn,
+      entitlement,
     )
 
     setRefreshTokenCookie(res, result.refreshToken, this.authService.refreshTokenTtl())
@@ -150,10 +171,73 @@ export class McomController {
         refresh_token: result.refreshToken,
         user: result.user,
         return_to: returnTo,
+        entitlement,
       },
-      'MCOM login successful',
+      'Central Hub Solution login successful',
       200,
     )
+  }
+
+  /**
+   * Central entitlement policy for sign-in.
+   *
+   * Normal (non-white-label) platforms allow sign-in without an active plan,
+   * membership or trial so the user can be taken to the purchase gate. The
+   * dashboard itself is still protected by RequireVcardAccess, and the package
+   * purchase endpoints only require a local session — so a user with no access
+   * can choose a VCard plan or buy a Central membership.
+   *
+   * White-label platforms remain grant-only: no session is issued unless the
+   * business has an explicit white-label grant.
+   */
+  private assertEntitled(
+    user: { profileType?: string },
+    entitlement: McomEntitlement | null,
+  ): void {
+    if (!entitlement) return
+
+    const access = entitlement.access
+    const whitelabel = entitlement.whitelabel
+    const isWhitelabel = whitelabel?.enabled === true
+
+    if (!isWhitelabel) {
+      if (access?.hasAccess === false) {
+        // Not an error: the user is allowed to sign in and choose a plan.
+        console.warn(
+          `[MCOM SSO] No platform access for ${user.profileType ?? 'user'} (${access.reason ?? 'ACCESS_DENIED'}) — routing to purchase gate`,
+        )
+      }
+      return
+    }
+
+    if (access?.hasAccess === false) {
+      const reason = access.reason || 'ACCESS_DENIED'
+      console.warn(`[MCOM SSO] White-label access denied for ${user.profileType ?? 'user'}: ${reason}`)
+
+      throw new ForbiddenException({
+        message:
+          reason === 'WHITELABEL_BUSINESS_ONLY'
+            ? 'White-label access is available to business accounts only'
+            : 'White-label access has not been granted for this business',
+        error: reason,
+        reason,
+      })
+    }
+
+    // White-label admission gate (grant-only, business-only). This platform is
+    // not white-label today, but the contract is honoured if Central enables it.
+    const granted =
+      user.profileType === 'BUSINESS' &&
+      access?.accessType === 'WHITELABEL' &&
+      whitelabel?.granted === true
+
+    if (!granted) {
+      throw new ForbiddenException({
+        message: 'White-label access has not been granted for this business',
+        error: 'WHITELABEL_ACCESS_DENIED',
+        reason: 'WHITELABEL_ACCESS_DENIED',
+      })
+    }
   }
 
   /**
@@ -199,12 +283,13 @@ export class McomController {
   @ApiOperation({ summary: 'Public MCOM config', description: 'Secret-free configuration the SPA needs (membership upgrade URL).' })
   @ApiOkResponse({ description: 'Public configuration' })
   getConfig() {
-    const membershipUrl =
-      this.configService.get<string>('MCOM_MEMBERSHIP_URL') ||
-      this.configService.get<string>('MCOM_SOLUTIONS_URL') ||
-      'http://localhost:3000'
+    const configured = this.configService.get<string>('MCOM_MEMBERSHIP_URL')
+    const fallback =
+      this.configService.get<string>('NODE_ENV') === 'production'
+        ? this.configService.get<string>('MCOM_SOLUTIONS_URL') || ''
+        : 'http://localhost:3000/dashboard/memberships'
 
-    return ApiResponse.success({ membershipUrl }, 'MCOM configuration', 200)
+    return ApiResponse.success({ membershipUrl: configured || fallback }, 'MCOM configuration', 200)
   }
 
   /**
@@ -240,6 +325,18 @@ export class McomController {
    * frontend can enforce permission by plan.
    */
   private async resolveActivePlan(userId: string) {
+    // A locally paid VCard plan (MCOM Pay wallet) is the primary entitlement
+    // now that partner apps own their subscriptions.
+    try {
+      const local = await this.subscriptionsService.findActiveForUser(userId)
+      if (local) {
+        const plan = await this.plansService.findOne(local.planId)
+        return this.planPayload(plan, local.expiresAt?.toISOString() ?? null)
+      }
+    } catch {
+      // fall through to the legacy Central package lookup
+    }
+
     try {
       const dbUser = await this.usersService.findById(userId)
       if (!dbUser?.mcomUserId) return null
@@ -248,36 +345,44 @@ export class McomController {
       if (!pkg?.externalPlanId) return null
 
       const plan = await this.plansService.findOne(pkg.externalPlanId)
-      const pro = plan.tiers?.Pro
-      return {
-        id: plan.id,
-        name: plan.name ?? plan.level,
-        level: plan.level,
-        audience: plan.audience,
-        status: plan.status,
-        isDefault: plan.isDefault,
-        trialDays: pro?.trialDays ?? undefined,
-        monthlyPrice: pro?.monthly ?? undefined,
-        quarterlyPrice: pro?.quarterly ?? undefined,
-        annualPrice: pro?.annual ?? undefined,
-        configuration: plan.configuration ?? undefined,
-        features: (plan.features ?? []).map((f) => f.text),
-        stripeMonthlyPriceId: plan.stripeMonthlyPriceId ?? undefined,
-        expiresAt: pkg.expiresAt ?? undefined,
-      }
+      return this.planPayload(plan, pkg.expiresAt ?? null)
     } catch {
       return null
     }
   }
 
+  private planPayload(plan: Awaited<ReturnType<PlansService['findOne']>>, expiresAt: string | null) {
+    const standard = plan.variants.find((variant) => variant.key === 'standard')
+    const pro = plan.variants.find((variant) => variant.key === 'pro')
+    const proPlus = plan.variants.find((variant) => variant.key === 'pro_plus')
+
+    return {
+      id: plan.id,
+      name: plan.name,
+      level: plan.level,
+      audience: plan.audience,
+      status: plan.status,
+      isDefault: plan.isDefault,
+      trialDays: standard?.trialDays ?? undefined,
+      monthlyPrice: standard ? Math.round(standard.price / 3) : undefined,
+      quarterlyPrice: standard?.price,
+      semiannualPrice: pro?.price,
+      annualPrice: proPlus?.price,
+      variants: plan.variants,
+      configuration: plan.configuration ?? undefined,
+      features: (plan.features ?? []).map((f) => f.text),
+      expiresAt: expiresAt ?? undefined,
+    }
+  }
+
   private permissionFromMap(permissions: Record<string, boolean>): boolean {
-    return permissions[this.mcomService.platformPermissionKey] === true || permissions.can_access_vcard === true
+    return permissions[this.mcomService.platformPermissionKey] === true || hasVcardAccess(permissions)
   }
 
   private statusPayload(user: UserResponseDto) {
     return {
       permissions: user.permissions,
-      can_access_vcard: user.permissions?.can_access_vcard === true,
+      can_access_vcard: hasVcardAccess(user.permissions),
       membership_level: user.membership_level,
       membership_status: user.membership_status,
     }
@@ -308,6 +413,13 @@ export class McomController {
       userInfo = await this.mcomService.getUserInfo(accessToken)
     }
 
-    return this.authService.syncMcomSession(userId, accessToken, userInfo, expiresIn)
+    let entitlement: McomEntitlement | null = null
+    try {
+      entitlement = await this.mcomService.getEntitlement(accessToken)
+    } catch {
+      entitlement = null
+    }
+
+    return this.authService.syncMcomSession(userId, accessToken, userInfo, expiresIn, entitlement)
   }
 }

@@ -1,18 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_PAYMENTS: any[] = [
-  { id: 1, user_name: 'Sarah Johnson', plan_name: 'Pro', amount: 19.99, transaction_id: 'CASH-001', status: 'approved', created_at: '2025-03-05' },
-  { id: 2, user_name: 'Mike Chen', plan_name: 'Basic', amount: 9.99, transaction_id: 'CASH-002', status: 'approved', created_at: '2025-04-10' },
-  { id: 3, user_name: 'Emily Williams', plan_name: 'Enterprise', amount: 49.99, transaction_id: 'CASH-003', status: 'pending', created_at: '2025-05-15' },
-  { id: 4, user_name: 'David Smith', plan_name: 'Basic', amount: 9.99, transaction_id: 'CASH-004', status: 'rejected', created_at: '2025-03-20' },
-  { id: 5, user_name: 'Anna Garcia', plan_name: 'Pro', amount: 19.99, transaction_id: 'CASH-005', status: 'pending', created_at: '2025-06-01' },
-  { id: 6, user_name: 'Robert Taylor', plan_name: 'Basic', amount: 9.99, transaction_id: 'CASH-006', status: 'approved', created_at: '2025-05-25' },
-  { id: 7, user_name: 'James Brown', plan_name: 'Pro', amount: 19.99, transaction_id: 'CASH-007', status: 'pending', created_at: '2025-06-20' },
-]
 
 const statusStyles: Record<string, string> = {
   approved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20',
@@ -30,8 +22,8 @@ export default function CashPaymentsPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getCashPayments()
-      .then((res) => setPayments(res.data && res.data.length ? res.data : MOCK_PAYMENTS))
-      .catch(() => setPayments(MOCK_PAYMENTS))
+      .then((res) => setPayments(rowsOf(res)))
+      .catch(() => setPayments([]))
       .finally(() => setLoading(false))
   }, [])
 

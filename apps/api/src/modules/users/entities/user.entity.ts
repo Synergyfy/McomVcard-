@@ -74,6 +74,60 @@ export class User {
   @Column({ name: 'mcom_tokens_updated_at', type: 'timestamptz', nullable: true })
   mcomTokensUpdatedAt!: Date | null
 
+  // ── Canonical central identity snapshot ──
+  // Central Hub Solution is the source of truth for these fields; they are
+  // refreshed on every SSO login/sync. Local copies exist so the app can render
+  // without a round trip to Central.
+  @Column({ name: 'mcom_role', type: 'varchar', nullable: true })
+  mcomRole!: string | null
+
+  @Column({ name: 'mcom_profile_type', type: 'varchar', nullable: true })
+  mcomProfileType!: string | null
+
+  @Column({ name: 'is_affiliate', type: 'boolean', default: false })
+  isAffiliate!: boolean
+
+  @Column({ name: 'job_title', type: 'varchar', nullable: true })
+  jobTitle!: string | null
+
+  @Column({ name: 'address', type: 'text', nullable: true })
+  address!: string | null
+
+  @Column({ name: 'postcode', type: 'varchar', nullable: true })
+  postcode!: string | null
+
+  @Column({ name: 'country', type: 'varchar', nullable: true })
+  country!: string | null
+
+  @Column({ name: 'company_name', type: 'varchar', nullable: true })
+  companyName!: string | null
+
+  @Column({ name: 'company_type', type: 'varchar', nullable: true })
+  companyType!: string | null
+
+  @Column({ name: 'company_industry', type: 'varchar', nullable: true })
+  companyIndustry!: string | null
+
+  @Column({ name: 'company_website', type: 'text', nullable: true })
+  companyWebsite!: string | null
+
+  @Column({ name: 'company_logo', type: 'text', nullable: true })
+  companyLogo!: string | null
+
+  @Column({ name: 'mcom_business_id', type: 'varchar', nullable: true })
+  mcomBusinessId!: string | null
+
+  // Raw role profile + entitlement snapshot from Central (businessProfile,
+  // customerProfile, agentProfile, ... and access/plan/trialContext).
+  @Column({ name: 'mcom_profile', type: 'jsonb', nullable: true })
+  mcomProfile!: Record<string, unknown> | null
+
+  @Column({ name: 'mcom_entitlement', type: 'jsonb', nullable: true })
+  mcomEntitlement!: Record<string, unknown> | null
+
+  @Column({ name: 'mcom_last_sync_at', type: 'timestamptz', nullable: true })
+  mcomLastSyncAt!: Date | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

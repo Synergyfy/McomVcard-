@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DataSource, ILike, Repository } from 'typeorm'
+import { DataSource, ILike, IsNull, Repository } from 'typeorm'
 import { Wishlist } from './entities/wishlist.entity'
 import { WishlistItem } from './entities/wishlist-item.entity'
 import { WishlistShare } from './entities/wishlist-share.entity'
@@ -223,6 +223,52 @@ export class WishlistsService {
     const productPrice = item.product?.price
     if (productPrice == null || productPrice <= 0) {
       throw new BadRequestException('This product has no valid price for fulfillment')
+    }
+
+    // Centralized mode: charge the MCOM Wallet, then mirror the fulfilment.
+    if (this.walletService.usesCentralWallet) {
+      const reference = `vcards:wishlist:${itemId}`
+
+      let debit
+      try {
+        debit = await this.walletService.debitMcomWallet(
+          userId,
+          productPrice,
+          {
+            category: 'PURCHASE',
+            description: `Fulfilled wishlist item: ${item.product?.name ?? itemId}`,
+            reference,
+            metadata: { wishlistId, itemId },
+          },
+          `wishlist-fulfill-${itemId}`,
+        )
+      } catch (err) {
+        throw err
+      }
+
+      try {
+        await this.itemsRepo.update({ id: itemId, fulfilledBy: IsNull() }, { fulfilledBy: userId })
+      } catch (err) {
+        await this.walletService
+          .creditMcomWallet(
+            userId,
+            productPrice,
+            {
+              category: 'REFUND',
+              description: `Refund — wishlist fulfilment failed ${itemId}`,
+              reference,
+            },
+            `wishlist-fulfill-refund-${itemId}`,
+          )
+          .catch(() => undefined)
+        throw err
+      }
+
+      return ApiResponse.success(
+        { item_id: itemId, product_price: productPrice, new_balance: debit.balance },
+        'Wishlist item fulfilled',
+        200,
+      )
     }
 
     const result = await this.dataSource.transaction(async (manager) => {

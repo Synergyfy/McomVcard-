@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 
-const MOCK_USERS: any[] = [
-  { id: 1, user_name: 'Sarah Johnson', referral_code: 'SARAH2025', commission_rate: 10, referred_count: 5, total_earned: 125.00, balance: 45.00, status: true, created_at: '2025-03-01' },
-  { id: 2, user_name: 'Mike Chen', referral_code: 'MIKE2025', commission_rate: 10, referred_count: 3, total_earned: 75.00, balance: 25.00, status: true, created_at: '2025-04-01' },
-  { id: 3, user_name: 'Anna Garcia', referral_code: 'ANNA2025', commission_rate: 15, referred_count: 2, total_earned: 50.00, balance: 50.00, status: true, created_at: '2025-05-01' },
-  { id: 4, user_name: 'James Brown', referral_code: 'JAMES2025', commission_rate: 10, referred_count: 1, total_earned: 25.00, balance: 0.00, status: false, created_at: '2025-06-01' },
-  { id: 5, user_name: 'Emily Williams', referral_code: 'EMILY2025', commission_rate: 10, referred_count: 4, total_earned: 100.00, balance: 60.00, status: true, created_at: '2025-04-15' },
-  { id: 6, user_name: 'Lisa Anderson', referral_code: 'LISA2025', commission_rate: 10, referred_count: 0, total_earned: 0, balance: 0, status: true, created_at: '2025-06-10' },
-]
 
 export default function AffiliateUsersPage() {
   const { t } = useTranslation()
@@ -21,8 +14,8 @@ export default function AffiliateUsersPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getAffiliateUsers()
-      .then((res) => setUsers(res.data && res.data.length ? res.data : MOCK_USERS))
-      .catch(() => setUsers(MOCK_USERS))
+      .then((res) => setUsers(rowsOf(res)))
+      .catch(() => setUsers([]))
       .finally(() => setLoading(false))
   }, [])
 

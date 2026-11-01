@@ -125,8 +125,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const refreshMcomStatus = useCallback(async () => {
-    const user = await mcomService.refreshSession()
-    setStoredUser(user)
+    try {
+      const user = await mcomService.refreshSession()
+      setStoredUser(user)
+    } catch (err) {
+      // The Central SSO session may have expired even though local access was
+      // just granted by a wallet payment. Refresh the local profile so the gate
+      // sees the new entitlement, then rethrow for callers that need to prompt
+      // the user to re-authorize.
+      try {
+        const localUser = await authService.getUser()
+        setStoredUser(localUser)
+      } catch {
+        // ignore — the original error is more useful
+      }
+      throw err
+    }
   }, [setStoredUser])
 
   return (

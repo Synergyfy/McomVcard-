@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './contexts/AuthContext'
+import { AdminAuthProvider } from './contexts/AdminAuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/admin/AdminLayout'
@@ -10,6 +11,7 @@ import ConsumerLayout from './components/consumer/ConsumerLayout'
 import BusinessLayout from './components/business/layout/BusinessLayout'
 import RequireVcardAccess from './components/auth/RequireVcardAccess'
 import RequireAuth from './components/auth/RequireAuth'
+import RequireAdmin from './components/auth/RequireAdmin'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
@@ -40,8 +42,6 @@ const SubscriptionPage = lazy(() => import('./pages/user/subscriptions/Subscript
 const UserSettingsPage = lazy(() => import('./pages/user/settings/UserSettingsPage'))
 const MCOMSolutionsPage = lazy(() => import('./pages/onboarding/MCOMSolutionsPage'))
 const ChooseMembershipPage = lazy(() => import('./pages/onboarding/ChooseMembershipPage'))
-const PaymentPage = lazy(() => import('./pages/onboarding/PaymentPage'))
-const MembershipConfirmationPage = lazy(() => import('./pages/onboarding/MembershipConfirmationPage'))
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const UserListPage = lazy(() => import('./pages/admin/users/UserListPage'))
 const UserCreatePage = lazy(() => import('./pages/admin/users/UserCreatePage'))
@@ -165,7 +165,6 @@ const BusinessCardContentEditorPage = lazy(() => import('./pages/business/card/C
 const BusinessMembershipPage = lazy(() => import('./pages/business/MembershipPage'))
 const BusinessMembershipPlansPage = lazy(() => import('./pages/business/MembershipPlansPage'))
 const BusinessMembershipConfirmationPage = lazy(() => import('./pages/business/MembershipConfirmationPage'))
-const BusinessMembershipPaymentPage = lazy(() => import('./pages/business/MembershipPaymentPage'))
 const PlanCheckoutPage = lazy(() => import('./pages/business/PlanCheckoutPage'))
 const PaymentSuccessPage = lazy(() => import('./pages/business/PaymentSuccessPage'))
 const BusinessReportsPage = lazy(() => import('./pages/business/ReportsPage'))
@@ -202,6 +201,7 @@ export default function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
+        <AdminAuthProvider>
         <ThemeProvider>
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
@@ -236,11 +236,11 @@ export default function App() {
                 <Route path="/sso-login" element={<SsoLoginPage />} />
                 <Route path="/onboarding/mcom-solutions" element={<MCOMSolutionsPage />} />
                 <Route path="/onboarding/choose-membership" element={<ChooseMembershipPage />} />
-                <Route path="/onboarding/payment" element={<PaymentPage />} />
-                <Route path="/onboarding/confirmation" element={<MembershipConfirmationPage />} />
+                <Route path="/onboarding/payment" element={<Navigate to="/plans" replace />} />
+                <Route path="/onboarding/confirmation" element={<Navigate to="/b/dashboard" replace />} />
                 <Route element={<RequireAuth />}>
-                  <Route path="/b/payment" element={<PlanCheckoutPage />} />
-                  <Route path="/b/payment/success" element={<PaymentSuccessPage />} />
+                  <Route path="/plans" element={<PlanCheckoutPage />} />
+                  <Route path="/plans/success" element={<PaymentSuccessPage />} />
                 </Route>
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -277,7 +277,7 @@ export default function App() {
                   <Route path="/b/cards/:id/edit" element={<BusinessCardContentEditorPage />} />
                   <Route path="/b/membership" element={<BusinessMembershipPage />} />
                   <Route path="/b/membership/plans" element={<BusinessMembershipPlansPage />} />
-                  <Route path="/b/membership/payment" element={<BusinessMembershipPaymentPage />} />
+                  <Route path="/b/membership/payment" element={<Navigate to="/plans" replace />} />
                   <Route path="/b/membership/confirmation" element={<BusinessMembershipConfirmationPage />} />
                   <Route path="/b/reports" element={<BusinessReportsPage />} />
                   <Route path="/b/integrations" element={<BusinessIntegrationsPage />} />
@@ -329,6 +329,7 @@ export default function App() {
 
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
+                <Route element={<RequireAdmin />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboardPage />} />
                   <Route path="/admin/users" element={<UserListPage />} />
@@ -450,10 +451,12 @@ export default function App() {
                   <Route path="/admin/newsletter" element={<NewsletterPage />} />
                   <Route path="/admin/system-info" element={<SystemInfoPage />} />
                 </Route>
+                </Route>
               </Routes>
             </Suspense>
           </BrowserRouter>
         </ThemeProvider>
+        </AdminAuthProvider>
       </AuthProvider>
     </HelmetProvider>
   )

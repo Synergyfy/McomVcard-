@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator'
 
 export class CreateWalletTransactionDto {
@@ -18,4 +18,13 @@ export class CreateWalletTransactionDto {
   @MinLength(1)
   @MaxLength(255)
   description?: string
+
+  @ApiPropertyOptional({
+    description: 'Unique per business event. Required for centralized MCOM Wallet writes; retries reuse it.',
+    example: '5b0f7d8e-6f39-4a2a-9f1d-0a2b3c4d5e6f',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  idempotencyKey?: string
 }

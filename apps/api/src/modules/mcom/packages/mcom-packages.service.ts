@@ -8,248 +8,432 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PlansService } from '../../plans/plans.service'
-import { PlanConfiguration } from '../../plans/entities/plan.entity'
-import { McomService } from '../mcom.service'
+import { PlanConfiguration, PlanVariantKey } from '../../plans/entities/plan.entity'
+import { mergeConfiguration } from '../../plans/plan-variants'
 import { UsersService } from '../../users/users.service'
-import { User } from '../../users/entities/user.entity'
-import { decryptMcomToken } from '../../../lib/utils/mcom-crypto.util'
+import { SubscriptionsService } from '../../subscriptions/subscriptions.service'
+import { AppCharge, McomPayError, McomPayService } from '../mcom-pay.service'
 import { InitiatePurchaseDto } from './dto/initiate-purchase.dto'
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto'
-import { CapturePurchaseDto } from './dto/capture-purchase.dto'
 
-/** A plan a user can purchase. Prices mirror the connector contract (Pro tier = canonical). */
-export interface PurchasablePlan {
-  id: string
+/** One of the three fixed-duration variants a buyer can choose. */
+export interface PurchasableVariant {
+  key: PlanVariantKey
   name: string
-  level: string
-  monthlyPrice: number
-  quarterlyPrice: number
-  annualPrice: number
-  trialDuration?: number
+  durationDays: number
+  price: number
+  setupFee: number
+  trialDays: number
+  description: string
   features: string[]
   configuration?: PlanConfiguration | null
 }
 
-type BillingCycle = 'monthly' | 'quarterly' | 'annual'
+/** A plan a user can purchase, with its Standard/Pro/Pro+ variants. */
+export interface PurchasablePlan {
+  id: string
+  name: string
+  description: string
+  audience: string
+  currency: string
+  variants: PurchasableVariant[]
+}
 
-interface BearerRequestOptions {
-  method: 'GET' | 'POST'
-  body?: Record<string, unknown>
-  accessToken?: string
+interface ResolvedPurchase {
+  planId: string
+  planName: string | null
+  planLevel: string | null
+  variant: PurchasableVariant
+}
+
+/** Reference format carried on every MCOM Pay plan charge. */
+export const PLAN_PAYMENT_REFERENCE_PREFIX = 'vcards:plan:'
+const PLAN_REFERENCE_RE = /^vcards:plan:([0-9a-fA-F-]{36}):(standard|pro|pro_plus)$/
+
+export function parsePlanPaymentReference(reference?: string | null): { planId: string; variant: PlanVariantKey } | null {
+  if (!reference) return null
+  const match = PLAN_REFERENCE_RE.exec(reference)
+  if (!match) return null
+  return { planId: match[1], variant: match[2] as PlanVariantKey }
+}
+
+/** Minimal charge shape needed to activate/revoke a plan entitlement. */
+export interface PlanChargeLike {
+  id: string
+  status: string
+  reference?: string | null
+  externalCustomerId?: string | null
 }
 
 /**
- * In-app plan purchases proxied to the centralized MCOM Solutions billing
- * engine (Partner Integration Guide: "Processing Plan Purchases via MCOM
- * Solutions").
+ * In-app VCard plan purchases.
  *
- * MCOM Solutions owns the checkout: we initiate a Stripe/PayPal payment with
- * the user's Central access token, and confirm/capture once the gateway is
- * settled. The `platform` sent to Central is the registered app slug
- * (MCOM_PLATFORM_SLUG, e.g. `vcard`) so the activation writes a
- * `PlatformPackage` that flips the `canAccess_vcard` permission.
+ * Payments always settle from the customer's centralized MCOM Wallet through
+ * the MCOM Pay partner gateway (`method: "wallet"`). The amount is resolved
+ * server-side from the plan variant — the browser can never set it. Once MCOM
+ * reports the charge as paid, the matching local plan entitlement is activated
+ * (Part C: partner apps own their subscription lifecycle).
  */
 @Injectable()
 export class McomPackagesService {
-  private readonly baseUrl: string
-  private readonly webUrl: string
-  private readonly platformSlug: string
+  private readonly topUpUrl: string
 
   constructor(
     private readonly config: ConfigService,
-    private readonly mcomService: McomService,
     private readonly plansService: PlansService,
     private readonly usersService: UsersService,
+    private readonly mcomPay: McomPayService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {
-    this.baseUrl = (this.config.get<string>('MCOM_SOLUTIONS_URL') || 'http://localhost:3010').replace(/\/+$/, '')
-    this.webUrl = (this.config.get<string>('WEB_PUBLIC_URL') || 'http://localhost:3000').replace(/\/+$/, '')
-    this.platformSlug = this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcard'
+    const solutionsUrl = (this.config.get<string>('MCOM_SOLUTIONS_URL') || 'http://localhost:3010').replace(/\/+$/, '')
+    this.topUpUrl =
+      this.config.get<string>('mcom.walletTopUpUrl') || `${solutionsUrl}/dashboard/wallet`
   }
 
-  /** Purchasable business plans with the pricing Central's connector reads. */
+  /** Purchasable business plans with their three fixed-duration variants. */
   async listPlans(): Promise<PurchasablePlan[]> {
     const plans = await this.plansService.findAll('business')
 
     return plans
       .filter((plan) => plan.status === 'active')
-      .map((plan) => {
-        const pro = plan.tiers?.Pro
-        return {
-          id: plan.id,
-          name: plan.name ?? plan.level,
-          level: plan.level,
-          monthlyPrice: pro?.monthly ?? 0,
-          quarterlyPrice: pro?.quarterly ?? 0,
-          annualPrice: pro?.annual ?? 0,
-          trialDuration: pro?.trialDays || undefined,
-          features: (plan.features ?? []).map((f) => f.text),
-          configuration: plan.configuration ?? null,
-        }
-      })
+      .map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        audience: plan.audience,
+        currency: plan.currency,
+        variants: (plan.variants ?? [])
+          .filter((variant) => variant.isActive !== false)
+          .map((variant) => ({
+            key: variant.key as PlanVariantKey,
+            name: variant.name,
+            durationDays: variant.durationDays,
+            price: variant.price,
+            setupFee: variant.setupFee,
+            trialDays: variant.trialDays,
+            description: variant.description,
+            features: (variant.features?.length ? variant.features : plan.features ?? []).map((f) => f.text),
+            configuration: mergeConfiguration(plan.configuration, variant.configuration),
+          })),
+      }))
+      .filter((plan) => plan.variants.length > 0)
   }
 
   /**
-   * Kick off a gateway payment on MCOM Solutions. Returns the Stripe
-   * `clientSecret` (render a card form) or the PayPal `approvalUrl` (redirect
-   * the browser there).
+   * Charge the customer's MCOM Wallet for a plan. Amounts are in pence and come
+   * from the stored plan variant, never from the request body.
    */
   async initiate(userId: string, dto: InitiatePurchaseDto) {
-    const accessToken = await this.freshAccessToken(userId)
+    const resolved = await this.resolvePurchaseVariant(dto.externalPlanId, dto.variant, dto.billingCycle)
+    const user = await this.requireLinkedUser(userId)
 
-    return this.bearerRequest(`/api/v1/payment/platform/${dto.provider}/initiate`, {
-      method: 'POST',
-      accessToken,
-      body: {
-        platform: this.platformSlug,
-        externalPlanId: dto.externalPlanId,
-        billingCycle: dto.billingCycle,
-        returnUrl: dto.returnUrl || this.defaultReturnUrl(),
-        cancelUrl: dto.cancelUrl || this.defaultCancelUrl(),
-      },
-    })
-  }
-
-  /** Confirm a settled Stripe PaymentIntent/SetupIntent on MCOM Solutions → activates the package. */
-  async confirmStripe(userId: string, dto: ConfirmPurchaseDto) {
-    if (!dto.paymentIntentId && !dto.setupIntentId) {
-      throw new BadRequestException('A paymentIntentId or setupIntentId is required')
+    const amountMinor = Math.round(resolved.variant.price * 100)
+    if (!Number.isFinite(amountMinor) || amountMinor < 0) {
+      throw new BadRequestException('This plan variant has an invalid price')
     }
 
-    const accessToken = await this.freshAccessToken(userId)
+    // A genuinely free variant needs no wallet charge — grant it directly with
+    // the attempt key as the idempotent payment reference.
+    if (amountMinor === 0) {
+      const freeReference = this.mcomPay.idempotencyKey('free-plan', user.id, dto.idempotencyKey)
+      await this.subscriptionsService.activatePlan({
+        userId: user.id,
+        planId: resolved.planId,
+        planName: resolved.planName,
+        level: resolved.planLevel ?? resolved.planName,
+        tier: resolved.variant.name,
+        durationDays: resolved.variant.durationDays,
+        paymentReference: freeReference,
+      })
 
-    const result = await this.bearerRequest('/api/v1/payment/platform/stripe/confirm', {
-      method: 'POST',
-      accessToken,
-      body: {
-        platform: this.platformSlug,
-        externalPlanId: dto.externalPlanId,
-        billingCycle: dto.billingCycle,
-        // Central auto-detects `pi_` vs `seti_` by prefix; forward whichever
-        // intent the browser settled (payment for paid plans, setup for trials).
-        ...(dto.setupIntentId ? { setupIntentId: dto.setupIntentId } : { paymentIntentId: dto.paymentIntentId }),
-      },
-    })
+      return {
+        charge: {
+          id: freeReference,
+          amountMinor: '0',
+          currency: 'GBP',
+          feeMinor: '0',
+          netMinor: '0',
+          method: 'wallet',
+          status: 'paid',
+          reference: `${PLAN_PAYMENT_REFERENCE_PREFIX}${resolved.planId}:${resolved.variant.key}`,
+          externalCustomerId: user.id,
+          createdAt: new Date().toISOString(),
+        },
+        plan: {
+          id: resolved.planId,
+          name: resolved.planName,
+          variant: resolved.variant.key,
+          durationDays: resolved.variant.durationDays,
+          price: 0,
+        },
+        canAccessVcard: true,
+      }
+    }
 
-    return { ...result, canAccessVcard: await this.canAccessVcard(userId) }
+    if (!this.mcomPay.enabled) {
+      throw new ServiceUnavailableException('MCOM Pay is not configured on this server')
+    }
+
+    const reference = `${PLAN_PAYMENT_REFERENCE_PREFIX}${resolved.planId}:${resolved.variant.key}`
+    const idempotencyKey = this.mcomPay.idempotencyKey('plan', user.id, dto.idempotencyKey)
+
+    try {
+      const result = await this.mcomPay.createCharge(
+        {
+          amountMinor: String(amountMinor),
+          currency: 'GBP',
+          method: dto.provider,
+          reference,
+          description: `MCOM VCard — ${resolved.planName ?? 'Plan'} (${resolved.variant.name})`,
+          mcomUserId: user.mcomUserId as string,
+          externalCustomerId: user.id,
+          metadata: {
+            purpose: 'vcard-plan',
+            planId: resolved.planId,
+            variant: resolved.variant.key,
+            durationDays: resolved.variant.durationDays,
+            userId: user.id,
+            provider: dto.provider,
+          },
+        },
+        idempotencyKey,
+      )
+
+      const activated = await this.activateIfPaid(result.charge, resolved, user.id)
+
+      return {
+        charge: result.charge,
+        clientSecret: result.clientSecret ?? null,
+        approvalUrl: result.approvalUrl ?? null,
+        plan: {
+          id: resolved.planId,
+          name: resolved.planName,
+          variant: resolved.variant.key,
+          durationDays: resolved.variant.durationDays,
+          price: resolved.variant.price,
+        },
+        canAccessVcard: activated,
+      }
+    } catch (err) {
+      this.rethrowPayError(err)
+    }
   }
 
-  /** Capture an approved PayPal order on MCOM Solutions → activates the package. */
-  async capturePaypal(userId: string, dto: CapturePurchaseDto) {
-    // MCOM Solutions' capture endpoint is intentionally public (called after
-    // PayPal's redirect, orderId-only). No user token required.
-    const result = await this.bearerRequest('/api/v1/payment/platform/paypal/capture', {
-      method: 'POST',
-      body: { orderId: dto.orderId },
+  /**
+   * Confirm a wallet charge. Wallet charges settle synchronously, so this is a
+   * safe replay path for clients that lost the initiate response. Returns the
+   * charge and the current access state.
+   */
+  async confirm(userId: string, dto: ConfirmPurchaseDto) {
+    if (!this.mcomPay.enabled) {
+      throw new ServiceUnavailableException('MCOM Pay is not configured on this server')
+    }
+
+    const resolved = await this.resolvePurchaseVariant(dto.externalPlanId, dto.variant, dto.billingCycle)
+    await this.requireLinkedUser(userId)
+
+    try {
+      let charge = await this.mcomPay.getCharge(dto.chargeId)
+
+      const expectedReference = `${PLAN_PAYMENT_REFERENCE_PREFIX}${resolved.planId}:${resolved.variant.key}`
+      const expectedAmountMinor = String(Math.round(resolved.variant.price * 100))
+      if (
+        charge.reference !== expectedReference ||
+        charge.externalCustomerId !== userId ||
+        charge.amountMinor !== expectedAmountMinor
+      ) {
+        throw new BadRequestException('This charge does not match the selected plan')
+      }
+
+      // Stripe / PayPal settle via the provider after the browser returns or
+      // the customer approves. Confirm with MCOM Pay using the provider handle.
+      if (charge.status === 'pending' && dto.paymentIntentId) {
+        charge = await this.mcomPay.confirmCharge(charge.id, { paymentIntentId: dto.paymentIntentId })
+      } else if (charge.status === 'pending' && dto.orderId) {
+        charge = await this.mcomPay.confirmCharge(charge.id, { orderId: dto.orderId })
+      }
+
+      const activated = await this.activateIfPaid(charge, resolved, userId)
+
+      return {
+        charge,
+        plan: {
+          id: resolved.planId,
+          name: resolved.planName,
+          variant: resolved.variant.key,
+          durationDays: resolved.variant.durationDays,
+          price: resolved.variant.price,
+        },
+        canAccessVcard: activated,
+      }
+    } catch (err) {
+      this.rethrowPayError(err)
+    }
+  }
+
+  /**
+   * Webhook backstop: activate a paid plan charge from its MCOM Pay reference.
+   * Returns true when access was granted.
+   */
+  async activateFromCharge(charge: PlanChargeLike): Promise<boolean> {
+    if (charge.status !== 'paid') return false
+
+    const parsed = parsePlanPaymentReference(charge.reference)
+    if (!parsed) return false
+
+    const userId = charge.externalCustomerId
+    if (!userId) return false
+
+    const user = await this.usersService.findById(userId)
+    if (!user) return false
+
+    const plan = await this.plansService.findOne(parsed.planId).catch(() => null)
+    if (!plan) return false
+
+    const variant = (plan.variants ?? []).find((candidate) => candidate.key === parsed.variant)
+    if (!variant) return false
+
+    await this.subscriptionsService.activatePlan({
+      userId,
+      planId: plan.id,
+      planName: plan.name,
+      level: plan.level ?? plan.name,
+      tier: variant.name,
+      durationDays: variant.durationDays,
+      paymentReference: charge.id,
     })
 
-    return { ...result, canAccessVcard: await this.canAccessVcard(userId) }
+    return true
+  }
+
+  /** Revoke local access when a plan charge is fully refunded. */
+  async revokeFromCharge(charge: PlanChargeLike): Promise<boolean> {
+    const parsed = parsePlanPaymentReference(charge.reference)
+    const userId = charge.externalCustomerId
+    if (!parsed || !userId) return false
+
+    await this.subscriptionsService.cancelPaidPlan(userId, parsed.planId)
+    return true
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
-  private defaultReturnUrl(): string {
-    return `${this.webUrl}/b/payment/success`
+  private async activateIfPaid(
+    charge: AppCharge,
+    resolved: ResolvedPurchase,
+    userId: string,
+  ): Promise<boolean> {
+    if (charge.status !== 'paid') return false
+
+    const expectedReference = `${PLAN_PAYMENT_REFERENCE_PREFIX}${resolved.planId}:${resolved.variant.key}`
+    if (
+      charge.reference !== expectedReference ||
+      (charge.externalCustomerId != null && charge.externalCustomerId !== userId)
+    ) {
+      throw new BadRequestException('This charge does not belong to this account or plan')
+    }
+
+    await this.subscriptionsService.activatePlan({
+      userId,
+      planId: resolved.planId,
+      planName: resolved.planName,
+      level: resolved.planLevel ?? resolved.planName,
+      tier: resolved.variant.name,
+      durationDays: resolved.variant.durationDays,
+      paymentReference: charge.id,
+    })
+
+    return true
   }
 
-  private defaultCancelUrl(): string {
-    return `${this.webUrl}/b/membership/plans`
-  }
+  /**
+   * Resolve which of the plan's three variants is being purchased. `variant` is
+   * preferred; the legacy `billingCycle` field is still accepted.
+   */
+  private async resolvePurchaseVariant(
+    planId: string,
+    variant?: PlanVariantKey,
+    legacyBillingCycle?: 'monthly' | 'quarterly' | 'semiannual' | 'annual',
+  ): Promise<ResolvedPurchase> {
+    const plan = await this.plansService.findOne(planId)
+    if (plan.status !== 'active') {
+      throw new BadRequestException('This plan is not available for purchase')
+    }
 
-  /** The user must be SSO-linked and have a usable Central access token. */
-  private async freshAccessToken(userId: string): Promise<string> {
-    const dbUser = await this.requireLinkedUser(userId)
-
-    const accessToken = dbUser.mcomAccessToken ? decryptMcomToken(dbUser.mcomAccessToken) : null
-    if (accessToken) {
-      try {
-        await this.mcomService.getUserInfo(accessToken)
-        return accessToken
-      } catch {
-        // Token expired/invalid — fall through to refresh
+    let resolved = variant
+    if (!resolved && legacyBillingCycle) {
+      const legacyMap: Record<'monthly' | 'quarterly' | 'semiannual' | 'annual', PlanVariantKey> = {
+        monthly: 'standard',
+        quarterly: 'standard',
+        semiannual: 'pro',
+        annual: 'pro_plus',
       }
+      resolved = legacyMap[legacyBillingCycle]
+    }
+    if (!resolved) {
+      throw new BadRequestException('A plan variant is required (standard, pro or pro_plus)')
     }
 
-    if (!dbUser.mcomRefreshToken) {
-      throw new UnauthorizedException('Your MCOM session has expired — sign in with MCOM again to continue')
+    const match = (plan.variants ?? []).find(
+      (candidate) => candidate.key === resolved && candidate.isActive !== false,
+    )
+    if (!match) {
+      throw new BadRequestException(`Variant "${resolved}" is not available for this plan`)
     }
 
-    const refreshToken = decryptMcomToken(dbUser.mcomRefreshToken)
-    try {
-      const refreshed = await this.mcomService.refreshTokens(refreshToken)
-      return refreshed.accessToken
-    } catch {
-      // The stored Central tokens are dead (session cleared/expired on MCOM
-      // Solutions). A fresh SSO authorization is the only way to re-issue them.
-      throw new UnauthorizedException('Your MCOM session has expired — sign in with MCOM again to continue')
+    return {
+      planId: plan.id,
+      planName: plan.name,
+      planLevel: plan.level,
+      variant: {
+        key: match.key as PlanVariantKey,
+        name: match.name,
+        durationDays: match.durationDays,
+        price: match.price,
+        setupFee: match.setupFee,
+        trialDays: match.trialDays,
+        description: match.description,
+        features: (match.features?.length ? match.features : plan.features ?? []).map((f) => f.text),
+        configuration: mergeConfiguration(plan.configuration, match.configuration),
+      },
     }
   }
 
-  private async requireLinkedUser(userId: string): Promise<User> {
+  /** The wallet owner on Central is the linked MCOM user id. */
+  private async requireLinkedUser(userId: string) {
     const dbUser = await this.usersService.findById(userId)
     if (!dbUser) throw new NotFoundException('User not found')
-    if (!dbUser.mcomUserId || !dbUser.mcomAccessToken) {
+    if (!dbUser.mcomUserId) {
       throw new BadRequestException('Account is not linked to MCOM Solutions — sign in with MCOM first')
     }
     return dbUser
   }
 
-  /** Freshly calculated access for this platform on Central (may still be gated on membership). */
-  private async canAccessVcard(userId: string): Promise<boolean> {
-    const dbUser = await this.requireLinkedUser(userId)
-    if (!dbUser.mcomUserId) throw new Error('User has no linked MCOM account')
-    const permissions = await this.mcomService.fetchPermissions(dbUser.mcomUserId)
-    return permissions[this.mcomService.platformPermissionKey] === true || permissions.can_access_vcard === true
-  }
+  /** Translate partner errors into stable HTTP responses for the SPA. */
+  private rethrowPayError(err: unknown): never {
+    if (!(err instanceof McomPayError)) throw err
 
-  private async bearerRequest(path: string, opts: BearerRequestOptions): Promise<Record<string, unknown>> {
-    const url = `${this.baseUrl}${path}`
-
-    let res: Response
-    try {
-      res = await fetch(url, {
-        method: opts.method,
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          ...(opts.accessToken ? { Authorization: `Bearer ${opts.accessToken}` } : {}),
+    if (err.code === 'INSUFFICIENT_BALANCE' && err.httpStatus === 422) {
+      throw new HttpException(
+        {
+          error: 'WALLET_INSUFFICIENT_FUNDS',
+          message: 'Top up your MCOM Wallet to continue.',
+          topUpUrl: this.topUpUrl,
         },
-        body: opts.method === 'POST' && opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      })
-    } catch (err) {
-      throw new ServiceUnavailableException(
-        `MCOM Solutions unreachable at ${this.baseUrl}: ${err instanceof Error ? err.message : String(err)}`,
+        402,
       )
     }
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      const detail = this.extractMessage(text)
-      const suffix = detail ? `: ${detail}` : ''
-      if (res.status === 401 || res.status === 403) {
-        throw new UnauthorizedException(`MCOM Solutions rejected the request (${res.status})${suffix}`)
-      }
-      if (res.status === 404) {
-        throw new NotFoundException(`MCOM Solutions: ${text.slice(0, 300)}`)
-      }
-      if (res.status >= 500) {
-        throw new ServiceUnavailableException(`MCOM Solutions error (${res.status}): ${text.slice(0, 300)}`)
-      }
-      throw new HttpException(text.slice(0, 300), res.status)
+    if (err.httpStatus === 401) {
+      throw new UnauthorizedException('MCOM rejected the payment request — sign in again to continue')
+    }
+    if (err.httpStatus === 404) {
+      throw new NotFoundException(`MCOM Pay: ${err.message}`)
+    }
+    if (err.httpStatus >= 500) {
+      throw new ServiceUnavailableException(`MCOM Pay error (${err.code}): ${err.message}`)
     }
 
-    const text = await res.text()
-    return text ? JSON.parse(text) : {}
-  }
-
-  /** Best-effort pull of Central's human-readable error message from its response body. */
-  private extractMessage(body: string): string | null {
-    if (!body) return null
-    try {
-      const parsed = JSON.parse(body) as { message?: unknown }
-      if (typeof parsed?.message === 'string') return parsed.message.slice(0, 300)
-    } catch {
-      // fall through to the raw snippet
-    }
-    return body.slice(0, 300) || null
+    throw new HttpException({ error: err.code || 'PAYMENT_ERROR', message: err.message }, err.httpStatus || 400)
   }
 }

@@ -56,7 +56,8 @@ const navGroups: NavGroup[] = [
         label: 'Membership & Pricing',
         icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
         sub: [
-          { to: '/admin/membership/pricing', label: 'Pricing & Plans' },
+          { to: '/admin/plans', label: 'Plans & Variants' },
+          { to: '/admin/membership/pricing', label: 'Pricing Display' },
           { to: '/admin/membership/memberships', label: 'Memberships' },
         ],
       },

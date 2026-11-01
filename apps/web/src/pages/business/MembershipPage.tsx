@@ -9,7 +9,7 @@ export default function MembershipPage() {
 
     const progress = Math.round((m.totalDays - m.daysRemaining) / m.totalDays * 100)
 
-    const handleRenew = () => navigate('/b/membership/payment')
+    const handleRenew = () => navigate('/plans')
     const handleUpgrade = () => navigate('/b/membership/plans')
 
     return (

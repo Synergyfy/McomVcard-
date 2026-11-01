@@ -38,7 +38,7 @@ export default function RegisterPage() {
         <title>{t('auth.register_title')} - Mobile VCard Link</title>
       </Helmet>
 
-      {/* ── MCOM Solutions handoff ── */}
+      {/* ── Central Hub Solution handoff ── */}
       <div className="mb-6 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-5">
         <div className="flex items-start gap-3">
           <span className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
@@ -47,10 +47,10 @@ export default function RegisterPage() {
             </svg>
           </span>
           <div>
-            <h2 className="text-base font-bold">Continue with MCOM Solutions</h2>
+            <h2 className="text-base font-bold">Continue with Central Hub Solution</h2>
             <p className="text-xs text-blue-100 mt-1 leading-relaxed">
-              Authentication for your business is handled centrally at MCOM Solutions — one secure
-              login, verified identity and billing that flows into your MCOMVCard membership.
+              Authentication for your business is handled centrally by the Central Hub Solution — one
+              secure login, verified identity and billing that flows into your MCOMVCard membership.
             </p>
           </div>
         </div>
@@ -63,10 +63,10 @@ export default function RegisterPage() {
           disabled={mcomLoading}
           className="mt-4 w-full py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-md"
         >
-          {mcomLoading ? t('common.loading') : 'Continue to MCOM Solutions'}
+          {mcomLoading ? t('common.loading') : 'Continue to Central Hub Solution'}
         </button>
         <p className="text-[10px] text-blue-200 mt-2 text-center">
-          We'll take you to MCOM Solutions to verify your business identity.
+          We'll take you to the Central Hub Solution to verify your business identity.
         </p>
       </div>
 

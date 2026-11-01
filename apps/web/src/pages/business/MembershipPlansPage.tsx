@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import { loadMembershipPricing, PLAN_TIERS, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
 import { LevelDropdown, AccessCards, AccessComparison, BillingToggle, TIER_LABEL } from '../../components/public/PricingCards'
 import { mockMembership } from '../../services/businessDashboardStore'
-import { mockBusinessProfile } from '../../services/businessStore'
 
 /* ------------------------------------------------------------------ */
 /*  Business — Plans & Pricing (/b/membership/plans)            */
@@ -29,8 +28,8 @@ export default function MembershipPlansPage() {
 
   const choose = (lvl: PlanLevel, t: PlanTier) => {
     const target = `${lvl} ${t === 'Normal' ? 'Standard' : t}`
-    toast.success(`Upgrade request submitted — ${mockBusinessProfile.name} will move to ${target}`)
-    navigate('/b/membership/confirmation')
+    toast.success(`Opening MCOM Wallet checkout for ${target}`)
+    navigate('/plans')
   }
 
   return (
