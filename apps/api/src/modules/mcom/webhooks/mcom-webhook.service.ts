@@ -32,7 +32,9 @@ export class McomWebhookService {
     private readonly config: ConfigService,
     private readonly usersService: UsersService,
   ) {
-    this.platformSlug = (this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcard').toLowerCase()
+    this.platformSlug = (this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcards')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
   }
 
   /**
@@ -40,7 +42,11 @@ export class McomWebhookService {
    * signed (used for dedupe only — signature verification happens upstream).
    */
   async process(rawBody: Buffer | string, dto: McomWebhookDto): Promise<WebhookProcessResult> {
-    if (String(dto.platform || '').toLowerCase() !== this.platformSlug) {
+    // Accept the current slug (`vcards`) and the legacy `vcard` spelling.
+    const incomingPlatform = String(dto.platform || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+    if (incomingPlatform !== this.platformSlug && !incomingPlatform.includes('vcard')) {
       // Webhook for another platform slug — acknowledge but do nothing.
       return { handled: false, alreadyProcessed: false, action: 'platform-mismatch' }
     }

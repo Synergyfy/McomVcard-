@@ -1,15 +1,26 @@
 import api from './api'
 
+export type PlanVariantKey = 'standard' | 'pro' | 'pro_plus'
+
+export interface PurchasableVariant {
+  key: PlanVariantKey
+  name: string
+  durationDays: number
+  price: number
+  setupFee: number
+  trialDays: number
+  description: string
+  features: string[]
+  configuration?: Record<string, unknown> | null
+}
+
 export interface PurchasablePlan {
   id: string
   name: string
-  level: string
-  monthlyPrice: number
-  quarterlyPrice: number
-  annualPrice: number
-  trialDuration?: number
-  features: string[]
-  configuration?: Record<string, unknown> | null
+  description: string
+  audience: string
+  currency: string
+  variants: PurchasableVariant[]
 }
 
 export interface InitiateResult {
@@ -20,13 +31,15 @@ export interface InitiateResult {
   plan?: Record<string, unknown>
 }
 
-export type BillingCycle = 'monthly' | 'quarterly' | 'annual'
 export type PaymentProvider = 'stripe' | 'paypal'
 
 /**
  * In-app plan purchases proxied through the VCard API to the centralized MCOM
  * Solutions billing engine. Stripe returns a clientSecret to confirm in the
  * browser; PayPal returns an approvalUrl to redirect to.
+ *
+ * A purchase targets one of the plan's three fixed-duration variants:
+ * standard (90 days), pro (180 days) or pro_plus (365 days).
  */
 export const packagesService = {
   async listPlans(): Promise<PurchasablePlan[]> {
@@ -36,7 +49,7 @@ export const packagesService = {
 
   async initiate(opts: {
     externalPlanId: string
-    billingCycle: BillingCycle
+    variant: PlanVariantKey
     provider: PaymentProvider
   }): Promise<InitiateResult> {
     const res = await api.post('/v1/mcom/packages/purchase/initiate', opts)
@@ -45,7 +58,7 @@ export const packagesService = {
 
   async confirmStripe(opts: {
     externalPlanId: string
-    billingCycle: BillingCycle
+    variant: PlanVariantKey
     paymentIntentId?: string
     setupIntentId?: string
   }): Promise<{ canAccessVcard?: boolean }> {

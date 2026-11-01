@@ -7,9 +7,16 @@ import {
   Index,
 } from 'typeorm'
 
-export type PlanLevel = 'Bronze' | 'Silver' | 'Gold' | 'Platinum'
+/**
+ * Legacy plan levels are kept as optional metadata only. Plans may have any
+ * free-form name — the level is no longer a fixed enum.
+ */
+export type PlanLevel = string
 export type PlanAudience = 'business' | 'consumer'
+/** Legacy tier labels (pre-variant plans). */
 export type PlanAccessTier = 'Normal' | 'Pro' | 'Pro+'
+/** Canonical purchasable variants — fixed durations of 90/180/365 days. */
+export type PlanVariantKey = 'standard' | 'pro' | 'pro_plus'
 export type PlanType = 'STANDARD' | 'TRIAL' | 'SEASONAL'
 export type BillingCycle = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 export type RuleScope = 'All' | 'Admin setup' | 'Business usage' | 'Consumer usage' | 'Public page'
@@ -22,7 +29,8 @@ export interface PlanFeature {
 
 export interface PlanRule {
   label: string
-  values: Record<PlanAccessTier, string>
+  /** Per-variant values keyed by Standard/Pro/Pro+ (legacy keys also accepted). */
+  values: Record<string, string>
   description: string
   scope: RuleScope
 }
@@ -65,6 +73,31 @@ export interface PlanConfiguration {
   featureFlags?: Record<string, boolean>
 }
 
+/**
+ * A purchasable variant of a plan. Every plan exposes exactly three:
+ * Standard (90 days), Pro (180 days) and Pro+ (365 days).
+ *
+ * `features`, `rules` and `configuration` are optional overrides. When absent,
+ * the buyer inherits the plan-level entitlements.
+ */
+export interface PlanVariant {
+  key: PlanVariantKey
+  name: string
+  durationDays: number
+  price: number
+  setupFee: number
+  trialDays: number
+  description: string
+  features: PlanFeature[] | null
+  rules: PlanRule[] | null
+  configuration: PlanConfiguration | null
+  stripePriceId: string | null
+  paypalPlanId: string | null
+  isActive: boolean
+}
+
+export type PlanVariants = Record<PlanVariantKey, PlanVariant>
+
 @Entity({ name: 'plans' })
 @Index(['audience', 'sortOrder'])
 @Index('uq_plans_name', ['name'], { unique: true })
@@ -72,8 +105,9 @@ export class Plan {
   @PrimaryGeneratedColumn('uuid')
   id!: string
 
-  @Column({ type: 'varchar', length: 20 })
-  level!: PlanLevel
+  // Optional legacy label. Free-form plan names are the identity now.
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  level!: PlanLevel | null
 
   @Column({ type: 'varchar', length: 20 })
   audience!: PlanAudience
@@ -96,8 +130,13 @@ export class Plan {
   @Column({ type: 'jsonb', nullable: true })
   rules!: PlanRule[] | null
 
+  // Legacy pricing matrix (pre-variant plans). Still read as a fallback.
   @Column({ type: 'jsonb', nullable: true })
   tiers!: PlanTierPricingMap | null
+
+  // Canonical three-variant offering: Standard 90d, Pro 180d, Pro+ 365d.
+  @Column({ type: 'jsonb', nullable: true })
+  variants!: PlanVariants | null
 
   @Column({ type: 'jsonb', nullable: true })
   sections!: PricingSections | null

@@ -2,21 +2,95 @@ import { Injectable, BadRequestException, UnauthorizedException, ServiceUnavaila
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'crypto'
 
-/** Normalized MCOM Central user profile (from /auth/sso/userinfo). */
+/**
+ * Normalized Central Hub Solution user profile (from the SSO token exchange,
+ * /auth/sso/userinfo, /auth/sso/entitlement or the launch token).
+ *
+ * Central is the source of truth; every field is persisted (or refreshed) on
+ * the local account. All roles share the top-level fields — only the role
+ * profile object that is populated differs (see profileType).
+ */
 export interface McomUserInfo {
+  id?: string
   sub: string
   email: string
   role?: string
+  /** BUSINESS | CUSTOMER | AGENT | CONSULTANT | ACCOUNT_MANAGER | PARTNER | ADMIN */
+  profileType?: string
+  isAffiliate?: boolean
+
   firstName?: string | null
   lastName?: string | null
+  fullName?: string | null
   name?: string | null
-  businessId?: string | null
-  membershipLevel?: string
-  membershipTier?: string
-  membershipStatus?: string
+  jobTitle?: string | null
+  avatarUrl?: string | null
+
   phone?: string | null
+  address?: string | null
+  postcode?: string | null
+  country?: string | null
+
+  businessId?: string | null
+  businessName?: string | null
+  membershipLevel?: string | null
+  membershipTier?: string | null
+  membershipStatus?: string | null
+  membershipPlanName?: string | null
+  membershipExpiresAt?: string | null
+  hasPaidVerificationFee?: boolean | null
+  trialAccessExpiresAt?: string | null
+
+  businessProfile?: Record<string, unknown> | null
+  customerProfile?: Record<string, unknown> | null
+  agentProfile?: Record<string, unknown> | null
+  consultantProfile?: Record<string, unknown> | null
+  accountManagerProfile?: Record<string, unknown> | null
+
   packages?: { platform?: string; packageName?: string; status?: string; limits?: unknown }[]
   permissions?: Record<string, boolean>
+}
+
+/** Unified entitlement returned by Central for every platform. */
+export interface McomEntitlement {
+  access?: {
+    hasAccess?: boolean
+    reason?: string | null
+    accessType?: string | null
+    upgradeUrl?: string | null
+  } | null
+  whitelabel?: {
+    enabled?: boolean
+    granted?: boolean
+    roleEligible?: boolean
+    grantedAt?: string | null
+  } | null
+  plan?: {
+    planId?: string | null
+    planName?: string | null
+    quotas?: Record<string, unknown>
+    [key: string]: unknown
+  } | null
+  trialContext?: {
+    programmeTasks?: unknown[]
+    [key: string]: unknown
+  } | null
+  [key: string]: unknown
+}
+
+/**
+ * True when Central grants access to this platform. Supports the current
+ * `canAccess_vcards` key (platform slug `vcards`) as well as the legacy
+ * `canAccess_vcard` / snake_case variants used by older Central responses.
+ */
+export function hasVcardAccess(permissions?: Record<string, boolean> | null): boolean {
+  if (!permissions) return false
+  return (
+    permissions.canAccess_vcards === true ||
+    permissions.can_access_vcards === true ||
+    permissions.canAccess_vcard === true ||
+    permissions.can_access_vcard === true
+  )
 }
 
 /** A purchased platform package as reported by Central's data-sharing API. */
@@ -33,10 +107,18 @@ export interface McomUserPackage {
 }
 
 interface McomTokenResponse {
-  accessToken: string
+  accessToken?: string
+  access_token?: string
   refreshToken?: string
-  expiresIn: number
-  tokenType: string
+  refresh_token?: string
+  expiresIn?: number
+  expires_in?: number
+  tokenType?: string
+  token_type?: string
+  // Central returns the canonical identity + unified entitlement alongside the
+  // tokens; fall back to the userinfo/entitlement endpoints when absent.
+  user?: McomUserInfo
+  entitlement?: McomEntitlement
 }
 
 interface RequestOptions {
@@ -60,8 +142,8 @@ export class McomService {
     this.clientId = this.config.get<string>('MCOM_CLIENT_ID') || ''
     this.clientSecret = this.config.get<string>('MCOM_CLIENT_SECRET') || ''
     this.hmacSecret = this.config.get<string>('MCOM_HMAC_SECRET') || ''
-    this.platformSlug = this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcard'
-    this.redirectUri = this.config.get<string>('MCOM_REDIRECT_URI') || 'http://localhost:8000/auth/callback'
+    this.platformSlug = this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcards'
+    this.redirectUri = this.config.get<string>('MCOM_REDIRECT_URI') || 'http://localhost:9024/auth/callback'
     this.scopes = this.config.get<string>('MCOM_SCOPES') || 'profile email business membership packages'
   }
 
@@ -81,7 +163,13 @@ export class McomService {
    * Exchange the temporary OAuth code for Central tokens, then fetch the full
    * profile (incl. dynamic permissions) with the freshly issued access token.
    */
-  async exchangeCode(code: string): Promise<{ accessToken: string; refreshToken: string; expiresIn?: number; user: McomUserInfo }> {
+  async exchangeCode(code: string): Promise<{
+    accessToken: string
+    refreshToken: string
+    expiresIn?: number
+    user: McomUserInfo
+    entitlement: McomEntitlement | null
+  }> {
     const basic = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')
 
     const tokens = (await this.request('/api/v1/auth/sso/token', {
@@ -92,13 +180,54 @@ export class McomService {
       headers: { Authorization: `Basic ${basic}` },
     })) as McomTokenResponse
 
-    if (!tokens?.accessToken) {
+    const accessToken = tokens?.accessToken || tokens?.access_token
+    if (!accessToken) {
       throw new UnauthorizedException('MCOM Central did not issue an access token')
     }
 
-    const user = await this.getUserInfo(tokens.accessToken)
+    // Fetch the full profile for the dynamic permission map (older Central
+    // versions only return the identity in the token response). The embedded
+    // user, when present, is the more complete canonical snapshot.
+    let profile: McomUserInfo | null = null
+    try {
+      profile = await this.getUserInfo(accessToken)
+    } catch {
+      profile = null
+    }
 
-    return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || '', expiresIn: tokens.expiresIn, user }
+    const user = {
+      ...(profile ?? {}),
+      ...(tokens.user ?? {}),
+    } as McomUserInfo
+
+    // Permissions are not part of the identity contract, so keep whichever
+    // response carries them.
+    user.permissions = tokens.user?.permissions ?? profile?.permissions
+
+    if (!user.email) {
+      throw new UnauthorizedException('Central Hub Solution did not return a user profile')
+    }
+
+    // Central returns the unified entitlement with the tokens. Fetch it from
+    // the introspection endpoint when older versions omit it.
+    let entitlement: McomEntitlement | null = tokens.entitlement ?? null
+    if (!entitlement) {
+      try {
+        entitlement = await this.getEntitlement(accessToken)
+      } catch {
+        // Never block sign-in on a transient entitlement lookup failure; the
+        // platform-level permission gate still applies.
+        entitlement = null
+      }
+    }
+
+    return {
+      accessToken,
+      refreshToken: tokens.refreshToken || tokens.refresh_token || '',
+      expiresIn: tokens.expiresIn ?? tokens.expires_in,
+      user,
+      entitlement,
+    }
   }
 
   /** Fetch the full Central profile + dynamic permissions with a Bearer token. */
@@ -109,6 +238,33 @@ export class McomService {
     }) as Promise<McomUserInfo>
   }
 
+  /** Real-time unified entitlement introspection for a logged-in user. */
+  async getEntitlement(accessToken: string): Promise<McomEntitlement> {
+    const res = (await this.request('/api/v1/auth/sso/entitlement', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })) as McomEntitlement | { data?: McomEntitlement }
+
+    return ((res as { data?: McomEntitlement })?.data ?? res) as McomEntitlement
+  }
+
+  /** Server-to-server entitlement lookup using the app's inbound API key. */
+  async getEntitlementForUser(userId: string): Promise<McomEntitlement | null> {
+    const apiKey = this.config.get<string>('MCOM_API_KEY') || this.config.get<string>('MCOM_SOLUTION_API_KEY') || ''
+    if (!apiKey) return null
+
+    try {
+      const res = (await this.request(
+        `/api/v1/auth/sso/entitlement?client_id=${encodeURIComponent(this.clientId)}&user_id=${encodeURIComponent(userId)}`,
+        { method: 'GET', headers: { 'X-API-Key': apiKey } },
+      )) as McomEntitlement | { data?: McomEntitlement }
+
+      return ((res as { data?: McomEntitlement })?.data ?? res) as McomEntitlement
+    } catch {
+      return null
+    }
+  }
+
   /** Refresh an expired Central access token. Central does not rotate refresh tokens. */
   async refreshTokens(refreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
     const res = (await this.request('/api/v1/auth/sso/token/refresh', {
@@ -116,11 +272,12 @@ export class McomService {
       body: { refresh_token: refreshToken },
     })) as McomTokenResponse
 
-    if (!res?.accessToken) {
+    const accessToken = res?.accessToken || res?.access_token
+    if (!accessToken) {
       throw new UnauthorizedException('MCOM Central refresh failed')
     }
 
-    return { accessToken: res.accessToken, expiresIn: res.expiresIn }
+    return { accessToken, expiresIn: res.expiresIn ?? res.expires_in ?? 300 }
   }
 
   /** The dynamic permission key Central uses for this platform (e.g. canAccess_vcard). */

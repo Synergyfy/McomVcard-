@@ -8,8 +8,9 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PlansService } from '../../plans/plans.service'
-import { PlanConfiguration } from '../../plans/entities/plan.entity'
-import { McomService } from '../mcom.service'
+import { PlanConfiguration, PlanVariantKey } from '../../plans/entities/plan.entity'
+import { mergeConfiguration } from '../../plans/plan-variants'
+import { McomService, hasVcardAccess } from '../mcom.service'
 import { UsersService } from '../../users/users.service'
 import { User } from '../../users/entities/user.entity'
 import { decryptMcomToken } from '../../../lib/utils/mcom-crypto.util'
@@ -17,20 +18,46 @@ import { InitiatePurchaseDto } from './dto/initiate-purchase.dto'
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto'
 import { CapturePurchaseDto } from './dto/capture-purchase.dto'
 
-/** A plan a user can purchase. Prices mirror the connector contract (Pro tier = canonical). */
-export interface PurchasablePlan {
-  id: string
+/** One of the three fixed-duration variants a buyer can choose. */
+export interface PurchasableVariant {
+  key: PlanVariantKey
   name: string
-  level: string
-  monthlyPrice: number
-  quarterlyPrice: number
-  annualPrice: number
-  trialDuration?: number
+  durationDays: number
+  price: number
+  setupFee: number
+  trialDays: number
+  description: string
   features: string[]
   configuration?: PlanConfiguration | null
 }
 
-type BillingCycle = 'monthly' | 'quarterly' | 'annual'
+/** A plan a user can purchase, with its Standard/Pro/Pro+ variants. */
+export interface PurchasablePlan {
+  id: string
+  name: string
+  description: string
+  audience: string
+  currency: string
+  variants: PurchasableVariant[]
+}
+
+type BillingCycle = 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+
+/**
+ * Variant durations map onto Central billing cycles:
+ *   Standard (90d)  -> quarterly (3 months)
+ *   Pro      (180d) -> semiannual (6 months)
+ *   Pro+     (365d) -> annual (12 months)
+ *
+ * NOTE: Central's current platform-purchase endpoint accepts
+ * monthly/quarterly/annual only. `semiannual` must be enabled there (plus a
+ * 6-month expiry/price branch) before Pro purchases can settle end-to-end.
+ */
+const VARIANT_BILLING_CYCLE: Record<PlanVariantKey, BillingCycle> = {
+  standard: 'quarterly',
+  pro: 'semiannual',
+  pro_plus: 'annual',
+}
 
 interface BearerRequestOptions {
   method: 'GET' | 'POST'
@@ -63,29 +90,36 @@ export class McomPackagesService {
   ) {
     this.baseUrl = (this.config.get<string>('MCOM_SOLUTIONS_URL') || 'http://localhost:3010').replace(/\/+$/, '')
     this.webUrl = (this.config.get<string>('WEB_PUBLIC_URL') || 'http://localhost:3000').replace(/\/+$/, '')
-    this.platformSlug = this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcard'
+    this.platformSlug = this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcards'
   }
 
-  /** Purchasable business plans with the pricing Central's connector reads. */
+  /** Purchasable business plans with their three fixed-duration variants. */
   async listPlans(): Promise<PurchasablePlan[]> {
     const plans = await this.plansService.findAll('business')
 
     return plans
       .filter((plan) => plan.status === 'active')
-      .map((plan) => {
-        const pro = plan.tiers?.Pro
-        return {
-          id: plan.id,
-          name: plan.name ?? plan.level,
-          level: plan.level,
-          monthlyPrice: pro?.monthly ?? 0,
-          quarterlyPrice: pro?.quarterly ?? 0,
-          annualPrice: pro?.annual ?? 0,
-          trialDuration: pro?.trialDays || undefined,
-          features: (plan.features ?? []).map((f) => f.text),
-          configuration: plan.configuration ?? null,
-        }
-      })
+      .map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        audience: plan.audience,
+        currency: plan.currency,
+        variants: (plan.variants ?? [])
+          .filter((variant) => variant.isActive !== false)
+          .map((variant) => ({
+            key: variant.key as PlanVariantKey,
+            name: variant.name,
+            durationDays: variant.durationDays,
+            price: variant.price,
+            setupFee: variant.setupFee,
+            trialDays: variant.trialDays,
+            description: variant.description,
+            features: (variant.features?.length ? variant.features : plan.features ?? []).map((f) => f.text),
+            configuration: mergeConfiguration(plan.configuration, variant.configuration),
+          })),
+      }))
+      .filter((plan) => plan.variants.length > 0)
   }
 
   /**
@@ -95,6 +129,11 @@ export class McomPackagesService {
    */
   async initiate(userId: string, dto: InitiatePurchaseDto) {
     const accessToken = await this.freshAccessToken(userId)
+    const { billingCycle } = await this.resolvePurchaseVariant(
+      dto.externalPlanId,
+      dto.variant,
+      dto.billingCycle,
+    )
 
     return this.bearerRequest(`/api/v1/payment/platform/${dto.provider}/initiate`, {
       method: 'POST',
@@ -102,7 +141,7 @@ export class McomPackagesService {
       body: {
         platform: this.platformSlug,
         externalPlanId: dto.externalPlanId,
-        billingCycle: dto.billingCycle,
+        billingCycle,
         returnUrl: dto.returnUrl || this.defaultReturnUrl(),
         cancelUrl: dto.cancelUrl || this.defaultCancelUrl(),
       },
@@ -116,6 +155,11 @@ export class McomPackagesService {
     }
 
     const accessToken = await this.freshAccessToken(userId)
+    const { billingCycle } = await this.resolvePurchaseVariant(
+      dto.externalPlanId,
+      dto.variant,
+      dto.billingCycle,
+    )
 
     const result = await this.bearerRequest('/api/v1/payment/platform/stripe/confirm', {
       method: 'POST',
@@ -123,7 +167,7 @@ export class McomPackagesService {
       body: {
         platform: this.platformSlug,
         externalPlanId: dto.externalPlanId,
-        billingCycle: dto.billingCycle,
+        billingCycle,
         // Central auto-detects `pi_` vs `seti_` by prefix; forward whichever
         // intent the browser settled (payment for paid plans, setup for trials).
         ...(dto.setupIntentId ? { setupIntentId: dto.setupIntentId } : { paymentIntentId: dto.paymentIntentId }),
@@ -153,6 +197,45 @@ export class McomPackagesService {
 
   private defaultCancelUrl(): string {
     return `${this.webUrl}/b/membership/plans`
+  }
+
+  /**
+   * Resolve which of the plan's three variants is being purchased and map it to
+   * the billing cycle Central expects. `variant` is preferred; the legacy
+   * `billingCycle` field is still accepted for older clients.
+   */
+  private async resolvePurchaseVariant(
+    planId: string,
+    variant?: PlanVariantKey,
+    legacyBillingCycle?: BillingCycle,
+  ): Promise<{ variant: PlanVariantKey; billingCycle: BillingCycle }> {
+    const plan = await this.plansService.findOne(planId)
+    if (plan.status !== 'active') {
+      throw new BadRequestException('This plan is not available for purchase')
+    }
+
+    let resolved = variant
+    if (!resolved && legacyBillingCycle) {
+      const legacyMap: Record<BillingCycle, PlanVariantKey> = {
+        monthly: 'standard',
+        quarterly: 'standard',
+        semiannual: 'pro',
+        annual: 'pro_plus',
+      }
+      resolved = legacyMap[legacyBillingCycle]
+    }
+    if (!resolved) {
+      throw new BadRequestException('A plan variant is required (standard, pro or pro_plus)')
+    }
+
+    const match = (plan.variants ?? []).find(
+      (candidate) => candidate.key === resolved && candidate.isActive !== false,
+    )
+    if (!match) {
+      throw new BadRequestException(`Variant "${resolved}" is not available for this plan`)
+    }
+
+    return { variant: resolved, billingCycle: VARIANT_BILLING_CYCLE[resolved] }
   }
 
   /** The user must be SSO-linked and have a usable Central access token. */
@@ -198,7 +281,7 @@ export class McomPackagesService {
     const dbUser = await this.requireLinkedUser(userId)
     if (!dbUser.mcomUserId) throw new Error('User has no linked MCOM account')
     const permissions = await this.mcomService.fetchPermissions(dbUser.mcomUserId)
-    return permissions[this.mcomService.platformPermissionKey] === true || permissions.can_access_vcard === true
+    return permissions[this.mcomService.platformPermissionKey] === true || hasVcardAccess(permissions)
   }
 
   private async bearerRequest(path: string, opts: BearerRequestOptions): Promise<Record<string, unknown>> {

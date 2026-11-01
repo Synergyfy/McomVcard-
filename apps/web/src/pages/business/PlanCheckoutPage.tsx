@@ -3,19 +3,19 @@ import { useNavigate, Link } from 'react-router-dom'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useAuth } from '../../contexts/AuthContext'
-import { packagesService, type BillingCycle, type PaymentProvider, type PurchasablePlan } from '../../services/packages'
+import {
+  packagesService,
+  type PaymentProvider,
+  type PlanVariantKey,
+  type PurchasablePlan,
+  type PurchasableVariant,
+} from '../../services/packages'
 
 const stripePromise: Promise<Stripe | null> = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
-const BILLING_LABELS: Record<BillingCycle, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  annual: 'Annual',
-}
-
 interface PendingPurchase {
   externalPlanId: string
-  billingCycle: BillingCycle
+  variant: PlanVariantKey
 }
 
 const PENDING_KEY = 'vcard_pending_purchase'
@@ -29,15 +29,26 @@ function pendingPurchase(): PendingPurchase | null {
   }
 }
 
+function currencySymbol(currency?: string): string {
+  return currency === 'USD' ? '$' : '£'
+}
+
+function durationLabel(days: number): string {
+  if (days >= 365 && days % 365 === 0) return `${days / 365} ${days === 365 ? 'year' : 'years'}`
+  return `${days} days`
+}
+
 function PaymentForm({
   planName,
   amount,
+  currency,
   mode,
   onSuccess,
   onError,
 }: {
   planName: string
   amount: number
+  currency?: string
   mode: 'payment' | 'setup'
   onSuccess: (intentId: string, intentType: 'payment' | 'setup') => void
   onError: (message: string) => void
@@ -100,7 +111,8 @@ function PaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-        {planName} — £{amount.toLocaleString()}
+        {planName} — {currencySymbol(currency)}
+        {amount.toLocaleString()}
       </div>
 
       <PaymentElement />
@@ -126,7 +138,7 @@ export default function PlanCheckoutPage() {
 
   const [plans, setPlans] = useState<PurchasablePlan[]>([])
   const [selectedId, setSelectedId] = useState('')
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
+  const [selectedVariant, setSelectedVariant] = useState<PlanVariantKey | ''>('')
   const [provider, setProvider] = useState<PaymentProvider>('stripe')
   const [clientSecret, setClientSecret] = useState('')
   const [stripeIntentType, setStripeIntentType] = useState<'payment' | 'setup'>('payment')
@@ -140,19 +152,29 @@ export default function PlanCheckoutPage() {
       .listPlans()
       .then((list) => {
         setPlans(list)
-        if (list.length > 0) setSelectedId(list[0].id)
+        const firstPlan = list[0]
+        if (firstPlan) {
+          setSelectedId(firstPlan.id)
+          setSelectedVariant(firstPlan.variants[0]?.key ?? '')
+        }
       })
       .catch(() => setError('Could not load plans. Please try again.'))
       .finally(() => setLoading(false))
   }, [])
 
-  const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedId), [plans, selectedId])
-  const price = useMemo(() => {
-    if (!selectedPlan) return 0
-    if (billingCycle === 'monthly') return selectedPlan.monthlyPrice
-    if (billingCycle === 'quarterly') return selectedPlan.quarterlyPrice
-    return selectedPlan.annualPrice
-  }, [selectedPlan, billingCycle])
+  const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedId), [plans, selectedId])
+  const selectedPlanVariant = useMemo<PurchasableVariant | undefined>(
+    () => selectedPlan?.variants.find((variant) => variant.key === selectedVariant),
+    [selectedPlan, selectedVariant],
+  )
+  const price = selectedPlanVariant?.price ?? 0
+  const symbol = currencySymbol(selectedPlan?.currency)
+
+  const selectVariant = (plan: PurchasablePlan, variant: PurchasableVariant) => {
+    setSelectedId(plan.id)
+    setSelectedVariant(variant.key)
+    setClientSecret('')
+  }
 
   const handleSuccess = async (intentId: string, intentType: 'payment' | 'setup') => {
     const pending = pendingPurchase()
@@ -161,7 +183,7 @@ export default function PlanCheckoutPage() {
     try {
       const result = await packagesService.confirmStripe({
         externalPlanId: pending.externalPlanId,
-        billingCycle: pending.billingCycle,
+        variant: pending.variant,
         ...(intentType === 'setup' ? { setupIntentId: intentId } : { paymentIntentId: intentId }),
       })
       localStorage.removeItem(PENDING_KEY)
@@ -198,15 +220,18 @@ export default function PlanCheckoutPage() {
   }
 
   const startStripe = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan || !selectedPlanVariant) return
     setError('')
     setProcessing(true)
     try {
       if (!(await ensureSession())) return
-      localStorage.setItem(PENDING_KEY, JSON.stringify({ externalPlanId: selectedPlan.id, billingCycle }))
+      localStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify({ externalPlanId: selectedPlan.id, variant: selectedPlanVariant.key }),
+      )
       const res = await packagesService.initiate({
         externalPlanId: selectedPlan.id,
-        billingCycle,
+        variant: selectedPlanVariant.key,
         provider: 'stripe',
       })
       if (res.clientSecret) {
@@ -226,15 +251,18 @@ export default function PlanCheckoutPage() {
   }
 
   const startPaypal = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan || !selectedPlanVariant) return
     setError('')
     setProcessing(true)
     try {
       if (!(await ensureSession())) return
-      localStorage.setItem(PENDING_KEY, JSON.stringify({ externalPlanId: selectedPlan.id, billingCycle }))
+      localStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify({ externalPlanId: selectedPlan.id, variant: selectedPlanVariant.key }),
+      )
       const res = await packagesService.initiate({
         externalPlanId: selectedPlan.id,
-        billingCycle,
+        variant: selectedPlanVariant.key,
         provider: 'paypal',
       })
       if (res.approvalUrl) {
@@ -259,13 +287,14 @@ export default function PlanCheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 px-4 py-12">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <Link to="/" className="text-sm text-gray-500 font-medium hover:text-gray-800 inline-block mb-6">
           ← Back
         </Link>
-        <h1 className="text-3xl font-extrabold text-gray-900">Upgrade your MCOM VCard plan</h1>
+        <h1 className="text-3xl font-extrabold text-gray-900">Choose your MCOM VCard plan</h1>
         <p className="text-sm text-gray-500 mt-2">
-          Payments are processed securely by MCOM Solutions. Your plan activates the moment payment settles.
+          Every plan comes in three variants — Standard (90 days), Pro (180 days) and Pro+ (1 year). Payments are
+          processed securely by Central Hub Solution.
         </p>
 
         {error && (
@@ -282,68 +311,80 @@ export default function PlanCheckoutPage() {
           </div>
         ) : (
           <>
-            {/* Billing cycle */}
-            <div className="mt-8 flex items-center gap-2">
-              {(['monthly', 'quarterly', 'annual'] as BillingCycle[]).map((cycle) => (
-                <button
-                  key={cycle}
-                  type="button"
-                  onClick={() => setBillingCycle(cycle)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                    billingCycle === cycle
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {BILLING_LABELS[cycle]}
-                </button>
-              ))}
-            </div>
-
-            {/* Plan cards */}
-            <div className="mt-6 grid md:grid-cols-2 gap-4">
+            {/* Plan + variant cards */}
+            <div className="mt-8 space-y-4">
               {plans.map((plan) => {
-                const active = plan.id === selectedId
+                const planActive = plan.id === selectedId
                 return (
-                  <button
+                  <div
                     key={plan.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedId(plan.id)
-                      setClientSecret('')
-                    }}
-                    className={`text-left rounded-2xl border p-6 transition-all ${
-                      active
+                    className={`rounded-2xl border p-6 transition-all ${
+                      planActive
                         ? 'border-blue-600 ring-2 ring-blue-600/20 bg-white shadow-lg shadow-blue-100'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        : 'border-gray-200 bg-white'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="font-extrabold text-gray-900">{plan.name}</h3>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider">{plan.level}</p>
+                        {plan.description && (
+                          <p className="text-sm text-gray-500 mt-1 max-w-xl">{plan.description}</p>
+                        )}
                       </div>
-                      {active && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">
+                      {planActive && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold shrink-0">
                           Selected
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-4">
-                      <span className="text-2xl font-black text-gray-900">£{plan.monthlyPrice.toLocaleString()}</span>
-                      <span className="text-sm text-gray-500">/mo</span>
+                    <div className="mt-4 grid sm:grid-cols-3 gap-3">
+                      {plan.variants.map((variant) => {
+                        const active = planActive && selectedVariant === variant.key
+                        return (
+                          <button
+                            key={variant.key}
+                            type="button"
+                            onClick={() => selectVariant(plan, variant)}
+                            className={`text-left rounded-xl border p-4 transition-all ${
+                              active
+                                ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-600/20'
+                                : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-gray-900">{variant.name}</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                                {durationLabel(variant.durationDays)}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-end gap-1">
+                              <span className="text-2xl font-black text-gray-900">
+                                {symbol}
+                                {variant.price.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-gray-500 mb-1">
+                                /{durationLabel(variant.durationDays)}
+                              </span>
+                            </div>
+                            {variant.description && (
+                              <p className="text-[11px] text-gray-500 mt-1">{variant.description}</p>
+                            )}
+                            <ul className="mt-3 space-y-1">
+                              {(variant.features.length > 0 ? variant.features : ['Full VCard suite access'])
+                                .slice(0, 4)
+                                .map((feature) => (
+                                  <li key={feature} className="text-[11px] text-gray-600 flex items-start gap-1.5">
+                                    <span className="text-blue-500 mt-0.5">✓</span>
+                                    {feature}
+                                  </li>
+                                ))}
+                            </ul>
+                          </button>
+                        )
+                      })}
                     </div>
-
-                    <ul className="mt-4 space-y-1.5">
-                      {(plan.features.length > 0 ? plan.features : ['Full VCard suite access']).map((feature) => (
-                        <li key={feature} className="text-sm text-gray-600 flex items-start gap-2">
-                          <span className="text-blue-500 mt-0.5">✓</span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -356,7 +397,7 @@ export default function PlanCheckoutPage() {
                 </div>
                 <h3 className="font-bold text-gray-900 mt-4">Your MCOM session has expired</h3>
                 <p className="text-sm text-gray-500 mt-2">
-                  Sign in with MCOM again to re-authorize your account, then you can continue with your plan purchase.
+                  Sign in with Central Hub Solution again to re-authorize your account, then you can continue with your plan purchase.
                 </p>
                 <button
                   type="button"
@@ -364,7 +405,7 @@ export default function PlanCheckoutPage() {
                   disabled={processing}
                   className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-sm font-bold hover:opacity-95 transition-all disabled:opacity-50"
                 >
-                  Sign in with MCOM again
+                  Sign in with Central Hub Solution again
                 </button>
               </div>
             )}
@@ -399,21 +440,21 @@ export default function PlanCheckoutPage() {
                 <button
                   type="button"
                   onClick={provider === 'stripe' ? startStripe : startPaypal}
-                  disabled={processing || !selectedPlan}
+                  disabled={processing || !selectedPlan || !selectedPlanVariant}
                   className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-base font-bold hover:opacity-95 transition-all shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {processing
                     ? 'Starting payment…'
-                    : `Continue to payment — £${price.toLocaleString()}`}
+                    : `Continue to payment — ${symbol}${price.toLocaleString()}`}
                 </button>
                 <p className="mt-3 text-center text-xs text-gray-400">
-                  Secured by MCOM Solutions via Stripe &amp; PayPal
+                  Secured by Central Hub Solution via Stripe &amp; PayPal
                 </p>
               </>
             )}
 
             {/* Stripe Elements */}
-            {clientSecret && selectedPlan && (
+            {clientSecret && selectedPlan && selectedPlanVariant && (
               <div className="mt-8 rounded-2xl bg-white border border-gray-100 p-6">
                 <Elements
                   stripe={stripePromise}
@@ -426,8 +467,9 @@ export default function PlanCheckoutPage() {
                   }}
                 >
                   <PaymentForm
-                    planName={selectedPlan.name}
+                    planName={`${selectedPlan.name} — ${selectedPlanVariant.name}`}
                     amount={price}
+                    currency={selectedPlan.currency}
                     mode={stripeIntentType}
                     onSuccess={handleSuccess}
                     onError={(msg) => {

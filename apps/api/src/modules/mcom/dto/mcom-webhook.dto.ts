@@ -75,7 +75,7 @@ export class McomWebhookDto {
   @IsIn(MCOM_WEBHOOK_EVENTS)
   event!: McomWebhookEvent
 
-  @ApiProperty({ example: 'vcard' })
+  @ApiProperty({ example: 'vcards' })
   @IsString()
   @IsNotEmpty()
   platform!: string

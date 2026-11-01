@@ -27,17 +27,28 @@ export const validationSchema = Joi.object({
   MCOM_CLIENT_ID: Joi.string().optional().empty('').default(''),
   MCOM_CLIENT_SECRET: Joi.string().optional().empty('').default(''),
   // Inbound System API Key — authorizes MCOM Solutions when it calls
-  // /api/v1/system/* (sent in the `x-mcom-solution-api-key` header).
+  // /api/v1/system/* (sent in the `x-mcom-solution-api-key` or `x-api-key`
+  // header). MCOM_SOLUTION_API_KEY is accepted as a legacy alias.
+  MCOM_API_KEY: Joi.string().optional().empty('').default(''),
   MCOM_SOLUTION_API_KEY: Joi.string().optional().empty('').default(''),
   MCOM_HMAC_SECRET: Joi.string().optional().empty('').default(''),
   MCOM_WEBHOOK_SECRET: Joi.string().optional().empty('').default(''),
-  // Shared JWT secret for the Direct Dashboard Handshake (/sso-login?token=...).
-  // Signed by MCOM Central with issuer `mcom-central`; verified here.
+  // Shared JWT secret for the legacy Direct Dashboard Handshake
+  // (/sso-login?token=...). Signed by MCOM Central with issuer `mcom-central`.
   SSO_SECRET: Joi.string().optional().empty('').default(''),
-  MCOM_PLATFORM_SLUG: Joi.string().default('vcard'),
-  MCOM_REDIRECT_URI: Joi.string().uri().default('http://localhost:8000/auth/callback'),
+  MCOM_PLATFORM_SLUG: Joi.string().default('vcards'),
+  MCOM_REDIRECT_URI: Joi.string().uri().default('http://localhost:9024/auth/callback'),
   MCOM_SCOPES: Joi.string().default('profile email business membership packages'),
   MCOM_MEMBERSHIP_URL: Joi.string().uri().allow('').default(''),
+  // White-label admission mode. This platform is not white-label, so normal
+  // membership/trial entitlement gates apply.
+  MCOM_WHITELABEL_ENABLED: Joi.string().valid('true', 'false').default('false'),
+  // Direct app-to-app (Ecosystem Service Mesh) integration.
+  MCOM_SERVICE_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  MCOM_SERVICE_BASE_URL: Joi.string().uri().allow('').default('http://localhost:9024'),
+  MCOM_SERVICE_SCOPES: Joi.string().default('profile email service:read service:write'),
+  // Optional ingress allowlist; empty means resolve from Central's registry.
+  MCOM_ALLOWED_CALLERS: Joi.string().optional().empty('').default(''),
   // Centralized MCOM Wallet partner integration. When enabled, wallet balance,
   // transactions and writes are proxied to MCOM Solutions (/wallet/partner);
   // when disabled the app falls back to the local Postgres wallet tables.

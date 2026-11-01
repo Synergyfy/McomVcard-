@@ -5,14 +5,78 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { PlanConfigurationDto } from '../../plans/dto/plan.dto'
 
 export const SYSTEM_PLAN_TYPES = ['STANDARD', 'TRIAL', 'SEASONAL'] as const
+export const SYSTEM_PLAN_TIERS = [
+  'STANDARD',
+  'PRO',
+  'PRO_PLUS',
+  'Standard',
+  'Pro',
+  'Pro+',
+] as const
+
+/**
+ * Canonical variant shape understood by Central's Generic Connector
+ * (`ExternalPlanVariant`). Kept in sync so a plan authored here round-trips
+ * into the Central console with per-variant price/features/entitlements.
+ */
+export class SystemPlanVariantDto {
+  @ApiProperty({ enum: SYSTEM_PLAN_TIERS, example: 'STANDARD' })
+  @IsIn(SYSTEM_PLAN_TIERS)
+  tier!: string
+
+  @ApiPropertyOptional({
+    example: { name: 'Standard', durationDays: 90, isCalendarYear: false },
+  })
+  @IsOptional()
+  @IsObject()
+  tierLevel?: {
+    name?: string
+    durationDays?: number | null
+    isCalendarYear?: boolean
+  }
+
+  @ApiProperty({ example: 49 })
+  @IsNumber()
+  @Min(0)
+  price!: number
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  features?: string[]
+
+  @ApiPropertyOptional({ type: PlanConfigurationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlanConfigurationDto)
+  configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
+
+  @ApiPropertyOptional({ example: 'price_123' })
+  @IsOptional()
+  @IsString()
+  stripePriceId?: string
+
+  @ApiPropertyOptional({ example: 'P-123' })
+  @IsOptional()
+  @IsString()
+  paypalPlanId?: string
+}
 
 /**
  * DTO mirroring the MCOM Solutions Generic Connector contract
@@ -38,12 +102,17 @@ export class SystemPlanDto {
   @IsNumber()
   monthlyPrice?: number
 
-  @ApiPropertyOptional({ example: 79.99 })
+  @ApiPropertyOptional({ example: 79.99, description: 'Standard variant price (90 days)' })
   @IsOptional()
   @IsNumber()
   quarterlyPrice?: number
 
-  @ApiPropertyOptional({ example: 299.99 })
+  @ApiPropertyOptional({ example: 149.99, description: 'Pro variant price (180 days)' })
+  @IsOptional()
+  @IsNumber()
+  semiannualPrice?: number
+
+  @ApiPropertyOptional({ example: 299.99, description: 'Pro+ variant price (365 days)' })
   @IsOptional()
   @IsNumber()
   annualPrice?: number
@@ -59,6 +128,16 @@ export class SystemPlanDto {
   @ValidateNested()
   @Type(() => PlanConfigurationDto)
   configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({
+    type: [SystemPlanVariantDto],
+    description: 'Standard/Pro/Pro+ variants. When present these take precedence over the flat prices.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SystemPlanVariantDto)
+  variants?: SystemPlanVariantDto[]
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
@@ -95,6 +174,11 @@ export class SystemPlanDto {
   @IsString()
   stripeQuarterlyPriceId?: string
 
+  @ApiPropertyOptional({ example: 'price_459' })
+  @IsOptional()
+  @IsString()
+  stripeSemiannualPriceId?: string
+
   @ApiPropertyOptional({ example: 'price_789' })
   @IsOptional()
   @IsString()
@@ -109,6 +193,11 @@ export class SystemPlanDto {
   @IsOptional()
   @IsString()
   paypalQuarterlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-459' })
+  @IsOptional()
+  @IsString()
+  paypalSemiannualPlanId?: string
 
   @ApiPropertyOptional({ example: 'P-789' })
   @IsOptional()
@@ -139,10 +228,13 @@ export class SystemPlanResponseDto {
   @ApiPropertyOptional({ example: 29.99 })
   monthlyPrice?: number
 
-  @ApiPropertyOptional({ example: 79.99 })
+  @ApiPropertyOptional({ example: 79.99, description: 'Standard variant price (90 days)' })
   quarterlyPrice?: number
 
-  @ApiPropertyOptional({ example: 299.99 })
+  @ApiPropertyOptional({ example: 149.99, description: 'Pro variant price (180 days)' })
+  semiannualPrice?: number
+
+  @ApiPropertyOptional({ example: 299.99, description: 'Pro+ variant price (365 days)' })
   annualPrice?: number
 
   @ApiPropertyOptional({ type: [String] })
@@ -150,6 +242,18 @@ export class SystemPlanResponseDto {
 
   @ApiPropertyOptional({ type: PlanConfigurationDto })
   configuration?: PlanConfigurationDto
+
+  @ApiPropertyOptional({ type: [SystemPlanVariantDto] })
+  variants?: SystemPlanVariantDto[]
+
+  @ApiPropertyOptional({ example: { Standard: 49, Pro: 89, 'Pro+': 149 } })
+  tierPrices?: Record<string, number>
+
+  @ApiPropertyOptional({ example: { Standard: ['50 Business VCards'], Pro: ['100 Business VCards'] } })
+  tierFeatures?: Record<string, string[]>
+
+  @ApiPropertyOptional({ example: { Standard: 90, Pro: 180, 'Pro+': 365 } })
+  tierDurations?: Record<string, number>
 
   @ApiPropertyOptional({ example: true })
   isActive?: boolean
@@ -172,6 +276,9 @@ export class SystemPlanResponseDto {
   @ApiPropertyOptional({ example: 'price_456' })
   stripeQuarterlyPriceId?: string
 
+  @ApiPropertyOptional({ example: 'price_459' })
+  stripeSemiannualPriceId?: string
+
   @ApiPropertyOptional({ example: 'price_789' })
   stripeAnnualPriceId?: string
 
@@ -180,6 +287,9 @@ export class SystemPlanResponseDto {
 
   @ApiPropertyOptional({ example: 'P-456' })
   paypalQuarterlyPlanId?: string
+
+  @ApiPropertyOptional({ example: 'P-459' })
+  paypalSemiannualPlanId?: string
 
   @ApiPropertyOptional({ example: 'P-789' })
   paypalAnnualPlanId?: string

@@ -38,6 +38,25 @@ function linkedUser() {
   }
 }
 
+function mockPlan() {
+  return {
+    id: 'p-1',
+    name: 'Business Growth',
+    description: 'Grow your business.',
+    audience: 'business',
+    currency: 'GBP',
+    status: 'active',
+    features: [{ text: 'NFC cards', description: '', scope: 'All' }],
+    rules: [],
+    configuration: { quotas: { maxVCards: 100 } },
+    variants: [
+      { key: 'standard', name: 'Standard', durationDays: 90, price: 49, setupFee: 0, trialDays: 14, description: '90 days', features: null, rules: null, configuration: { quotas: { maxVCards: 50 } }, stripePriceId: null, paypalPlanId: null, isActive: true },
+      { key: 'pro', name: 'Pro', durationDays: 180, price: 89, setupFee: 0, trialDays: 14, description: '180 days', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
+      { key: 'pro_plus', name: 'Pro+', durationDays: 365, price: 149, setupFee: 0, trialDays: 7, description: '1 year', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
+    ],
+  }
+}
+
 function fakeResponse(status: number, body: unknown): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -52,13 +71,13 @@ describe('McomPackagesService', () => {
   let service: McomPackagesService
   let configMock: { get: jest.Mock }
   let mcomMock: { platformPermissionKey: string; getUserInfo: jest.Mock; refreshTokens: jest.Mock; fetchPermissions: jest.Mock }
-  let plansMock: { findAll: jest.Mock }
+  let plansMock: { findAll: jest.Mock; findOne: jest.Mock }
   let usersMock: { findById: jest.Mock }
 
   beforeEach(async () => {
     configMock = makeConfigMock()
     mcomMock = makeMcomMock()
-    plansMock = { findAll: jest.fn() }
+    plansMock = { findAll: jest.fn(), findOne: jest.fn() }
     usersMock = { findById: jest.fn() }
 
     const module: TestingModule = await Test.createTestingModule({
@@ -75,6 +94,7 @@ describe('McomPackagesService', () => {
     jest.spyOn(global, 'fetch').mockReset()
     usersMock.findById.mockResolvedValue(linkedUser())
     mcomMock.getUserInfo.mockResolvedValue({ sub: 'mcom-1', email: 'x@y.com' })
+    plansMock.findOne.mockResolvedValue(mockPlan())
   })
 
   afterEach(() => {
@@ -82,19 +102,10 @@ describe('McomPackagesService', () => {
   })
 
   describe('listPlans', () => {
-    it('maps active business plans to purchasable plans (Pro tier prices)', async () => {
+    it('maps active business plans and their three variants', async () => {
       plansMock.findAll.mockResolvedValue([
-        {
-          id: 'p-1',
-          name: 'Gold',
-          level: 'Gold',
-          audience: 'business',
-          status: 'active',
-          features: [{ text: 'NFC cards' }],
-          tiers: { Pro: { monthly: 449, quarterly: 1212.3, annual: 4490, trialDays: 14 } },
-          configuration: { quotas: { maxVCards: 100 } },
-        },
-        { id: 'p-2', name: 'Legacy', level: 'Bronze', audience: 'business', status: 'inactive', features: [], tiers: { Pro: { monthly: 1, quarterly: 1, annual: 1 } } },
+        mockPlan(),
+        { ...mockPlan(), id: 'p-2', status: 'inactive' },
       ])
 
       const plans = await service.listPlans()
@@ -102,25 +113,33 @@ describe('McomPackagesService', () => {
       expect(plans).toHaveLength(1)
       expect(plans[0]).toMatchObject({
         id: 'p-1',
-        name: 'Gold',
-        level: 'Gold',
-        monthlyPrice: 449,
-        quarterlyPrice: 1212.3,
-        annualPrice: 4490,
+        name: 'Business Growth',
+        description: 'Grow your business.',
+        audience: 'business',
+        currency: 'GBP',
+      })
+      expect(plans[0].variants.map((variant) => variant.key)).toEqual(['standard', 'pro', 'pro_plus'])
+      expect(plans[0].variants[0]).toMatchObject({
+        name: 'Standard',
+        durationDays: 90,
+        price: 49,
         features: ['NFC cards'],
       })
+      // Variant configuration overrides the plan base (variant wins).
+      expect(plans[0].variants[0].configuration).toEqual({ quotas: { maxVCards: 50 } })
+      expect(plans[0].variants[2].configuration).toEqual({ quotas: { maxVCards: 100 } })
     })
   })
 
   describe('initiate', () => {
-    it('calls the central initiate endpoint with the user token and vcard platform slug', async () => {
+    it('maps the variant to its billing cycle and calls Central', async () => {
       ;(global.fetch as jest.Mock).mockResolvedValue(
         fakeResponse(200, { clientSecret: 'pi_xxx_secret_yyy', type: 'payment' }),
       )
 
       const result = await service.initiate('user-1', {
         externalPlanId: 'p-1',
-        billingCycle: 'monthly',
+        variant: 'standard',
         provider: 'stripe',
       })
 
@@ -131,10 +150,43 @@ describe('McomPackagesService', () => {
       expect(body).toMatchObject({
         platform: 'vcard',
         externalPlanId: 'p-1',
-        billingCycle: 'monthly',
+        billingCycle: 'quarterly',
         returnUrl: 'http://localhost:3000/b/payment/success',
       })
       expect(result).toMatchObject({ clientSecret: 'pi_xxx_secret_yyy' })
+    })
+
+    it('maps the pro and pro_plus variants to semiannual and annual', async () => {
+      ;(global.fetch as jest.Mock).mockResolvedValue(fakeResponse(200, { approvalUrl: 'https://paypal/approve' }))
+
+      await service.initiate('user-1', { externalPlanId: 'p-1', variant: 'pro', provider: 'paypal' })
+      expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body).billingCycle).toBe('semiannual')
+
+      await service.initiate('user-1', { externalPlanId: 'p-1', variant: 'pro_plus', provider: 'paypal' })
+      expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body).billingCycle).toBe('annual')
+    })
+
+    it('still accepts the legacy billingCycle field', async () => {
+      ;(global.fetch as jest.Mock).mockResolvedValue(fakeResponse(200, { approvalUrl: 'https://paypal/approve' }))
+
+      await service.initiate('user-1', { externalPlanId: 'p-1', billingCycle: 'annual', provider: 'paypal' })
+
+      const [, init] = (global.fetch as jest.Mock).mock.calls[0]
+      expect(JSON.parse(init.body).billingCycle).toBe('annual')
+    })
+
+    it('rejects an unknown/inactive variant', async () => {
+      plansMock.findOne.mockResolvedValue({
+        ...mockPlan(),
+        variants: mockPlan().variants.map((variant) =>
+          variant.key === 'pro' ? { ...variant, isActive: false } : variant,
+        ),
+      })
+
+      await expect(
+        service.initiate('user-1', { externalPlanId: 'p-1', variant: 'pro', provider: 'stripe' }),
+      ).rejects.toBeInstanceOf(BadRequestException)
+      expect(global.fetch).not.toHaveBeenCalled()
     })
 
     it('refreshes the central token when the stored one is invalid', async () => {
@@ -142,7 +194,7 @@ describe('McomPackagesService', () => {
       mcomMock.refreshTokens.mockResolvedValue({ accessToken: 'refreshed-token', expiresIn: 3600 })
       ;(global.fetch as jest.Mock).mockResolvedValue(fakeResponse(200, { approvalUrl: 'https://paypal/approve' }))
 
-      await service.initiate('user-1', { externalPlanId: 'p-1', billingCycle: 'annual', provider: 'paypal' })
+      await service.initiate('user-1', { externalPlanId: 'p-1', variant: 'standard', provider: 'paypal' })
 
       const [, init] = (global.fetch as jest.Mock).mock.calls[0]
       expect(init.headers['Authorization']).toBe('Bearer refreshed-token')
@@ -152,7 +204,7 @@ describe('McomPackagesService', () => {
       usersMock.findById.mockResolvedValue({ id: 'user-2', mcomUserId: null, mcomAccessToken: null })
 
       await expect(
-        service.initiate('user-2', { externalPlanId: 'p-1', billingCycle: 'monthly', provider: 'stripe' }),
+        service.initiate('user-2', { externalPlanId: 'p-1', variant: 'standard', provider: 'stripe' }),
       ).rejects.toBeInstanceOf(BadRequestException)
       expect(global.fetch).not.toHaveBeenCalled()
     })
@@ -162,7 +214,7 @@ describe('McomPackagesService', () => {
       mcomMock.refreshTokens.mockRejectedValueOnce(new Error('Invalid or expired refresh token'))
 
       await expect(
-        service.initiate('user-1', { externalPlanId: 'p-1', billingCycle: 'monthly', provider: 'stripe' }),
+        service.initiate('user-1', { externalPlanId: 'p-1', variant: 'standard', provider: 'stripe' }),
       ).rejects.toMatchObject({
         name: 'UnauthorizedException',
         message: 'Your MCOM session has expired — sign in with MCOM again to continue',
@@ -180,13 +232,17 @@ describe('McomPackagesService', () => {
 
       const result = await service.confirmStripe('user-1', {
         externalPlanId: 'p-1',
-        billingCycle: 'monthly',
+        variant: 'standard',
         paymentIntentId: 'pi_123',
       })
 
       const [url, init] = (global.fetch as jest.Mock).mock.calls[0]
       expect(url).toBe('http://localhost:3010/api/v1/payment/platform/stripe/confirm')
-      expect(JSON.parse(init.body)).toMatchObject({ platform: 'vcard', paymentIntentId: 'pi_123' })
+      expect(JSON.parse(init.body)).toMatchObject({
+        platform: 'vcard',
+        paymentIntentId: 'pi_123',
+        billingCycle: 'quarterly',
+      })
       expect(result.canAccessVcard).toBe(true)
     })
   })
@@ -213,7 +269,7 @@ describe('McomPackagesService', () => {
       ;(global.fetch as jest.Mock).mockResolvedValue(fakeResponse(401, { message: 'Invalid token' }))
 
       await expect(
-        service.initiate('user-1', { externalPlanId: 'p-1', billingCycle: 'monthly', provider: 'stripe' }),
+        service.initiate('user-1', { externalPlanId: 'p-1', variant: 'standard', provider: 'stripe' }),
       ).rejects.toBeInstanceOf(UnauthorizedException)
     })
   })

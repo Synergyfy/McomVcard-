@@ -12,11 +12,19 @@ import { McomWebhookController } from './webhooks/mcom-webhook.controller'
 import { McomWebhookService } from './webhooks/mcom-webhook.service'
 import { McomWebhookEvent } from './webhooks/mcom-webhook-event.entity'
 import { DirectHandshakeController } from './direct-handshake.controller'
+import { ServiceMeshController } from './service-mesh.controller'
+import { ServiceAuthGuard } from './service-auth'
 
 @Module({
   imports: [AuthModule, UsersModule, PlansModule, TypeOrmModule.forFeature([McomWebhookEvent])],
-  controllers: [McomController, McomPackagesController, McomWebhookController, DirectHandshakeController],
-  providers: [McomService, McomWalletService, McomPackagesService, McomWebhookService],
+  controllers: [
+    McomController,
+    McomPackagesController,
+    McomWebhookController,
+    DirectHandshakeController,
+    ServiceMeshController,
+  ],
+  providers: [McomService, McomWalletService, McomPackagesService, McomWebhookService, ServiceAuthGuard],
   exports: [McomService, McomWalletService, McomPackagesService],
 })
 export class McomModule {}

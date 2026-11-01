@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { packagesService, type BillingCycle } from '../../services/packages'
+import { packagesService, type PlanVariantKey } from '../../services/packages'
 
 const PENDING_KEY = 'vcard_pending_purchase'
 
-function pendingPurchase(): { externalPlanId: string; billingCycle: BillingCycle } | null {
+function pendingPurchase(): { externalPlanId: string; variant?: PlanVariantKey } | null {
   try {
     const raw = localStorage.getItem(PENDING_KEY)
     return raw ? JSON.parse(raw) : null
@@ -49,7 +49,7 @@ export default function PaymentSuccessPage() {
         } else if (paymentIntentId && pending) {
           const result = await packagesService.confirmStripe({
             externalPlanId: pending.externalPlanId,
-            billingCycle: pending.billingCycle,
+            variant: pending.variant ?? 'standard',
             paymentIntentId,
           })
           access = result.canAccessVcard ?? null
