@@ -4,8 +4,6 @@ package-lock.json
 .pnpm-store/
 
 # Environment variables
-.env
-.env.*
 !.env.example
 
 # PostgreSQL data (local development only)
@@ -24,7 +22,6 @@ apps/api/uploads/*
 !apps/api/uploads/.gitkeep
 
 # IDE
-.vscode/
 .idea/
 
 # OS files
@@ -36,3 +33,4 @@ Thumbs.db
 
 AGENTS.md
 MASTER_INSTRUCTIONS.md
+config.bat
