@@ -7,7 +7,6 @@ import { ApiResponse } from '../../../lib/utils/api-response'
 import { McomPackagesService, PurchasablePlan } from './mcom-packages.service'
 import { InitiatePurchaseDto } from './dto/initiate-purchase.dto'
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto'
-import { CapturePurchaseDto } from './dto/capture-purchase.dto'
 
 @ApiTags('mcom/packages')
 @ApiBearerAuth()
@@ -17,7 +16,7 @@ export class McomPackagesController {
   constructor(private readonly packagesService: McomPackagesService) {}
 
   @Get('plans')
-  @ApiOperation({ summary: 'List purchasable VCard plans', description: 'Business plans that can be purchased in-app through MCOM Solutions billing.' })
+  @ApiOperation({ summary: 'List purchasable VCard plans', description: 'Business plans that can be purchased in-app and paid from the MCOM Wallet.' })
   async listPlans() {
     const plans: PurchasablePlan[] = await this.packagesService.listPlans()
     return ApiResponse.success(plans, 'Purchasable plans retrieved', 200)
@@ -25,28 +24,23 @@ export class McomPackagesController {
 
   @Post('purchase/initiate')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Initiate a Stripe or PayPal payment for a VCard plan on MCOM Solutions', description: 'Returns a Stripe clientSecret or a PayPal approvalUrl. Requires an MCOM-linked account.' })
+  @ApiOperation({
+    summary: 'Create a VCard plan charge (MCOM Wallet, Stripe or PayPal)',
+    description:
+      'Creates a server-priced MCOM Pay charge. wallet settles immediately; stripe returns a clientSecret for Stripe Elements; paypal returns an approvalUrl. Requires a linked MCOM account and an X-Idempotency-Key. Insufficient wallet funds → 402 with a Central Hub top-up URL.',
+  })
   @ApiBody({ type: InitiatePurchaseDto })
   async initiate(@CurrentUser() user: UserResponseDto, @Body() dto: InitiatePurchaseDto) {
     const result = await this.packagesService.initiate(user.id, dto)
-    return ApiResponse.success(result, 'Payment initiated', 200)
+    return ApiResponse.success(result, 'Wallet payment settled', 200)
   }
 
   @Post('purchase/confirm')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Confirm a settled Stripe PaymentIntent and activate the VCard plan' })
+  @ApiOperation({ summary: 'Confirm a wallet charge and (re)activate the VCard plan', description: 'Idempotent replay path for clients that lost the initiate response.' })
   @ApiBody({ type: ConfirmPurchaseDto })
   async confirm(@CurrentUser() user: UserResponseDto, @Body() dto: ConfirmPurchaseDto) {
-    const result = await this.packagesService.confirmStripe(user.id, dto)
+    const result = await this.packagesService.confirm(user.id, dto)
     return ApiResponse.success(result, 'Payment confirmed — plan activated', 200)
-  }
-
-  @Post('purchase/capture')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Capture an approved PayPal order and activate the VCard plan' })
-  @ApiBody({ type: CapturePurchaseDto })
-  async capture(@CurrentUser() user: UserResponseDto, @Body() dto: CapturePurchaseDto) {
-    const result = await this.packagesService.capturePaypal(user.id, dto)
-    return ApiResponse.success(result, 'Payment captured — plan activated', 200)
   }
 }

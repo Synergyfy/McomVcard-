@@ -24,6 +24,8 @@ export default () => ({
     redirectUri: process.env.MCOM_REDIRECT_URI || 'http://localhost:9024/auth/callback',
     whitelabelEnabled: process.env.MCOM_WHITELABEL_ENABLED === 'true',
     walletEnabled: process.env.MCOM_WALLET_ENABLED === 'true',
+    payEnabled: process.env.MCOM_PAY_ENABLED !== 'false',
+    walletTopUpUrl: (process.env.MCOM_WALLET_TOPUP_URL || '').replace(/\/+$/, ''),
     service: {
       enabled: process.env.MCOM_SERVICE_ENABLED !== 'false',
       baseUrl: (process.env.MCOM_SERVICE_BASE_URL || 'http://localhost:9024').replace(/\/+$/, ''),

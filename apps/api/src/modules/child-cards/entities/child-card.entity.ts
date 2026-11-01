@@ -46,6 +46,10 @@ export class ChildCard {
   } })
   walletAllocation!: number | null
 
+  /** Last centralized-wallet allocation key (prevents duplicate allocation on retry). */
+  @Column({ name: 'last_allocation_key', type: 'varchar', length: 255, nullable: true })
+  lastAllocationKey!: string | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

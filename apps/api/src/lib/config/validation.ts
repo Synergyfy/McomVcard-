@@ -53,4 +53,11 @@ export const validationSchema = Joi.object({
   // transactions and writes are proxied to MCOM Solutions (/wallet/partner);
   // when disabled the app falls back to the local Postgres wallet tables.
   MCOM_WALLET_ENABLED: Joi.string().valid('true', 'false').default('false'),
+  // Optional override for the Central Hub wallet top-up page. Defaults to
+  // `${MCOM_SOLUTIONS_URL}/dashboard/wallet` when omitted.
+  MCOM_WALLET_TOPUP_URL: Joi.string().uri().allow('').default(''),
+  // MCOM Pay partner gateway (/api/v1/app-payments). All in-app charges are
+  // created server-side with method "wallet" so customers pay from their
+  // centralized MCOM Wallet balance.
+  MCOM_PAY_ENABLED: Joi.string().valid('true', 'false').default('true'),
 })

@@ -27,6 +27,7 @@ import { McomEntitlement, McomService, hasVcardAccess } from './mcom.service'
 import { AuthService, McomUserInfo } from '../auth/auth.service'
 import { UsersService } from '../users/users.service'
 import { PlansService } from '../plans/plans.service'
+import { SubscriptionsService } from '../subscriptions/subscriptions.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { SsoCallbackDto } from './dto/sso-callback.dto'
@@ -66,6 +67,7 @@ export class McomController {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly plansService: PlansService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   /**
@@ -89,7 +91,7 @@ export class McomController {
     const safeRedirect = safeReturnPath(redirect)
     // Preserve the card-invite context so the SPA callback can restore the
     // consumer card-association flow after the SSO round trip, plus an optional
-    // post-login redirect (e.g. back to /b/payment after a re-auth).
+    // post-login redirect (e.g. back to /plans after a re-auth).
     if (card || business || safeRedirect) {
       setOauthReturnCookie(res, JSON.stringify({ card: card || '', business: business || '', redirect: safeRedirect || '' }))
     }
@@ -323,6 +325,18 @@ export class McomController {
    * frontend can enforce permission by plan.
    */
   private async resolveActivePlan(userId: string) {
+    // A locally paid VCard plan (MCOM Pay wallet) is the primary entitlement
+    // now that partner apps own their subscriptions.
+    try {
+      const local = await this.subscriptionsService.findActiveForUser(userId)
+      if (local) {
+        const plan = await this.plansService.findOne(local.planId)
+        return this.planPayload(plan, local.expiresAt?.toISOString() ?? null)
+      }
+    } catch {
+      // fall through to the legacy Central package lookup
+    }
+
     try {
       const dbUser = await this.usersService.findById(userId)
       if (!dbUser?.mcomUserId) return null
@@ -331,29 +345,33 @@ export class McomController {
       if (!pkg?.externalPlanId) return null
 
       const plan = await this.plansService.findOne(pkg.externalPlanId)
-      const standard = plan.variants.find((variant) => variant.key === 'standard')
-      const pro = plan.variants.find((variant) => variant.key === 'pro')
-      const proPlus = plan.variants.find((variant) => variant.key === 'pro_plus')
-
-      return {
-        id: plan.id,
-        name: plan.name,
-        level: plan.level,
-        audience: plan.audience,
-        status: plan.status,
-        isDefault: plan.isDefault,
-        trialDays: standard?.trialDays ?? undefined,
-        monthlyPrice: standard ? Math.round(standard.price / 3) : undefined,
-        quarterlyPrice: standard?.price,
-        semiannualPrice: pro?.price,
-        annualPrice: proPlus?.price,
-        variants: plan.variants,
-        configuration: plan.configuration ?? undefined,
-        features: (plan.features ?? []).map((f) => f.text),
-        expiresAt: pkg.expiresAt ?? undefined,
-      }
+      return this.planPayload(plan, pkg.expiresAt ?? null)
     } catch {
       return null
+    }
+  }
+
+  private planPayload(plan: Awaited<ReturnType<PlansService['findOne']>>, expiresAt: string | null) {
+    const standard = plan.variants.find((variant) => variant.key === 'standard')
+    const pro = plan.variants.find((variant) => variant.key === 'pro')
+    const proPlus = plan.variants.find((variant) => variant.key === 'pro_plus')
+
+    return {
+      id: plan.id,
+      name: plan.name,
+      level: plan.level,
+      audience: plan.audience,
+      status: plan.status,
+      isDefault: plan.isDefault,
+      trialDays: standard?.trialDays ?? undefined,
+      monthlyPrice: standard ? Math.round(standard.price / 3) : undefined,
+      quarterlyPrice: standard?.price,
+      semiannualPrice: pro?.price,
+      annualPrice: proPlus?.price,
+      variants: plan.variants,
+      configuration: plan.configuration ?? undefined,
+      features: (plan.features ?? []).map((f) => f.text),
+      expiresAt: expiresAt ?? undefined,
     }
   }
 

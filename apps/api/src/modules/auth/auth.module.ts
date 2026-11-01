@@ -13,6 +13,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { JwtStrategy } from './jwt.strategy'
 import { JwtAuthGuard } from './jwt-auth.guard'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
 
 
 @Module({
@@ -22,7 +23,7 @@ import { RefreshToken } from './entities/refresh-token.entity'
     EmailVerificationModule,
     RolesModule,
     forwardRef(() => AffiliatesModule),
-    TypeOrmModule.forFeature([RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken, SubscribedPlan]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

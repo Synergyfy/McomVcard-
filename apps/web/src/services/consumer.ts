@@ -424,16 +424,7 @@ export const consumerService = {
   },
 
   async getCardBalance(): Promise<number> {
-    const wallet = await this.getWallet()
-    return wallet.balance
-  },
-
-  async fundCard(amount: number, provider?: string): Promise<number> {
-    const res = await api.post('/wallet/transactions', {
-      type: 'CREDIT',
-      amount,
-      description: `Card funded via ${provider || 'Stripe'}`,
-    })
-    return res.data.data?.balance || amount
+    const res = await api.get('/v1/payments/card-balance')
+    return res.data?.balance || 0
   },
 }

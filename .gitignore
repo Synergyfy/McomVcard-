@@ -1,11 +1,12 @@
 # Dependencies
 node_modules/
 package-lock.json
-pnpm-lock.yaml
-pnpm-workspace.yaml
+.pnpm-store/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 
 # PostgreSQL data (local development only)
 data/
@@ -13,14 +14,25 @@ data/
 # Build artifacts
 dist/
 *.tsbuildinfo
+coverage/
+.turbo/
+.vercel/
+.eslintcache
+
+# Runtime uploads (keep the folder with a .gitkeep if needed)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
 
 # IDE
 .vscode/
 .idea/
 
-# Runtime
-*.log
+# OS files
+.DS_Store
+Thumbs.db
 
+# Runtime logs
+*.log
 
 AGENTS.md
 MASTER_INSTRUCTIONS.md

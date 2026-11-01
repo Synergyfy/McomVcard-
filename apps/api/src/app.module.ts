@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import configuration from './lib/config/configuration'
 import { validationSchema } from './lib/config/validation'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
@@ -38,11 +39,12 @@ import { EventsModule } from './modules/events/events.module'
 import { ContactModule } from './modules/contact/contact.module'
 import { SystemPlansModule } from './modules/system-plans/system-plans.module'
 import { McomModule } from './modules/mcom/mcom.module'
+import { PaymentsModule } from './modules/payments/payments.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validationSchema }),
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration], validationSchema }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',
@@ -90,6 +92,7 @@ import { APP_GUARD } from '@nestjs/core'
     ContactModule,
     SystemPlansModule,
     McomModule,
+    PaymentsModule,
   ],
   controllers: [],
   providers: [

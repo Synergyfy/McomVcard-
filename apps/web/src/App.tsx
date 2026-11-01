@@ -40,8 +40,6 @@ const SubscriptionPage = lazy(() => import('./pages/user/subscriptions/Subscript
 const UserSettingsPage = lazy(() => import('./pages/user/settings/UserSettingsPage'))
 const MCOMSolutionsPage = lazy(() => import('./pages/onboarding/MCOMSolutionsPage'))
 const ChooseMembershipPage = lazy(() => import('./pages/onboarding/ChooseMembershipPage'))
-const PaymentPage = lazy(() => import('./pages/onboarding/PaymentPage'))
-const MembershipConfirmationPage = lazy(() => import('./pages/onboarding/MembershipConfirmationPage'))
 const AdminDashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const UserListPage = lazy(() => import('./pages/admin/users/UserListPage'))
 const UserCreatePage = lazy(() => import('./pages/admin/users/UserCreatePage'))
@@ -165,7 +163,6 @@ const BusinessCardContentEditorPage = lazy(() => import('./pages/business/card/C
 const BusinessMembershipPage = lazy(() => import('./pages/business/MembershipPage'))
 const BusinessMembershipPlansPage = lazy(() => import('./pages/business/MembershipPlansPage'))
 const BusinessMembershipConfirmationPage = lazy(() => import('./pages/business/MembershipConfirmationPage'))
-const BusinessMembershipPaymentPage = lazy(() => import('./pages/business/MembershipPaymentPage'))
 const PlanCheckoutPage = lazy(() => import('./pages/business/PlanCheckoutPage'))
 const PaymentSuccessPage = lazy(() => import('./pages/business/PaymentSuccessPage'))
 const BusinessReportsPage = lazy(() => import('./pages/business/ReportsPage'))
@@ -236,11 +233,11 @@ export default function App() {
                 <Route path="/sso-login" element={<SsoLoginPage />} />
                 <Route path="/onboarding/mcom-solutions" element={<MCOMSolutionsPage />} />
                 <Route path="/onboarding/choose-membership" element={<ChooseMembershipPage />} />
-                <Route path="/onboarding/payment" element={<PaymentPage />} />
-                <Route path="/onboarding/confirmation" element={<MembershipConfirmationPage />} />
+                <Route path="/onboarding/payment" element={<Navigate to="/plans" replace />} />
+                <Route path="/onboarding/confirmation" element={<Navigate to="/b/dashboard" replace />} />
                 <Route element={<RequireAuth />}>
-                  <Route path="/b/payment" element={<PlanCheckoutPage />} />
-                  <Route path="/b/payment/success" element={<PaymentSuccessPage />} />
+                  <Route path="/plans" element={<PlanCheckoutPage />} />
+                  <Route path="/plans/success" element={<PaymentSuccessPage />} />
                 </Route>
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -277,7 +274,7 @@ export default function App() {
                   <Route path="/b/cards/:id/edit" element={<BusinessCardContentEditorPage />} />
                   <Route path="/b/membership" element={<BusinessMembershipPage />} />
                   <Route path="/b/membership/plans" element={<BusinessMembershipPlansPage />} />
-                  <Route path="/b/membership/payment" element={<BusinessMembershipPaymentPage />} />
+                  <Route path="/b/membership/payment" element={<Navigate to="/plans" replace />} />
                   <Route path="/b/membership/confirmation" element={<BusinessMembershipConfirmationPage />} />
                   <Route path="/b/reports" element={<BusinessReportsPage />} />
                   <Route path="/b/integrations" element={<BusinessIntegrationsPage />} />

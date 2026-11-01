@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator'
 
 export type PurchaseVariant = 'standard' | 'pro' | 'pro_plus'
+export type PurchaseProvider = 'wallet' | 'stripe' | 'paypal'
 
 export class InitiatePurchaseDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', description: 'VCard plan id exposed to MCOM Solutions via /api/v1/system/plans' })
@@ -22,17 +23,22 @@ export class InitiatePurchaseDto {
   @IsIn(['monthly', 'quarterly', 'semiannual', 'annual'])
   billingCycle?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 
-  @ApiProperty({ enum: ['stripe', 'paypal', 'wallet'] })
-  @IsIn(['stripe', 'paypal', 'wallet'])
-  provider!: 'stripe' | 'paypal' | 'wallet'
+  @ApiProperty({
+    enum: ['wallet', 'stripe', 'paypal'],
+    example: 'wallet',
+    description: 'Payment method processed by MCOM Pay.',
+  })
+  @IsIn(['wallet', 'stripe', 'paypal'])
+  provider!: PurchaseProvider
 
-  @ApiPropertyOptional({ description: 'Return URL after payment completes (defaults to the web confirmation page)' })
-  @IsOptional()
+  @ApiProperty({
+    description:
+      'Unique per purchase attempt (UUID recommended). Retries MUST reuse the same key so MCOM returns the original charge instead of charging twice.',
+    example: '5b0f7d8e-6f39-4a2a-9f1d-0a2b3c4d5e6f',
+  })
   @IsString()
-  returnUrl?: string
-
-  @ApiPropertyOptional({ description: 'Cancel URL if the user abandons payment' })
-  @IsOptional()
-  @IsString()
-  cancelUrl?: string
+  @MinLength(8)
+  @MaxLength(255)
+  @IsNotEmpty()
+  idempotencyKey!: string
 }

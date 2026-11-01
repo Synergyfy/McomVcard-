@@ -95,7 +95,7 @@ export default function AuthCallbackPage() {
           {upgradeUrl && (
             <>
               <Link
-                to="/b/payment"
+                to="/plans"
                 className="block w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:opacity-95 transition-all text-center shadow-md shadow-blue-200"
               >
                 <span className="block text-sm font-bold">Buy MCOM VCard plans</span>

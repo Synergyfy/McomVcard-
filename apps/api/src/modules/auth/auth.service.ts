@@ -15,6 +15,7 @@ import { generateOpaqueToken, sha256Hex } from '../../lib/utils/crypto.util'
 import { encryptMcomToken } from '../../lib/utils/mcom-crypto.util'
 import { User } from '../users/entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
 import { EmailVerificationService } from '../email-verification/email-verification.service'
 import { type McomEntitlement, type McomUserInfo, hasVcardAccess } from '../mcom/mcom.service'
 
@@ -52,6 +53,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
+    @InjectRepository(SubscribedPlan) private subscribedPlansRepo: Repository<SubscribedPlan>,
     private config: ConfigService,
     private emailVerificationService: EmailVerificationService,
     private rolesService: RolesService,
@@ -185,8 +187,12 @@ export class AuthService {
     const accessToken = this.jwtService.sign({ user_id: user.id, roles })
     const newRefreshToken = await this.rotateRefreshToken(stored, meta)
 
+    // A paid local VCard plan is an entitlement in its own right (partner apps
+    // own their subscriptions — see the MCOM Partner Integration Guide, Part C).
+    const currentUser = await this.reconcileLocalPlanAccess(user)
+
     return ApiResponse.success(
-      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(user) },
+      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(currentUser) },
       'Token refreshed',
       200,
     )
@@ -321,6 +327,11 @@ async mcomProvisionAndIssue(
       mcomTokensUpdatedAt: new Date(),
     }
 
+    // Local paid plans survive a Central sync that reports no platform package.
+    if (user && patch.mcomCanAccessVcard !== true) {
+      patch.mcomCanAccessVcard = await this.hasActiveLocalPlan(user.id)
+    }
+
     if (user) {
       user = (await this.usersService.update(user.id, patch)) ?? user
     } else {
@@ -355,14 +366,64 @@ async syncMcomSession(
     const user = await this.usersService.findById(userId)
     if (!user) throw new UnauthorizedException('Authentication required')
 
-    const updated = (await this.usersService.update(userId, {
+    const patch: Partial<User> = {
       ...this.buildMcomIdentityPatch(userInfo, user, entitlement),
       mcomAccessToken: encryptMcomToken(mcomAccessToken),
       mcomTokenExpiresAt: this.tokenExpiry(accessTokenExpiresIn),
       mcomTokensUpdatedAt: new Date(),
-    })) ?? user
+    }
+
+    if (patch.mcomCanAccessVcard !== true) {
+      patch.mcomCanAccessVcard = await this.hasActiveLocalPlan(user.id)
+    }
+
+    const updated = (await this.usersService.update(userId, patch)) ?? user
 
     return UserResponseDto.fromEntity(updated)
+  }
+
+  /** True when the user has a locally paid, unexpired VCard plan. */
+  private async hasActiveLocalPlan(userId: string): Promise<boolean> {
+    const active = await this.subscribedPlansRepo.findOne({
+      where: { userId, status: 'active' },
+      order: { expiresAt: 'DESC' },
+    })
+    if (!active) return false
+    return !active.expiresAt || active.expiresAt.getTime() > Date.now()
+  }
+
+  /**
+   * Reconcile the local access flag with the paid-plan ledger.
+   *
+   * - An unexpired local plan grants access (even if Central reports none).
+   * - Once it expires, revoke only when Central explicitly reports no access;
+   *   when entitlement is unknown, keep the existing flag rather than risk
+   *   locking out a Central-granted user.
+   */
+  private async reconcileLocalPlanAccess(user: User): Promise<User> {
+    const localAccess = await this.hasActiveLocalPlan(user.id)
+
+    if (localAccess) {
+      if (user.mcomCanAccessVcard === true) return user
+      return (
+        (await this.usersService.update(user.id, {
+          mcomCanAccessVcard: true,
+          mcomMembershipStatus: 'active',
+        })) ?? user
+      )
+    }
+
+    const entitlement = (user.mcomEntitlement ?? null) as McomEntitlement | null
+    if (entitlement?.access?.hasAccess === false && user.mcomCanAccessVcard === true) {
+      return (
+        (await this.usersService.update(user.id, {
+          mcomCanAccessVcard: false,
+          mcomMembershipStatus: 'expired',
+        })) ?? user
+      )
+    }
+
+    return user
   }
 
   /**

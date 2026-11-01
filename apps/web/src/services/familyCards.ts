@@ -1,4 +1,5 @@
 import api from './api'
+import { newIdempotencyKey } from './payments'
 
 export interface WishItem {
   id: number
@@ -212,6 +213,7 @@ export const familyService = {
       const res = await api.post('/wallet/allocate-to-child', {
         child_card_id: id,
         amount,
+        idempotencyKey: newIdempotencyKey(),
       })
       const result = res.data?.data || res.data
 
@@ -220,7 +222,7 @@ export const familyService = {
 
       return {
         member: mapChildCardToMember(card),
-        ownerBalance: result.owner_balance ?? 0,
+        ownerBalance: result.balance ?? result.owner_balance ?? 0,
       }
     } catch (err: any) {
       if (err?.response?.data?.message?.includes('Insufficient')) {
@@ -240,6 +242,7 @@ export const familyService = {
         recipient_id: recipientUserId,
         amount,
         description: 'Gift e-card',
+        idempotencyKey: newIdempotencyKey(),
       })
       const result = res.data?.data || res.data
 
@@ -248,7 +251,7 @@ export const familyService = {
 
       return {
         member: mapChildCardToMember(card),
-        ownerBalance: result.owner_balance ?? 0,
+        ownerBalance: result.balance ?? result.owner_balance ?? 0,
       }
     } catch (err: any) {
       if (err?.response?.data?.message?.includes('Insufficient')) {

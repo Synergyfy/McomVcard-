@@ -3,9 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
 import { UsersModule } from '../users/users.module'
 import { PlansModule } from '../plans/plans.module'
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module'
 import { McomService } from './mcom.service'
 import { McomController } from './mcom.controller'
 import { McomWalletService } from './mcom-wallet.service'
+import { McomPayService } from './mcom-pay.service'
 import { McomPackagesController } from './packages/mcom-packages.controller'
 import { McomPackagesService } from './packages/mcom-packages.service'
 import { McomWebhookController } from './webhooks/mcom-webhook.controller'
@@ -16,7 +18,13 @@ import { ServiceMeshController } from './service-mesh.controller'
 import { ServiceAuthGuard } from './service-auth'
 
 @Module({
-  imports: [AuthModule, UsersModule, PlansModule, TypeOrmModule.forFeature([McomWebhookEvent])],
+  imports: [
+    AuthModule,
+    UsersModule,
+    PlansModule,
+    SubscriptionsModule,
+    TypeOrmModule.forFeature([McomWebhookEvent]),
+  ],
   controllers: [
     McomController,
     McomPackagesController,
@@ -24,7 +32,14 @@ import { ServiceAuthGuard } from './service-auth'
     DirectHandshakeController,
     ServiceMeshController,
   ],
-  providers: [McomService, McomWalletService, McomPackagesService, McomWebhookService, ServiceAuthGuard],
-  exports: [McomService, McomWalletService, McomPackagesService],
+  providers: [
+    McomService,
+    McomWalletService,
+    McomPayService,
+    McomPackagesService,
+    McomWebhookService,
+    ServiceAuthGuard,
+  ],
+  exports: [McomService, McomWalletService, McomPayService, McomPackagesService],
 })
 export class McomModule {}

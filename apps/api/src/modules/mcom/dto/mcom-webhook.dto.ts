@@ -7,21 +7,91 @@ export const MCOM_WEBHOOK_EVENTS = [
   'package.cancelled',
   'package.expired',
   'payment.failed',
+  'payment.succeeded',
+  'payment.refunded',
 ] as const
 
 export type McomWebhookEvent = (typeof MCOM_WEBHOOK_EVENTS)[number]
 
-/** The `data` envelope of an MCOM Solutions lifecycle webhook (spec §6.2). */
+/**
+ * The `data` envelope shared by MCOM lifecycle and MCOM Pay webhooks.
+ * Lifecycle events carry `packageId`; MCOM Pay events carry `chargeId`.
+ */
 export class McomWebhookDataDto {
-  @ApiProperty({ example: 'pkg_uuid_123' })
+  @ApiPropertyOptional({ example: 'pkg_uuid_123' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  packageId!: string
+  packageId?: string
 
-  @ApiProperty({ example: 'usr_uuid_456' })
+  @ApiPropertyOptional({ example: 'usr_uuid_456' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  mcomUserId!: string
+  mcomUserId?: string
+
+  @ApiPropertyOptional({ example: 'clx8p2qr10000x4vj3k5m7n9p', description: 'MCOM Pay charge id' })
+  @IsOptional()
+  @IsString()
+  chargeId?: string
+
+  @ApiPropertyOptional({ example: 'vcards:plan:a1b2...:standard', description: 'Partner reference on the charge' })
+  @IsOptional()
+  @IsString()
+  reference?: string
+
+  @ApiPropertyOptional({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e', description: 'Local VCard user id' })
+  @IsOptional()
+  @IsString()
+  externalCustomerId?: string
+
+  @ApiPropertyOptional({ example: '10270', description: 'Charge amount in minor units' })
+  @IsOptional()
+  @IsString()
+  amountMinor?: string
+
+  @ApiPropertyOptional({ example: '9952' })
+  @IsOptional()
+  @IsString()
+  netMinor?: string
+
+  @ApiPropertyOptional({ example: '318' })
+  @IsOptional()
+  @IsString()
+  feeMinor?: string
+
+  @ApiPropertyOptional({ example: '10270', description: 'Original charge amount (refund events)' })
+  @IsOptional()
+  @IsString()
+  chargeAmountMinor?: string
+
+  @ApiPropertyOptional({ example: '10270', description: 'Total refunded so far (refund events)' })
+  @IsOptional()
+  @IsString()
+  totalRefundedMinor?: string
+
+  @ApiPropertyOptional({ enum: ['stripe', 'paypal', 'wallet'], example: 'wallet' })
+  @IsOptional()
+  @IsString()
+  method?: string
+
+  @ApiPropertyOptional({ example: 'wallet' })
+  @IsOptional()
+  @IsString()
+  provider?: string
+
+  @ApiPropertyOptional({ example: 'pi_3Pabc...' })
+  @IsOptional()
+  @IsString()
+  providerRef?: string
+
+  @ApiPropertyOptional({ example: 'paid' })
+  @IsOptional()
+  @IsString()
+  status?: string
+
+  @ApiPropertyOptional({ example: '2026-10-11T10:00:05.000Z' })
+  @IsOptional()
+  @IsString()
+  paidAt?: string
 
   @ApiPropertyOptional({ example: 'plan_uuid_789' })
   @IsOptional()
@@ -37,11 +107,6 @@ export class McomWebhookDataDto {
   @IsOptional()
   @IsString()
   planType?: string
-
-  @ApiPropertyOptional({ example: 'active' })
-  @IsOptional()
-  @IsString()
-  status?: string
 
   @ApiPropertyOptional({ enum: ['monthly', 'quarterly', 'annual'], example: 'monthly' })
   @IsOptional()
@@ -69,7 +134,7 @@ export class McomWebhookDataDto {
   limits?: Record<string, unknown>
 }
 
-/** The full webhook body dispatched by MCOM Solutions (spec §6.2). */
+/** The full webhook body dispatched by MCOM Solutions. */
 export class McomWebhookDto {
   @ApiProperty({ enum: MCOM_WEBHOOK_EVENTS, example: 'package.created' })
   @IsIn(MCOM_WEBHOOK_EVENTS)

@@ -38,6 +38,10 @@ export class WalletTransaction {
   @Column({ type: 'text', nullable: true })
   description!: string | null
 
+  /** Deterministic key for operations mirrored from the MCOM Wallet. */
+  @Column({ name: 'idempotency_key', type: 'varchar', length: 255, nullable: true })
+  idempotencyKey!: string | null
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 }

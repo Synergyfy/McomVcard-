@@ -8,6 +8,7 @@ import { QueryFailedError } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { RefreshToken } from './entities/refresh-token.entity'
+import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
 import { UsersService } from '../users/users.service'
 import { RolesService } from '../roles/roles.service'
 import { MailService } from '../mail/mail.service'
@@ -87,6 +88,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
         { provide: getRepositoryToken(RefreshToken), useValue: refreshTokensRepo },
+        { provide: getRepositoryToken(SubscribedPlan), useValue: createMockRepo() },
         { provide: ConfigService, useValue: configService },
         { provide: EmailVerificationService, useValue: emailVerificationService },
         { provide: RolesService, useValue: rolesService },

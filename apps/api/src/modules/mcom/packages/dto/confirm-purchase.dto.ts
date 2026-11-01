@@ -21,15 +21,18 @@ export class ConfirmPurchaseDto {
   @IsIn(['monthly', 'quarterly', 'semiannual', 'annual'])
   billingCycle?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 
-  @ApiPropertyOptional({ description: 'Stripe PaymentIntent id (pi_...) after stripe.confirmPayment succeeded. Required unless setupIntentId is provided.' })
-  @IsOptional()
+  @ApiProperty({ description: 'MCOM Pay charge id returned by the purchase initiate call' })
   @IsString()
   @IsNotEmpty()
+  chargeId!: string
+
+  @ApiPropertyOptional({ description: 'Stripe PaymentIntent id after stripe.confirmPayment succeeds' })
+  @IsOptional()
+  @IsString()
   paymentIntentId?: string
 
-  @ApiPropertyOptional({ description: 'Stripe SetupIntent id (seti_...) after stripe.confirmSetup succeeded (trial / £0 plans). Required unless paymentIntentId is provided.' })
+  @ApiPropertyOptional({ description: 'PayPal order id (approval token) when returning from PayPal' })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  setupIntentId?: string
+  orderId?: string
 }
