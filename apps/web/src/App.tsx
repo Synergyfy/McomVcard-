@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './contexts/AuthContext'
+import { AdminAuthProvider } from './contexts/AdminAuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/admin/AdminLayout'
@@ -12,6 +13,7 @@ import RequireVcardAccess from './components/auth/RequireVcardAccess'
 import RequireCustomer from './components/auth/RequireCustomer'
 import RequireBusiness from './components/auth/RequireBusiness'
 import RequireBusinessAccess from './components/auth/RequireBusinessAccess'
+import RequireAdmin from './components/auth/RequireAdmin'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
@@ -201,6 +203,7 @@ export default function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
+        <AdminAuthProvider>
         <ThemeProvider>
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
@@ -330,6 +333,7 @@ export default function App() {
 
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
+                <Route element={<RequireAdmin />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboardPage />} />
                   <Route path="/admin/users" element={<UserListPage />} />
@@ -451,10 +455,12 @@ export default function App() {
                   <Route path="/admin/newsletter" element={<NewsletterPage />} />
                   <Route path="/admin/system-info" element={<SystemInfoPage />} />
                 </Route>
+                </Route>
               </Routes>
             </Suspense>
           </BrowserRouter>
         </ThemeProvider>
+        </AdminAuthProvider>
       </AuthProvider>
     </HelmetProvider>
   )

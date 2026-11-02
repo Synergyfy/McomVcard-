@@ -2,19 +2,10 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_COUNTRIES: any[] = [
-  { id: 1, name: 'United States', code: 'US', phone_code: '+1', currency_code: 'USD', status: 1 },
-  { id: 2, name: 'United Kingdom', code: 'GB', phone_code: '+44', currency_code: 'GBP', status: 1 },
-  { id: 3, name: 'Germany', code: 'DE', phone_code: '+49', currency_code: 'EUR', status: 1 },
-  { id: 4, name: 'France', code: 'FR', phone_code: '+33', currency_code: 'EUR', status: 1 },
-  { id: 5, name: 'Spain', code: 'ES', phone_code: '+34', currency_code: 'EUR', status: 1 },
-  { id: 6, name: 'Brazil', code: 'BR', phone_code: '+55', currency_code: 'BRL', status: 1 },
-  { id: 7, name: 'Japan', code: 'JP', phone_code: '+81', currency_code: 'JPY', status: 0 },
-  { id: 8, name: 'Australia', code: 'AU', phone_code: '+61', currency_code: 'AUD', status: 1 },
-]
 
 export default function CountryListPage() {
   const { t } = useTranslation()
@@ -27,8 +18,8 @@ export default function CountryListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getCountries()
-      .then((res) => setCountries(res.data && res.data.length ? res.data : MOCK_COUNTRIES))
-      .catch(() => setCountries(MOCK_COUNTRIES))
+      .then((res) => setCountries(rowsOf(res)))
+      .catch(() => setCountries([]))
       .finally(() => setLoading(false))
   }, [])
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import type { AdminBooking } from '../../../types'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
@@ -27,30 +28,17 @@ export default function BookingListPage() {
 
   useEffect(() => {
     let cancelled = false
-    adminService.getActivityLogs()
+    adminService.getBookings({ page: 1, limit: 100 })
       .then((res) => {
-        if (!cancelled) {
-          const logs = res.data ?? []
-          const bookings: AdminBooking[] = logs.map((log: any) => ({
-            id: String(log.id),
-            customer_name: log.admin_name ?? 'System',
-            customer_email: '',
-            business_id: 0,
-            business_name: log.module ?? 'System',
-            vcard_id: 0,
-            type: 'Appointment' as const,
-            date: log.created_at ? new Date(log.created_at).toISOString().split('T')[0] : '',
-            time: log.created_at ? new Date(log.created_at).toTimeString().slice(0, 5) : '',
-            duration_minutes: 0,
-            status: 'confirmed' as const,
-            amount: 0,
-            notes: log.description,
-            created_at: log.created_at ?? '',
-          }))
-          setData(bookings)
-        }
+        if (cancelled) return
+        const rows = rowsOf<any>(res).map((booking) => ({
+          ...booking,
+          status: String(booking.status || 'pending').toLowerCase(),
+          type: booking.type || 'Appointment',
+        })) as AdminBooking[]
+        setData(rows)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setData([]) })
     return () => { cancelled = true }
   }, [])
 
@@ -69,7 +57,7 @@ export default function BookingListPage() {
     return list
   }, [data, search, statusFilter, typeFilter])
 
-  const today = '2026-07-16'
+  const today = new Date().toISOString().slice(0, 10)
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
@@ -116,7 +104,7 @@ export default function BookingListPage() {
         <StatsCard title="Total Bookings" value={data.length} color="blue" subtitle={`${data.filter((b) => b.status === 'completed').length} completed`} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>} />
         <StatsCard title="Confirmed" value={data.filter((b) => b.status === 'confirmed').length} color="green" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         <StatsCard title="Pending" value={data.filter((b) => b.status === 'pending').length} color="orange" subtitle={`${data.filter((b) => b.status === 'cancelled').length} cancelled`} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatsCard title="Today" value={data.filter((b) => b.date === today).length} color="purple" subtitle="Jul 16, 2026" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatsCard title="Today" value={data.filter((b) => b.date === today).length} color="purple" subtitle={new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">

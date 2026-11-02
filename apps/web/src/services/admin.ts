@@ -1,6 +1,4 @@
-import axios from 'axios'
-import { tokenStore } from './tokenStore'
-import { attach401Retry } from './retry401'
+import { adminApi as api } from './adminAuth'
 import type {
   AdminStats, User, VCard, Enquiry, Subscriber, Plan, PlanFeature, Template, Currency, Role,
   DashboardMeta, EmailSetting, PaymentSetting, FrontTestimonial, Feature as FrontFeature, AboutUs,
@@ -8,21 +6,6 @@ import type {
   WithdrawTransaction, Country, Language, TranslationEntry, CouponCode, FrontCMS,
   EmailTemplate, ActivityLog, NewsletterCampaign, FaqItem, AdminBooking,
 } from '../types'
-
-const api = axios.create({
-  baseURL: '/api',
-  headers: { Accept: 'application/json' },
-  timeout: 5000,
-})
-
-api.interceptors.request.use((config) => {
-  const token = tokenStore.get()
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
-
-// Auto-refresh on 401 — swap HttpOnly cookie for fresh JWT, retry once.
-attach401Retry(api)
 
 export const adminService = {
   // Dashboard
