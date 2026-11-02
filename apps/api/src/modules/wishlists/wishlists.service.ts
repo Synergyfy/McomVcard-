@@ -94,14 +94,19 @@ export class WishlistsService {
   async addItem(userId: string, wishlistId: string, dto: AddWishlistItemDto) {
     await this.findOne(userId, wishlistId)
 
-    // The product must exist.
-    await this.productsService.findOne(dto.product_id)
+    if (!dto.product_id && !dto.title?.trim()) {
+      throw new BadRequestException('Provide a product_id or a wish title')
+    }
 
-    const existing = await this.itemsRepo.findOne({
-      where: { wishlistId, productId: dto.product_id },
-    })
+    // A catalogue product, when supplied, must exist.
+    if (dto.product_id) await this.productsService.findOne(dto.product_id)
 
-    if (existing) throw new BadRequestException('This product is already in the wishlist')
+    if (dto.product_id) {
+      const existing = await this.itemsRepo.findOne({
+        where: { wishlistId, productId: dto.product_id },
+      })
+      if (existing) throw new BadRequestException('This product is already in the wishlist')
+    }
 
     let position = dto.position
 
@@ -116,7 +121,12 @@ export class WishlistsService {
     const saved = await this.itemsRepo.save(
       this.itemsRepo.create({
         wishlistId,
-        productId: dto.product_id,
+        productId: dto.product_id ?? null,
+        title: dto.title?.trim() || null,
+        price: dto.price?.trim() || null,
+        image: dto.image || null,
+        emoji: dto.emoji || '🎁',
+        gradient: dto.gradient || 'from-rose-50 to-pink-100 dark:from-rose-500/10 dark:to-pink-500/10',
         note: dto.note ?? null,
         position,
       }),

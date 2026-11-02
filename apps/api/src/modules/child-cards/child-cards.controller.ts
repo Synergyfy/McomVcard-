@@ -89,7 +89,10 @@ export class ChildCardsController {
   @ApiNotFoundResponse({ description: 'Child card not found' })
   @ApiForbiddenResponse({ description: 'You are not part of this share' })
   async getChildCard(@CurrentUser() user: UserResponseDto, @Param('id', new ParseUUIDPipe()) id: string) {
-    return this.childCardsService.findOne(user.id, id)
+    // Map through the response DTO: the raw entity includes the child user
+    // relation (and its password hash), which must never leave the server.
+    const record = await this.childCardsService.findOne(user.id, id)
+    return ApiResponse.success(ChildCardResponseDto.fromEntity(record), 'Child card retrieved', 200)
   }
 
   @Patch('child-cards/:id')

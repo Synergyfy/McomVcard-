@@ -402,7 +402,7 @@ export default function AddFamilyMemberWizard({ open, onClose, onCreated, onShar
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                     <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 leading-snug">
-                        You've reached your {selectedKind === 'Friend' ? 'friend' : 'family'} card limit for {membership}. Upgrade your membership to add more {selectedKind === 'Friend' ? 'friend' : 'family'} cards.
+                        You've reached your {selectedKind === 'Friend' ? 'friend' : 'family'} card limit for {membership}. Ask the business that issued your card to increase your allowance.
                     </p>
                 </div>
             )}

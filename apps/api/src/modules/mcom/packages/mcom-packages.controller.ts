@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard'
+import { RolesGuard } from '../../roles/guards/roles.guard'
+import { Roles } from '../../roles/decorators/roles.decorator'
 import { CurrentUser } from '../../auth/current-user.decorator'
 import { UserResponseDto } from '../../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../../lib/utils/api-response'
@@ -10,7 +12,10 @@ import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto'
 
 @ApiTags('mcom/packages')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// Customers receive memberships from businesses and never buy them. Only
+// business accounts can list or purchase business plans.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('BUSINESS_OWNER')
 @Controller('v1/mcom/packages')
 export class McomPackagesController {
   constructor(private readonly packagesService: McomPackagesService) {}

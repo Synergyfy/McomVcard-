@@ -68,13 +68,13 @@ export default function MembershipSummaryCard({ profile, familyUsed, friendUsed 
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
                         <p className="text-xs font-semibold leading-snug">
-                            You've reached your family card limit. Upgrade your membership to add more cards.
+                            You've reached your family card limit. Ask the business that issued your card to increase your allowance.
                         </p>
                     </div>
                 )}
 
                 <p className="text-[10px] text-white/70 mt-3">
-                    Allowance comes from your {profile.membership} membership — upgrade to unlock more.
+                    Allowance comes from the {profile.membership} membership assigned by your business.
                 </p>
             </div>
         </section>

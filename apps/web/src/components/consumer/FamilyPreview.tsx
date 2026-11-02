@@ -34,7 +34,7 @@ export default function FamilyPreview({ profile }: FamilyPreviewProps) {
                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{remaining} remaining</p>
             </div>
             <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mb-4">
-                <div className="h-full rounded-full bg-gradient-to-r from-accent-400 to-accent-600 transition-all duration-500" style={{ width: `${Math.min(100, (used / total) * 100)}%` }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-accent-400 to-accent-600 transition-all duration-500" style={{ width: `${total > 0 ? Math.min(100, (used / total) * 100) : 0}%` }} />
             </div>
 
             <div className="flex -space-x-3">

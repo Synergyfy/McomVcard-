@@ -92,7 +92,7 @@ function mapChildCardToMember(card: any): FamilyCardMember {
     cardBalance: permissions.wallet_allocation || 0,
     eCardValue: permissions.e_card_value || 0,
     cardType: permissions.card_type || 'Family Card',
-    membership: permissions.membership || 'Bronze Pro Family Card',
+    membership: permissions.membership || '',
     issuedBy: permissions.issued_by || '',
     shareLink: permissions.share_link || '',
     wishlist: (card.wishlist?.items || []).map((item: any) => ({
@@ -133,7 +133,7 @@ async function findUserByEmail(email: string): Promise<string> {
 
 async function getWishlistForMember(memberId: string): Promise<{ id: string; items: any[] } | null> {
   try {
-    const res = await api.get('/wishlists', { params: { child_card_id: memberId } })
+    const res = await api.get('/wishlists', { params: { name: `Wishlist for ${memberId}` } })
     const wishlists = res.data?.data || res.data
     if (Array.isArray(wishlists) && wishlists.length > 0) {
       const wl = wishlists[0]
@@ -157,7 +157,21 @@ export const familyService = {
     try {
       const res = await api.get(`/child-cards/${id}`)
       const card = res.data?.data || res.data
-      return card ? mapChildCardToMember(card) : undefined
+      if (!card) return undefined
+
+      const member = mapChildCardToMember(card)
+      const wishlist = await getWishlistForMember(id)
+      if (wishlist) {
+        member.wishlist = (wishlist.items || []).map((item: any) => ({
+          id: item.id,
+          title: item.product?.name || item.title || '',
+          price: item.product?.price ? `£${item.product.price}` : item.price || undefined,
+          emoji: item.emoji || '🎁',
+          gradient: item.gradient || wishGradients[0],
+          image: item.product?.image || item.image || undefined,
+        }))
+      }
+      return member
     } catch {
       return undefined
     }
@@ -301,10 +315,9 @@ export const familyService = {
       if (!wishlist) return undefined
 
       await api.post(`/wishlists/${wishlist.id}/items`, {
-        product_id: null,
+        title,
         note: title,
-        name: title,
-        price: price ? parseFloat(price.replace(/[^0-9.]/g, '')) : undefined,
+        price: price || undefined,
         emoji: '🎁',
         gradient: wishGradients[0],
       })

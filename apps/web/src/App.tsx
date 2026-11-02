@@ -10,8 +10,8 @@ import UserLayout from './components/user/UserLayout'
 import ConsumerLayout from './components/consumer/ConsumerLayout'
 import BusinessLayout from './components/business/layout/BusinessLayout'
 import RequireVcardAccess from './components/auth/RequireVcardAccess'
-import RequireAuth from './components/auth/RequireAuth'
 import RequireCustomer from './components/auth/RequireCustomer'
+import RequireBusiness from './components/auth/RequireBusiness'
 import RequireBusinessAccess from './components/auth/RequireBusinessAccess'
 import RequireAdmin from './components/auth/RequireAdmin'
 
@@ -240,7 +240,7 @@ export default function App() {
                 <Route path="/onboarding/choose-membership" element={<ChooseMembershipPage />} />
                 <Route path="/onboarding/payment" element={<Navigate to="/plans" replace />} />
                 <Route path="/onboarding/confirmation" element={<Navigate to="/b/dashboard" replace />} />
-                <Route element={<RequireAuth />}>
+                <Route element={<RequireBusiness />}>
                   <Route path="/plans" element={<PlanCheckoutPage />} />
                   <Route path="/plans/success" element={<PaymentSuccessPage />} />
                 </Route>
@@ -308,7 +308,6 @@ export default function App() {
                 </Route>
 
                 <Route element={<RequireCustomer />}>
-                <Route element={<RequireVcardAccess />}>
                 <Route element={<ConsumerLayout />}>
                   <Route path="/c/dashboard" element={<ConsumerHomePage />} />
                   <Route path="/c/cards" element={<ConsumerCardsPage />} />
@@ -329,7 +328,6 @@ export default function App() {
                   <Route path="/c/rewards" element={<ConsumerRewardsPage />} />
                   <Route path="/c/referrals" element={<ConsumerReferralsPage />} />
                   <Route path="/c/settings" element={<ConsumerSettingsPage />} />
-                </Route>
                 </Route>
                 </Route>
 

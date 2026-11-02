@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { familyService } from '../../services/familyCards'
+import { consumerService } from '../../services/consumer'
 import type { FamilyCardMember } from '../../services/familyCards'
 import FamilyCardPreview from '../../components/consumer/family/FamilyCardPreview'
 import ShareFamilyCardSheet from '../../components/consumer/family/ShareFamilyCardSheet'
@@ -14,6 +15,12 @@ import AvatarPickerSheet from '../../components/consumer/family/AvatarPickerShee
 import WishListSection from '../../components/consumer/family/WishListSection'
 import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
 import ErrorState from '../../components/common/ErrorState'
+
+function formatDate(value: string): string {
+    if (!value) return '—'
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 export default function ConsumerFamilyMemberPage() {
     const { id } = useParams()
@@ -35,9 +42,13 @@ export default function ConsumerFamilyMemberPage() {
     const loadMember = () => {
         setLoading(true)
         setError(false)
-        familyService.getMember(memberId)
-            .then((m) => {
-                setMember(m || null)
+        Promise.all([familyService.getMember(memberId), consumerService.getProfile()])
+            .then(([m, profile]) => {
+                if (!m) {
+                    setMember(null)
+                    return
+                }
+                setMember({ ...m, membership: m.membership || profile.membership })
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false))
@@ -87,8 +98,8 @@ export default function ConsumerFamilyMemberPage() {
         { label: 'Relationship', value: member.relationship, icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
         { label: 'Card Type', value: member.cardType, icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
         { label: 'Membership', value: member.membership, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-        { label: 'Created', value: member.createdAt, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-        { label: 'Last Used', value: member.lastUsed, icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { label: 'Created', value: formatDate(member.createdAt), icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+        { label: 'Last Used', value: formatDate(member.lastUsed), icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
         { label: 'Reward Balance', value: `${member.rewardBalance} pts`, icon: 'M11 3.055A9 9 0 1020.945 13H11V3.055zM20.488 9H15V3.512A9.025 9.025 0 0120.488 9z' },
         { label: 'Card Balance', value: `£${member.cardBalance.toFixed(2)}`, icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
         { label: 'E-Card Value', value: `£${member.eCardValue.toFixed(2)}`, icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4m8-10v10l-8 4' },
