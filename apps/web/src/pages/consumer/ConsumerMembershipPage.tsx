@@ -296,7 +296,7 @@ export default function ConsumerMembershipPage() {
                 <div className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mb-4">
                     <div
                         className="h-full rounded-full bg-gradient-to-r from-accent-400 to-accent-600 transition-all duration-500"
-                        style={{ width: `${Math.min(100, (profile.allocatedAdditionalCards / profile.additionalEntitlements) * 100)}%` }}
+                        style={{ width: `${profile.additionalEntitlements > 0 ? Math.min(100, (profile.allocatedAdditionalCards / profile.additionalEntitlements) * 100) : 0}%` }}
                     />
                 </div>
                 <Link

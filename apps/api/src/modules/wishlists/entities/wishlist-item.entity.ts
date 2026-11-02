@@ -16,12 +16,29 @@ export class WishlistItem {
   @JoinColumn({ name: 'wishlist_id' })
   wishlist!: Wishlist
 
-  @Column({ name: 'product_id', type: 'uuid' })
-  productId!: string
+  @Column({ name: 'product_id', type: 'uuid', nullable: true })
+  productId!: string | null
 
-  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Product, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'product_id' })
-  product!: Product
+  product!: Product | null
+
+  // Free-form items (used by the Friends & Family wish list) do not need a
+  // catalogue product. These display fields mirror Product's shape.
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  title!: string | null
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  price!: string | null
+
+  @Column({ type: 'text', nullable: true })
+  image!: string | null
+
+  @Column({ type: 'varchar', length: 20, default: '🎁' })
+  emoji!: string
+
+  @Column({ type: 'varchar', length: 120, default: 'from-rose-50 to-pink-100 dark:from-rose-500/10 dark:to-pink-500/10' })
+  gradient!: string
 
   @Column({ type: 'text', nullable: true })
   note!: string | null

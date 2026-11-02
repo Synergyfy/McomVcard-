@@ -3,7 +3,7 @@ import type { ConsumerProfile } from '../../services/consumer'
 import type { CardProtectionState, ProtectedSectionKey } from '../../services/cardProtection'
 import ProtectedCardGate from './ProtectedCardGate'
 import ConsumerVCard from '../consumer/ConsumerVCard'
-import { SectionCard, Row, ProtectedDivider, SECTION_STYLES, SERVICES, APPOINTMENTS, EXCHANGES, REDEEMS, OFFERS } from './sharedCardSections'
+import { SectionCard, Row, ProtectedDivider, SECTION_STYLES } from './sharedCardSections'
 
 interface SharedCardViewProps {
     profile: ConsumerProfile
@@ -16,6 +16,46 @@ interface SectionDef {
     icon: string
     color: string
     content: ReactNode
+}
+
+function contentRows(content: Record<string, unknown>): { label: string; value: string }[] {
+    const rows: { label: string; value: string }[] = []
+
+    const pushValue = (label: string, value: unknown) => {
+        if (typeof value === 'string' && value.trim()) rows.push({ label, value: value.trim() })
+        else if (typeof value === 'number') rows.push({ label, value: String(value) })
+        else if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+                if (typeof item === 'string') pushValue(`${label} ${index + 1}`, item)
+                else if (item && typeof item === 'object') {
+                    Object.entries(item as Record<string, unknown>).forEach(([key, nested]) => pushValue(key, nested))
+                }
+            })
+        }
+    }
+
+    Object.entries(content || {}).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            Object.entries(value as Record<string, unknown>).forEach(([nestedKey, nested]) => pushValue(nestedKey, nested))
+        } else {
+            pushValue(key, value)
+        }
+    })
+
+    return rows
+}
+
+const SECTION_KEYS: ProtectedSectionKey[] = ['services', 'appointments', 'wallet', 'rewards', 'exchange', 'redeem', 'offers']
+
+function sectionKeyFor(schemaId: string): ProtectedSectionKey {
+    const normalized = String(schemaId || '').toLowerCase().replace(/[^a-z]/g, '')
+    if (normalized.includes('appointment') || normalized.includes('booking')) return 'appointments'
+    if (normalized.includes('wallet')) return 'wallet'
+    if (normalized.includes('reward')) return 'rewards'
+    if (normalized.includes('exchange')) return 'exchange'
+    if (normalized.includes('redeem')) return 'redeem'
+    if (normalized.includes('offer') || normalized.includes('promotion')) return 'offers'
+    return SECTION_KEYS.includes(normalized as ProtectedSectionKey) ? (normalized as ProtectedSectionKey) : 'services'
 }
 
 function ExpiredNotice() {
@@ -49,30 +89,21 @@ export default function SharedCardView({ profile, protection }: SharedCardViewPr
         return list
     }, [profile])
 
-    const sections: SectionDef[] = [
-        { key: 'services', ...SECTION_STYLES.services, title: 'Services', content: SERVICES.map((s, i) => <Row key={i} title={s.name} desc={s.desc} value={s.price} />) },
-        { key: 'appointments', ...SECTION_STYLES.appointments, title: 'Appointments', content: APPOINTMENTS.map((a, i) => <Row key={i} title={a.title} desc={a.when} value={a.business} />) },
-        {
-            key: 'wallet', ...SECTION_STYLES.wallet, title: 'Wallet', content: (
-                <div className="grid grid-cols-3 gap-2.5">
-                    {[
-                        { label: 'Cashback', value: `£${profile.wallet.cashback.toFixed(0)}` },
-                        { label: 'Points', value: profile.wallet.points.toString() },
-                        { label: 'Vouchers', value: profile.wallet.vouchers.toString() },
-                    ].map((w) => (
-                        <div key={w.label} className="rounded-2xl bg-gray-50 dark:bg-gray-800/60 p-3 text-center">
-                            <p className="text-base font-extrabold text-gray-900 dark:text-white">{w.value}</p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{w.label}</p>
-                        </div>
-                    ))}
-                </div>
-            ),
-        },
-        { key: 'rewards', ...SECTION_STYLES.rewards, title: 'Rewards', content: profile.rewardHistory.slice(0, 3).map((r, i) => <Row key={i} title={r.reward} desc={r.status} value={`${r.points} pts`} />) },
-        { key: 'exchange', ...SECTION_STYLES.exchange, title: 'Exchange', content: EXCHANGES.map((e, i) => <Row key={i} title={e.title} desc={e.detail} value={e.value} />) },
-        { key: 'redeem', ...SECTION_STYLES.redeem, title: 'Redeem', content: REDEEMS.map((r, i) => <Row key={i} title={r.title} desc={r.detail} value={r.value} />) },
-        { key: 'offers', ...SECTION_STYLES.offers, title: 'Offers', content: OFFERS.map((o, i) => <Row key={i} title={o.title} desc={o.detail} value={o.value} />) },
-    ]
+    const sections: SectionDef[] = (profile.sharedSections || [])
+        .filter((section) => section.enabled !== false)
+        .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+        .map((section) => {
+            const key = sectionKeyFor(section.schema_id)
+            const rows = contentRows(section.content || {})
+            return {
+                key,
+                ...SECTION_STYLES[key],
+                title: section.name,
+                content: rows.length
+                    ? rows.map((row, index) => <Row key={`${row.label}-${index}`} title={row.label} desc="" value={row.value} />)
+                    : <p className="text-sm text-gray-400">No details added yet.</p>,
+            }
+        })
 
     const alwaysSections = expired
         ? []

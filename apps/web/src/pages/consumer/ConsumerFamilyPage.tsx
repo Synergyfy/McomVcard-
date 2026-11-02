@@ -34,7 +34,7 @@ export default function ConsumerFamilyPage() {
         Promise.all([consumerService.getProfile(), familyService.getMembers()])
             .then(([p, m]) => {
                 setProfile(p)
-                setMembers(m)
+                setMembers(m.map((member) => ({ ...member, membership: member.membership || p.membership })))
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false))

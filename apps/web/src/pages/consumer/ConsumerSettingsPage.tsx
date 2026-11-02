@@ -32,7 +32,7 @@ const LANGUAGES = [
 export default function ConsumerSettingsPage() {
   const [profile, setProfile] = useState<ConsumerProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const { logout } = useAuth()
+  const { logout, user, updateUser } = useAuth()
 
   useEffect(() => {
     consumerService.getProfile().then(setProfile).catch(() => {}).finally(() => setLoading(false))
@@ -123,6 +123,16 @@ export default function ConsumerSettingsPage() {
         location: form.location.trim(),
       })
       setProfile(updated)
+      if (user) {
+        updateUser({
+          ...user,
+          name: updated.name,
+          first_name: updated.name.split(' ')[0] || null,
+          last_name: updated.name.split(' ').slice(1).join(' ') || null,
+          email: updated.email,
+          phone: updated.phone,
+        })
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {

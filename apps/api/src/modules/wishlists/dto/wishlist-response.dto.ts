@@ -40,11 +40,11 @@ export class WishlistItemResponseDto {
 
     dto.id = item.id
     dto.product = {
-      id: item.product.id,
-      name: item.product.name,
-      price: item.product.price,
-      currency: item.product.currency,
-      image: item.product.image,
+      id: item.product?.id ?? item.id,
+      name: item.product?.name ?? item.title ?? 'Wish list item',
+      price: item.product?.price ?? (item.price ? Number(item.price.replace(/[^0-9.]/g, '')) || null : null),
+      currency: item.product?.currency ?? 'GBP',
+      image: item.product?.image ?? item.image ?? null,
     }
     dto.note = item.note
     dto.position = item.position
