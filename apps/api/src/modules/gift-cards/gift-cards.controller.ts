@@ -14,6 +14,8 @@ import {
   ApiExtraModels,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -24,7 +26,8 @@ import { GiftCardResponseDto } from './dto/gift-card-response.dto'
 
 @ApiTags('gift-cards')
 @ApiExtraModels(ApiResponse, GiftCardResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
+@RequireCapability('giftCards')
 @Controller('gift-cards')
 export class GiftCardsController {
   constructor(private readonly giftCardsService: GiftCardsService) {}

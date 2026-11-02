@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs'
 import { AuthService } from './auth.service'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
+import { AccessPassPurchase } from '../access-passes/entities/access-pass-purchase.entity'
 import { UsersService } from '../users/users.service'
 import { RolesService } from '../roles/roles.service'
 import { MailService } from '../mail/mail.service'
@@ -89,6 +90,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: getRepositoryToken(RefreshToken), useValue: refreshTokensRepo },
         { provide: getRepositoryToken(SubscribedPlan), useValue: createMockRepo() },
+        { provide: getRepositoryToken(AccessPassPurchase), useValue: createMockRepo() },
         { provide: ConfigService, useValue: configService },
         { provide: EmailVerificationService, useValue: emailVerificationService },
         { provide: RolesService, useValue: rolesService },

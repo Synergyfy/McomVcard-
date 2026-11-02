@@ -16,12 +16,15 @@ const ACCENT: Record<string, { text: string; border: string; bg: string; dot: st
 
 const CENTRE_IDS: BusinessCentreId[] = ['share', 'exchange', 'redeem']
 
-export default function ShareExchangeRedeemPanel({ vcardId, sections }: {
+export default function ShareExchangeRedeemPanel({ vcardId, sections, enabledCentres, canEdit = true }: {
   vcardId: number
   sections: BizSectionState[]
+  enabledCentres?: BusinessCentreId[]
+  canEdit?: boolean
 }) {
   const [open, setOpen] = useState<BusinessCentreId | null>(null)
   const centres = buildBusinessCentres(sections, getBusinessCentreControls(vcardId))
+  const visibleCentres = CENTRE_IDS.filter((centre) => !enabledCentres || enabledCentres.includes(centre))
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -35,14 +38,14 @@ export default function ShareExchangeRedeemPanel({ vcardId, sections }: {
             <p className="text-[9px] text-gray-400">The three core actions on your VCard — see what customers can do.</p>
           </div>
         </div>
-        <Link to={`/b/vcards/${vcardId}/edit`}
+        {canEdit && <Link to={`/b/vcards/${vcardId}/edit`}
           className="shrink-0 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-[10px] font-semibold hover:bg-orange-600 transition-colors flex items-center gap-1">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           Edit Content
-        </Link>
+        </Link>}
       </div>
 
-      {CENTRE_IDS.map((centreId) => {
+      {visibleCentres.map((centreId) => {
         const centre = centres[centreId]
         const meta = CENTRES.find(c => c.id === centreId)!
         const accent = ACCENT[meta.accent] ?? ACCENT.blue

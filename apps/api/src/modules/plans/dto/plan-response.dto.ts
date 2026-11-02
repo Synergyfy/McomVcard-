@@ -46,12 +46,6 @@ export class PlanVariantResponseDto {
   @ApiProperty({ example: 49 })
   price!: number
 
-  @ApiProperty({ example: 0 })
-  setupFee!: number
-
-  @ApiProperty({ example: 14 })
-  trialDays!: number
-
   @ApiProperty({ example: '90 days of access' })
   description!: string
 
@@ -162,8 +156,6 @@ export class PlanResponseDto {
       name: variant.name,
       durationDays: variant.durationDays,
       price: variant.price,
-      setupFee: variant.setupFee,
-      trialDays: variant.trialDays,
       description: variant.description,
       features: variant.features ?? null,
       rules: variant.rules ?? null,

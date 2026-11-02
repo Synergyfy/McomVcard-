@@ -25,11 +25,57 @@ export interface ActivePlan {
   trialDays?: number
   monthlyPrice?: number
   quarterlyPrice?: number
+  semiannualPrice?: number
   annualPrice?: number
+  price?: number
+  durationDays?: number
+  currency?: string
   features?: string[]
+  quotas?: Record<string, unknown>
+  limits?: Record<string, unknown>
   configuration?: { quotas?: Record<string, number | boolean>; featureFlags?: Record<string, boolean> } | null
   stripeMonthlyPriceId?: string
   expiresAt?: string | null
+  /** Where the access came from (Central membership, access pass, trial, or a local paid plan). */
+  source?: 'membership' | 'direct' | 'trial' | 'local' | 'access_pass'
+  membershipName?: string | null
+  membershipLevel?: string | null
+  trialDaysRemaining?: number
+  trialTasks?: McomTrialTask[]
+}
+
+export interface McomTrialTask {
+  taskId: string
+  title: string
+  description: string
+  deadlineDays: number
+  rewardPoints: number
+  status: string
+}
+
+export interface McomAccessDecision {
+  allowed: boolean
+  accessType: 'PAID_MEMBERSHIP' | 'DIRECT_PACKAGE' | 'TRIAL_PROGRAMME' | 'NONE' | string
+  source: 'membership' | 'direct' | 'trial' | 'none' | string
+  planId: string | null
+  planName: string | null
+  planStatus: string | null
+  billingCycle: string | null
+  expiresAt: string | null
+  quotas: Record<string, unknown>
+  limits: Record<string, unknown>
+  features: string[]
+  membershipName: string | null
+  membershipLevel: string | null
+  membershipStatus: string | null
+  isIncludedInMembership: boolean
+  trialDaysRemaining: number
+  trialExpiresAt: string | null
+  hasPaidVerificationFee: boolean
+  tasks: McomTrialTask[]
+  reason?: string
+  upgradeUrl?: string
+  checkedAt?: string
 }
 
 export interface SsoStatusResponse {
@@ -37,11 +83,14 @@ export interface SsoStatusResponse {
   can_access_vcard: boolean
   membership_level?: string | null
   membership_status?: string | null
+  access?: McomAccessDecision | null
+  trial_tasks?: McomTrialTask[]
   active_plan?: ActivePlan | null
 }
 
 /** Unified entitlement returned by Central Hub Solution for every platform. */
 export interface McomEntitlement {
+  version?: string
   access?: {
     hasAccess?: boolean
     reason?: string | null
@@ -57,10 +106,25 @@ export interface McomEntitlement {
   plan?: {
     planId?: string | null
     planName?: string | null
+    source?: string | null
+    status?: string | null
+    expiresAt?: string | null
     quotas?: Record<string, unknown>
+    limits?: Record<string, unknown>
+    features?: string[]
+  } | null
+  membershipContext?: {
+    membershipPlanName?: string | null
+    membershipLevel?: string | null
+    membershipStatus?: string | null
+    isIncludedInMembership?: boolean
   } | null
   trialContext?: {
-    programmeTasks?: unknown[]
+    isInTrial?: boolean
+    hasPaidVerificationFee?: boolean
+    trialExpiresAt?: string | null
+    daysRemaining?: number
+    programmeTasks?: McomTrialTask[]
   } | null
 }
 

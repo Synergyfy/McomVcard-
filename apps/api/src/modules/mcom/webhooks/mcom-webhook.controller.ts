@@ -77,7 +77,11 @@ export class McomWebhookController {
     }
 
     const body = (parsed ?? {}) as Record<string, unknown>
-    if (typeof body.event !== 'string' || !MCOM_WEBHOOK_EVENTS.includes(body.event as never)) {
+    const event = typeof body.event === 'string' ? body.event : ''
+    const isEntitlementEvent =
+      event.startsWith('entitlement.') || event.startsWith('membership.')
+
+    if (!event || (!MCOM_WEBHOOK_EVENTS.includes(event as never) && !isEntitlementEvent)) {
       throw new BadRequestException(`Unknown webhook event: ${String(body.event)}`)
     }
     if (typeof body.platform !== 'string' || !body.platform) {
@@ -88,11 +92,15 @@ export class McomWebhookController {
     }
 
     const data = body.data as Record<string, unknown>
-    const isPaymentEvent = body.event === 'payment.succeeded' || body.event === 'payment.refunded'
+    const isPaymentEvent = event === 'payment.succeeded' || event === 'payment.refunded'
 
     if (isPaymentEvent) {
       if (typeof data.chargeId !== 'string' || !data.chargeId) {
         throw new BadRequestException('Payment webhook data must include chargeId')
+      }
+    } else if (isEntitlementEvent) {
+      if (typeof data.mcomUserId !== 'string' && typeof data.userId !== 'string') {
+        throw new BadRequestException('Entitlement webhook data must include mcomUserId')
       }
     } else {
       if (typeof data.packageId !== 'string' || typeof data.mcomUserId !== 'string') {
@@ -104,12 +112,13 @@ export class McomWebhookController {
       typeof data[key] === 'string' ? (data[key] as string) : undefined
 
     return {
-      event: body.event as McomWebhookDto['event'],
+      event: event as McomWebhookDto['event'],
       platform: body.platform,
       timestamp: typeof body.timestamp === 'string' ? body.timestamp : undefined,
       data: {
         packageId: stringField('packageId'),
         mcomUserId: stringField('mcomUserId'),
+        userId: stringField('userId'),
         chargeId: stringField('chargeId'),
         reference: stringField('reference'),
         externalCustomerId: stringField('externalCustomerId'),

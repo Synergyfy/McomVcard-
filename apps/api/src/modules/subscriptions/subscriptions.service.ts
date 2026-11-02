@@ -5,6 +5,7 @@ import { SubscribedPlan } from './entities/subscribed-plan.entity'
 import { User } from '../users/entities/user.entity'
 import { CreateSubscribedPlanDto, UpdateSubscribedPlanDto } from './dto/subscribed-plan.dto'
 import { AdminPaginatedQueryDto, PaginatedResult } from '../admin/dto/admin-paginated-query.dto'
+import type { PlanVariantKey } from '../plans/entities/plan.entity'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -18,6 +19,8 @@ export interface ActivatePlanInput {
   planName?: string | null
   level?: string | null
   tier?: string | null
+  /** Purchased variant, persisted for entitlement/capability resolution. */
+  variant?: PlanVariantKey | null
 }
 
 @Injectable()
@@ -141,6 +144,7 @@ export class SubscriptionsService {
         if (target) {
           target.status = 'active'
           target.expiresAt = expiresAt
+          if (input.variant) target.variant = input.variant
           if (input.paymentReference) target.paymentReference = input.paymentReference
           saved = await manager.save(target)
         } else {
@@ -151,6 +155,7 @@ export class SubscriptionsService {
               status: 'active',
               startedAt: now,
               expiresAt,
+              variant: input.variant ?? null,
               paymentReference: input.paymentReference ?? null,
             }),
           )

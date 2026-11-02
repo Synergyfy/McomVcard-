@@ -68,8 +68,6 @@ export default function PlanListPage() {
       variants: plan.variants.map((variant) => ({
         key: variant.key,
         price: variant.price,
-        setupFee: variant.setupFee,
-        trialDays: variant.trialDays,
         description: variant.description,
         features: variant.features ?? undefined,
         rules: variant.rules ?? undefined,

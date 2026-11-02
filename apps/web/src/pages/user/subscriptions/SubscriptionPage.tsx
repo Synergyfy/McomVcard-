@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
-import { loadMembershipPricing, formatPounds, type BillingCycle, type PlanLevel, type PlanTier } from '../../../services/membershipPricingStore'
-import { LevelDropdown, AccessCards, AccessComparison, BillingToggle } from '../../../components/public/PricingCards'
+import { loadMembershipPricing, formatPounds, type PlanLevel, type PlanTier } from '../../../services/membershipPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BILLING_BY_TIER } from '../../../components/public/PricingCards'
 import { MembershipLimitCard } from '../../../components/membership/MembershipLimitCard'
 import { rulesForContext, getPlanLevelFromName } from '../../../services/membershipEnforcement'
 import { mockBusinessProfile } from '../../../services/businessStore'
@@ -12,7 +12,7 @@ import type { VCard } from '../../../types'
 
 export default function SubscriptionPage() {
   const [tier, setTier] = useState<PlanTier>(mockBusinessProfile.tier as PlanTier)
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
+  const billing = BILLING_BY_TIER[tier]
   const pricingState = loadMembershipPricing()
   const planLevel = getPlanLevelFromName(mockBusinessProfile.membership)
   const [level, setLevel] = useState<PlanLevel>(planLevel)
@@ -114,12 +114,9 @@ export default function SubscriptionPage() {
         <div className="mb-6">
           <div className="flex flex-col items-center gap-3 mb-6">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
-            {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
-            {tier === 'Pro+' && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
-                Pro+ · Annual membership
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">
+              Standard 90 days · Pro 180 days · Pro+ 1 year
+            </span>
           </div>
           <AccessCards state={pricingState} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={choose} />
         </div>

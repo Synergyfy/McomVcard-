@@ -7,12 +7,33 @@ import { packagesService, type PlanVariantKey } from '../../services/packages'
 const PENDING_KEY = 'vcard_pending_wallet_purchase'
 
 interface PendingPurchase {
+  kind?: 'plan' | 'access_pass'
   externalPlanId: string
-  variant: PlanVariantKey
+  variant?: PlanVariantKey
+  accessPassId?: string
   provider: 'wallet' | 'stripe' | 'paypal'
   idempotencyKey: string
   chargeId?: string
   approvalUrl?: string
+}
+
+function confirmPending(pending: PendingPurchase, paymentIntentId?: string) {
+  if (pending.kind === 'access_pass' && pending.accessPassId) {
+    return packagesService.confirmAccessPass({
+      accessPassId: pending.accessPassId,
+      chargeId: pending.chargeId as string,
+      ...(paymentIntentId ? { paymentIntentId } : {}),
+    })
+  }
+  if (!pending.variant) {
+    return Promise.reject(new Error('Missing plan variant on the pending purchase'))
+  }
+  return packagesService.confirm({
+    externalPlanId: pending.externalPlanId,
+    variant: pending.variant,
+    chargeId: pending.chargeId as string,
+    ...(paymentIntentId ? { paymentIntentId } : {}),
+  })
 }
 
 function loadPendingPurchase(): PendingPurchase | null {
@@ -75,11 +96,7 @@ export default function PaymentSuccessPage() {
         // PayPal polling normally finishes on the checkout page. If the user
         // lands here without a Stripe intent, check the charge status anyway.
         try {
-          const result = await packagesService.confirm({
-            externalPlanId: pending.externalPlanId,
-            variant: pending.variant,
-            chargeId: pending.chargeId,
-          })
+          const result = await confirmPending(pending)
           if (result.canAccessVcard) {
             clearPendingPurchase()
             await refreshMcomStatus().catch(() => undefined)
@@ -98,12 +115,7 @@ export default function PaymentSuccessPage() {
       }
 
       try {
-        const result = await packagesService.confirm({
-          externalPlanId: pending.externalPlanId,
-          variant: pending.variant,
-          chargeId: pending.chargeId,
-          paymentIntentId,
-        })
+        const result = await confirmPending(pending, paymentIntentId)
 
         clearPendingPurchase()
         await refreshMcomStatus().catch(() => undefined)
@@ -154,7 +166,7 @@ export default function PaymentSuccessPage() {
           </svg>
         </div>
         <h1 className="mt-6 text-xl font-black text-gray-900">Payment successful</h1>
-        <p className="mt-2 text-sm text-gray-500">Your MCOM VCard plan is now active. Taking you to your dashboard…</p>
+        <p className="mt-2 text-sm text-gray-500">Your MCOM VCard access is now active. Taking you to your dashboard…</p>
         {canAccessVcard === false && (
           <p className="mt-4 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
             Your plan is active, but your MCOM membership may still need attention. Use “Check access again” on the

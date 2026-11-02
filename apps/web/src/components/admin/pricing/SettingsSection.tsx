@@ -11,13 +11,11 @@ import type { MembershipPricingState } from '../../../services/membershipPricing
 const KEY = 'mcom_membership_settings'
 
 const DEFAULTS = {
-  defaultTrialDays: 14,
   taxRate: 20,
   renewalReminderDays: 7,
   gracePeriodDays: 7,
   enableAnnual: true,
   annualSavingEnabled: true,
-  setupFeeEnabled: false,
   autoRenew: true,
   taxInclusive: true,
 }
@@ -132,9 +130,6 @@ export function SettingsSection({ state, update }: {
                 />
               </div>
             ))}
-            {row('Setup fees', 'Allow a one-off setup fee per tier.', (
-              <Toggle on={settings.setupFeeEnabled} onClick={() => set('setupFeeEnabled', !settings.setupFeeEnabled)} />
-            ))}
             {row('Tax', 'VAT / sales tax rate applied to prices.', (
               <div className="flex items-center gap-1.5">
                 <input type="number" min={0} max={100} value={settings.taxRate} onChange={e => set('taxRate', Number(e.target.value) || 0)} className={`${inputCls} w-20`} />
@@ -146,15 +141,9 @@ export function SettingsSection({ state, update }: {
 
         {/* Renewals */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
-          <h3 className="text-[11px] font-bold text-gray-800 dark:text-white mb-1">Trials &amp; renewals</h3>
+          <h3 className="text-[11px] font-bold text-gray-800 dark:text-white mb-1">Renewals</h3>
           <p className="text-[10px] text-gray-400 mb-2">Defaults for new members.</p>
           <div className="space-y-1">
-            {row('Default trial', 'Free-trial days when a plan has no trial set.', (
-              <div className="flex items-center gap-1.5">
-                <input type="number" min={0} value={settings.defaultTrialDays} onChange={e => set('defaultTrialDays', Number(e.target.value) || 0)} className={`${inputCls} w-20`} />
-                <span className="text-[10px] text-gray-400">days</span>
-              </div>
-            ))}
             {row('Renewal reminder', 'How many days before renewal a reminder is sent.', (
               <div className="flex items-center gap-1.5">
                 <input type="number" min={0} value={settings.renewalReminderDays} onChange={e => set('renewalReminderDays', Number(e.target.value) || 0)} className={`${inputCls} w-20`} />

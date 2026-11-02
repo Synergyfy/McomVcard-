@@ -90,8 +90,13 @@ function mapApiBusiness(raw: any): any & BizExtra {
   const membership = planMap[raw.plan] || 'Bronze Standard'
   const relativeTime = (h: number) => h < 1 ? 'Just now' : h < 2 ? '1 hour ago' : h < 24 ? `${h}h ago` : h < 48 ? 'Yesterday' : `${Math.floor(h / 24)}d ago`
   const hoursAgo = Math.floor(Math.random() * 336)
+  const ownerName = typeof raw.owner === 'string'
+    ? raw.owner
+    : [raw.owner?.first_name, raw.owner?.last_name].filter(Boolean).join(' ') || raw.owner?.email || '—'
+
   return {
     ...raw,
+    owner: ownerName,
     businessId: `BUS-${String(raw.id).padStart(6, '0')}`,
     membership,
     membershipStatus: status === 'suspended' ? 'Expired' : status === 'pending' ? 'Pending' : 'Active',
@@ -243,7 +248,7 @@ export default function BusinessProfilePage() {
                 <span>·</span>
                 <span>{biz.industry}</span>
                 <span>·</span>
-                <span>{biz.address.split(',')[0]}</span>
+                <span>{biz.address?.split(',')[0] || 'Location not set'}</span>
                 <span>·</span>
                 <span>Owner: {biz.owner}</span>
               </p>

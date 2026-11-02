@@ -8,8 +8,6 @@ export interface PurchasableVariant {
   name: string
   durationDays: number
   price: number
-  setupFee: number
-  trialDays: number
   description: string
   features: string[]
   configuration?: Record<string, unknown> | null
@@ -22,6 +20,30 @@ export interface PurchasablePlan {
   audience: string
   currency: string
   variants: PurchasableVariant[]
+}
+
+export interface PurchasableAccessPass {
+  id: string
+  name: string
+  description: string
+  price: number
+  durationDays: number
+  currency: string
+  features: string[]
+  configuration?: Record<string, unknown> | null
+}
+
+export interface AccessPassPurchaseResult {
+  charge: AppCharge
+  clientSecret?: string | null
+  approvalUrl?: string | null
+  accessPass: {
+    id: string
+    name: string
+    durationDays: number
+    price: number
+  }
+  canAccessVcard: boolean
 }
 
 export interface AppCharge {
@@ -84,5 +106,29 @@ export const packagesService = {
   }): Promise<PlanPurchaseResult> {
     const res = await api.post('/v1/mcom/packages/purchase/confirm', opts)
     return res.data as PlanPurchaseResult
+  },
+
+  async listAccessPasses(): Promise<PurchasableAccessPass[]> {
+    const res = await api.get('/v1/mcom/packages/access-passes')
+    return res.data as PurchasableAccessPass[]
+  },
+
+  async initiateAccessPass(opts: {
+    accessPassId: string
+    provider: PlanPaymentProvider
+    idempotencyKey: string
+  }): Promise<AccessPassPurchaseResult> {
+    const res = await api.post('/v1/mcom/packages/access-pass/purchase/initiate', opts)
+    return res.data as AccessPassPurchaseResult
+  },
+
+  async confirmAccessPass(opts: {
+    accessPassId: string
+    chargeId: string
+    paymentIntentId?: string
+    orderId?: string
+  }): Promise<AccessPassPurchaseResult> {
+    const res = await api.post('/v1/mcom/packages/access-pass/purchase/confirm', opts)
+    return res.data as AccessPassPurchaseResult
   },
 }

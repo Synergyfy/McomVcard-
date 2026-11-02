@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import PageHeader from '../../components/business/primitives/PageHeader'
 import StatCard from '../../components/business/primitives/StatCard'
 import { businessService, type BusinessReport } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 type Section = 'summary' | 'cardAnalytics' | 'vcardAnalytics' | 'qrAnalytics' | 'traffic' | 'profileViews' | 'customerActivity' | 'membershipUsage' | 'exports'
 
@@ -21,6 +22,7 @@ const SECTIONS: { key: Section; label: string }[] = [
 const EMPTY: BusinessReport = { range: '7d', metrics: [], dailyViews: [], dailyScans: [], topLocations: [], deviceBreakdown: [], customerActivity: [], membershipUsage: [] }
 
 export default function ReportsPage() {
+  const { can } = useCapabilities()
   const [active, setActive] = useState<Section>('summary')
   const [range, setRange] = useState<'7d' | '30d' | '90d'>('7d')
   const [report, setReport] = useState<BusinessReport>(EMPTY)
@@ -42,7 +44,7 @@ export default function ReportsPage() {
         </select>
       } />
       <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 mb-6 border-b border-gray-200 dark:border-gray-800">
-        {SECTIONS.map((s) => (
+        {SECTIONS.filter((s) => s.key !== 'exports' || can('reportExports')).map((s) => (
           <button key={s.key} onClick={() => setActive(s.key)} className={`px-3.5 py-2.5 min-h-[44px] rounded-lg text-sm font-medium whitespace-nowrap transition-colors shrink-0 ${active === s.key ? 'bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 shadow-sm border border-gray-200 dark:border-gray-700' : 'text-gray-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-gray-800/60'}`}>{s.label}</button>
         ))}
       </div>
@@ -58,7 +60,7 @@ export default function ReportsPage() {
           {active === 'profileViews' && <ProfileViews report={report} />}
           {active === 'customerActivity' && <CustomerActivity report={report} />}
           {active === 'membershipUsage' && <MembershipUsage report={report} />}
-          {active === 'exports' && <Exports />}
+          {active === 'exports' && can('reportExports') && <Exports />}
         </>
       )}
     </div>

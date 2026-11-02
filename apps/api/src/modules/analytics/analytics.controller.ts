@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiUnauthorizedResponse, ApiQuery, ApiBody } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { AnalyticsService } from './analytics.service'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -10,7 +12,7 @@ import { Business } from '../businesses/entities/business.entity'
 
 @ApiTags('analytics')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BusinessAccessGuard)
+@UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
 @Controller('analytics')
 export class AnalyticsController {
   constructor(
@@ -33,6 +35,7 @@ export class AnalyticsController {
   }
 
   @Get('overview')
+  @RequireCapability('advancedAnalytics')
   @ApiOperation({ summary: 'Get analytics event counts by type' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async getOverview(@CurrentUser() user: any) {
@@ -43,6 +46,7 @@ export class AnalyticsController {
   }
 
   @Get('timeseries')
+  @RequireCapability('advancedAnalytics')
   @ApiOperation({ summary: 'Get analytics time-series data' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @ApiQuery({ name: 'days', required: false, type: Number })

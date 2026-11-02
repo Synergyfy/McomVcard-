@@ -34,6 +34,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { CustomersModule } from './modules/customers/customers.module'
 import { ConsumerModule } from './modules/consumer/consumer.module'
 import { PlansModule } from './modules/plans/plans.module'
+import { AccessPassesModule } from './modules/access-passes/access-passes.module'
+import { CapabilitiesModule } from './modules/capabilities/capabilities.module'
 import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
 import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
 import { EventsModule } from './modules/events/events.module'
@@ -95,6 +97,8 @@ import { APP_GUARD } from '@nestjs/core'
     CustomersModule,
     ConsumerModule,
     PlansModule,
+    AccessPassesModule,
+    CapabilitiesModule,
     GiftCardsModule,
     CashbackProgramsModule,
     EventsModule,

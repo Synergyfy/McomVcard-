@@ -101,18 +101,6 @@ export class PlanVariantDto {
   @Min(0)
   price!: number
 
-  @ApiPropertyOptional({ example: 0 })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  setupFee?: number
-
-  @ApiPropertyOptional({ example: 14 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  trialDays?: number
-
   @ApiPropertyOptional({ example: '90 days of access' })
   @IsOptional()
   @IsString()
@@ -178,16 +166,6 @@ export class PlanTierPricingDto {
   @IsNumber()
   @Min(0)
   annual!: number
-
-  @ApiProperty({ example: 0 })
-  @IsNumber()
-  @Min(0)
-  setupFee!: number
-
-  @ApiProperty({ example: 14 })
-  @IsInt()
-  @Min(0)
-  trialDays!: number
 
   @ApiPropertyOptional({ example: '' })
   @IsOptional()

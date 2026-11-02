@@ -10,9 +10,9 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadMembershipPricing, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { loadMembershipPricing, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
 import { loadConsumerPricing } from '../../services/consumerPricingStore'
-import { LevelDropdown, AccessCards, AccessComparison, BillingToggle } from '../public/PricingCards'
+import { LevelDropdown, AccessCards, AccessComparison, BILLING_BY_TIER } from '../public/PricingCards'
 import { SectionHeading } from './SectionHeading'
 
 export default function MembershipExplorer({ tone = 'orange', audience = 'business', ctaTo, ctaLabel }: {
@@ -26,7 +26,7 @@ export default function MembershipExplorer({ tone = 'orange', audience = 'busine
   const [state] = useState(() => isConsumer ? loadConsumerPricing() : loadMembershipPricing())
   const [level, setLevel] = useState<PlanLevel>('Gold')
   const [tier, setTier] = useState<PlanTier>('Normal')
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
+  const billing = BILLING_BY_TIER[tier]
 
   const finalCtaTo = ctaTo ?? (isConsumer ? '/find-a-business' : '/register')
   const finalCtaLabel = ctaLabel ?? (isConsumer ? 'Find a Business' : 'Start Your Business')
@@ -46,7 +46,7 @@ export default function MembershipExplorer({ tone = 'orange', audience = 'busine
           title={isConsumer ? 'Issued by businesses you trust' : 'Compare your membership'}
           subtitle={isConsumer
             ? 'Your membership level is issued by the business you connect with. Levels, tiers and allowances below come from the consumer membership configuration and update automatically.'
-            : 'Pick a level, then choose Standard, Pro or Pro+ access. 90-day, 180-day and annual cycles are all configurable.'}
+            : 'Pick a level, then choose Standard (90 days), Pro (180 days) or Pro+ (1 year) access.'}
           tone={tone}
         />
 
@@ -61,12 +61,9 @@ export default function MembershipExplorer({ tone = 'orange', audience = 'busine
           <div className="mb-6">
             <div className="flex flex-col items-center gap-3 mb-6">
               <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
-              {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
-              {tier === 'Pro+' && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
-                  Pro+ · Annual membership
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">
+                Standard 90 days · Pro 180 days · Pro+ 1 year
+              </span>
             </div>
             <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={() => navigate(finalCtaTo)} />
           </div>

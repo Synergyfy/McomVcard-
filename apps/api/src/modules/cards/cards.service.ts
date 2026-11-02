@@ -4,6 +4,7 @@ import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { BusinessesService } from '../businesses/businesses.service'
+import { CapabilitiesService } from '../capabilities/capabilities.service'
 import { Card, CardType, CardProduct, CardAudience } from './entities/card.entity'
 import { CardProfile } from './entities/card-profile.entity'
 import { CardCustomization } from './entities/card-customization.entity'
@@ -77,7 +78,35 @@ export class CardsService {
     @InjectRepository(Wallet) private walletsRepo: Repository<Wallet>,
     @InjectRepository(RewardBalance) private rewardBalancesRepo: Repository<RewardBalance>,
     private readonly businessesService: BusinessesService,
+    private readonly capabilities: CapabilitiesService,
   ) {}
+
+  /**
+   * Enforce the plan quota before a business card/VCard is created.
+   * Consumer card types are not quota-bound here.
+   */
+  private async assertCardQuota(
+    ownerId: string,
+    type: CardType,
+    businessId?: string | null,
+  ): Promise<void> {
+    if (type === CardType.BUSINESS_VCARD) {
+      const used = await this.cardsRepo.count({
+        where: { ownerId, type: CardType.BUSINESS_VCARD },
+      })
+      await this.capabilities.assertQuota(ownerId, 'maxVCards', used)
+      return
+    }
+
+    if (type === CardType.BUSINESS_CARD) {
+      const used = await this.cardsRepo.count({
+        where: businessId
+          ? { businessId, type: CardType.BUSINESS_CARD }
+          : { ownerId, type: CardType.BUSINESS_CARD },
+      })
+      await this.capabilities.assertQuota(ownerId, 'maxBusinessCards', used)
+    }
+  }
 
   // --- Cards ---
 
@@ -90,6 +119,7 @@ export class CardsService {
     const audience = dto.audience ?? CardAudience.CONSUMER
 
     this.validateCardTypeConsistency(type, cardProduct, audience)
+    await this.assertCardQuota(ownerId, type, dto.business_id ?? null)
 
     if (type === CardType.CONSUMER_STORE_CARD && !dto.business_id) {
       throw new BadRequestException('Consumer store cards must be linked to a business')
@@ -173,13 +203,24 @@ export class CardsService {
 
   // --- Template Claiming ---
 
-  async claimTemplate(ownerId: string, businessId: string, templateId: string, customSlug?: string) {
+  async claimTemplate(
+    ownerId: string,
+    businessId: string,
+    templateId: string,
+    customSlug?: string,
+    type: CardType = CardType.BUSINESS_VCARD,
+  ) {
     await this.businessesService.findOwned(businessId, ownerId)
     await this.assertTemplateExists(templateId)
 
     const template = await this.templatesRepo.findOne({ where: { id: templateId }, relations: { fields: true } })
     if (!template) throw new NotFoundException('Template not found')
     if (template.status !== 'published') throw new BadRequestException('Template is not published')
+
+    const cardType = type === CardType.BUSINESS_CARD ? CardType.BUSINESS_CARD : CardType.BUSINESS_VCARD
+    const cardProduct = cardType === CardType.BUSINESS_CARD ? CardProduct.CARD : CardProduct.VCARD
+    this.validateCardTypeConsistency(cardType, cardProduct, CardAudience.BUSINESS)
+    await this.assertCardQuota(ownerId, cardType, businessId)
 
     const slug = await this.generateUniqueSlug(customSlug ?? template.slug)
 
@@ -189,8 +230,8 @@ export class CardsService {
         businessId,
         templateId,
         slug,
-        type: CardType.BUSINESS_VCARD,
-        cardProduct: CardProduct.VCARD,
+        type: cardType,
+        cardProduct,
         audience: CardAudience.BUSINESS,
         name: template.name,
         category: template.category,
@@ -309,6 +350,7 @@ export class CardsService {
   async duplicate(cardId: string, ownerId: string) {
     await this.findOwned(cardId, ownerId)
     const source = await this.findOne(cardId)
+    await this.assertCardQuota(ownerId, source.type, source.businessId)
 
     const slug = await this.generateUniqueSlug(`${source.slug}-copy`)
     const copyName = `${source.name ?? 'Card'} (Copy)`.slice(0, 200)

@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import { useSearchParams } from 'react-router-dom'
-import { loadMembershipPricing, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { loadMembershipPricing, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
 import { loadConsumerPricing } from '../../services/consumerPricingStore'
-import { LevelDropdown, AccessCards, AccessComparison, BillingToggle, type PricingAudience } from '../../components/public/PricingCards'
+import { LevelDropdown, AccessCards, AccessComparison, BILLING_BY_TIER, type PricingAudience } from '../../components/public/PricingCards'
 
 /* ------------------------------------------------------------------ */
 /*  Public pricing page — /membership                                  */
@@ -25,7 +25,7 @@ export default function PublicPricingPage() {
   const [state, setState] = useState(() => audience === 'consumer' ? loadConsumerPricing() : loadMembershipPricing())
   const [level, setLevel] = useState<PlanLevel>('Gold')
   const [tier, setTier] = useState<PlanTier>('Normal')
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
+  const billing = BILLING_BY_TIER[tier]
 
   // When audience changes, reload data and update URL
   useEffect(() => {
@@ -96,14 +96,11 @@ export default function PublicPricingPage() {
           <div className="mb-6">
             <div className="flex flex-col items-center gap-4">
               <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <span className="text-[11px] text-gray-400 font-semibold">{audienceTitle}</span>
-                {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
-                {tier === 'Pro+' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">
-                    Pro+ · Annual membership
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">
+                  Standard 90 days · Pro 180 days · Pro+ 1 year
+                </span>
               </div>
             </div>
           </div>

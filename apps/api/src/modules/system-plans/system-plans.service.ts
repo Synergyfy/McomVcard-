@@ -68,9 +68,6 @@ export class SystemPlansService {
   // ── write mapping ─────────────────────────────────────────────────────────
 
   private toCreatePlanDto(dto: CreateSystemPlanDto): CreatePlanDto {
-    // A TRIAL plan gets a 14-day trial unless the connector says otherwise.
-    const trialDuration = dto.trialDuration ?? (dto.type === 'TRIAL' ? 14 : undefined)
-
     return {
       // Any free-form name is accepted; no level is inferred or required.
       name: dto.name,
@@ -82,7 +79,7 @@ export class SystemPlansService {
       configuration: dto.configuration,
       variants: dto.variants?.length
         ? this.variantsFromCanonical(dto.variants)
-        : this.variantsFromPricing({ ...dto, trialDuration }),
+        : this.variantsFromPricing(dto),
       isDefault: dto.isDefault ?? false,
       status: dto.isActive === false ? 'inactive' : 'active',
     }
@@ -113,7 +110,6 @@ export class SystemPlansService {
         dto.quarterlyPrice !== undefined ||
         dto.semiannualPrice !== undefined ||
         dto.annualPrice !== undefined ||
-        dto.trialDuration !== undefined ||
         dto.stripeMonthlyPriceId !== undefined ||
         dto.stripeQuarterlyPriceId !== undefined ||
         dto.stripeSemiannualPriceId !== undefined ||
@@ -152,7 +148,6 @@ export class SystemPlansService {
         return {
           key,
           price: incoming?.price ?? base?.price ?? 0,
-          trialDays: base?.trialDays ?? 0,
           description:
             incoming?.tierLevel?.name && incoming.tierLevel.name !== key
               ? `${incoming.tierLevel.name} access`
@@ -182,7 +177,6 @@ export class SystemPlansService {
       quarterlyPrice?: number
       semiannualPrice?: number
       annualPrice?: number
-      trialDuration?: number
       stripeMonthlyPriceId?: string
       stripeQuarterlyPriceId?: string
       stripeSemiannualPriceId?: string
@@ -200,8 +194,6 @@ export class SystemPlansService {
     const standardExisting = existing('standard')
     const proExisting = existing('pro')
     const proPlusExisting = existing('pro_plus')
-
-    const trialDays = dto.trialDuration ?? standardExisting?.trialDays ?? 0
 
     // Direct mapping: monthly -> Standard, quarterly -> Pro, annual -> Pro+.
     // When a higher cycle is omitted, derive it from the lower one so a
@@ -232,7 +224,6 @@ export class SystemPlansService {
       {
         key: 'standard' as const,
         price: standardPrice,
-        trialDays,
         description: standardExisting?.description,
         stripePriceId: dto.stripeMonthlyPriceId ?? standardExisting?.stripePriceId ?? undefined,
         paypalPlanId: dto.paypalMonthlyPlanId ?? standardExisting?.paypalPlanId ?? undefined,
@@ -241,7 +232,6 @@ export class SystemPlansService {
       {
         key: 'pro' as const,
         price: proPrice,
-        trialDays,
         description: proExisting?.description,
         stripePriceId:
           dto.stripeQuarterlyPriceId ?? dto.stripeSemiannualPriceId ?? proExisting?.stripePriceId ?? undefined,
@@ -252,7 +242,6 @@ export class SystemPlansService {
       {
         key: 'pro_plus' as const,
         price: proPlusPrice,
-        trialDays,
         description: proPlusExisting?.description,
         stripePriceId: dto.stripeAnnualPriceId ?? proPlusExisting?.stripePriceId ?? undefined,
         paypalPlanId: dto.paypalAnnualPlanId ?? proPlusExisting?.paypalPlanId ?? undefined,
@@ -267,8 +256,6 @@ export class SystemPlansService {
   private toVariantDto(variant: {
     key: PlanVariantKey
     price: number
-    setupFee: number
-    trialDays: number
     description: string
     features: any[] | null
     rules: any[] | null
@@ -280,8 +267,6 @@ export class SystemPlansService {
     return {
       key: variant.key,
       price: variant.price,
-      setupFee: variant.setupFee,
-      trialDays: variant.trialDays,
       description: variant.description,
       features: variant.features ?? undefined,
       rules: variant.rules ?? undefined,
@@ -354,7 +339,6 @@ export class SystemPlansService {
       isActive: plan.status === 'active',
       isDefault: plan.isDefault,
       type: plan.type ?? 'STANDARD',
-      trialDuration: standard?.trialDays,
       seasonId: plan.seasonId ?? undefined,
       stripeMonthlyPriceId: standard?.stripePriceId ?? undefined,
       stripeQuarterlyPriceId: pro?.stripePriceId ?? undefined,

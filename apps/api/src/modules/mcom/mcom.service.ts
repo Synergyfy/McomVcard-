@@ -1,6 +1,9 @@
 import { Injectable, BadRequestException, UnauthorizedException, ServiceUnavailableException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'crypto'
+import type { McomEntitlement } from './access-decision'
+
+export type { McomEntitlement } from './access-decision'
 
 /**
  * Normalized Central Hub Solution user profile (from the SSO token exchange,
@@ -49,33 +52,6 @@ export interface McomUserInfo {
 
   packages?: { platform?: string; packageName?: string; status?: string; limits?: unknown }[]
   permissions?: Record<string, boolean>
-}
-
-/** Unified entitlement returned by Central for every platform. */
-export interface McomEntitlement {
-  access?: {
-    hasAccess?: boolean
-    reason?: string | null
-    accessType?: string | null
-    upgradeUrl?: string | null
-  } | null
-  whitelabel?: {
-    enabled?: boolean
-    granted?: boolean
-    roleEligible?: boolean
-    grantedAt?: string | null
-  } | null
-  plan?: {
-    planId?: string | null
-    planName?: string | null
-    quotas?: Record<string, unknown>
-    [key: string]: unknown
-  } | null
-  trialContext?: {
-    programmeTasks?: unknown[]
-    [key: string]: unknown
-  } | null
-  [key: string]: unknown
 }
 
 /**
@@ -240,12 +216,12 @@ export class McomService {
 
   /** Real-time unified entitlement introspection for a logged-in user. */
   async getEntitlement(accessToken: string): Promise<McomEntitlement> {
-    const res = (await this.request('/api/v1/auth/sso/entitlement', {
+    const res = await this.request('/api/v1/auth/sso/entitlement', {
       method: 'GET',
       headers: { Authorization: `Bearer ${accessToken}` },
-    })) as McomEntitlement | { data?: McomEntitlement }
+    })
 
-    return ((res as { data?: McomEntitlement })?.data ?? res) as McomEntitlement
+    return this.unwrapEntitlement(res)
   }
 
   /** Server-to-server entitlement lookup using the app's inbound API key. */
@@ -254,15 +230,39 @@ export class McomService {
     if (!apiKey) return null
 
     try {
-      const res = (await this.request(
+      const res = await this.request(
         `/api/v1/auth/sso/entitlement?client_id=${encodeURIComponent(this.clientId)}&user_id=${encodeURIComponent(userId)}`,
         { method: 'GET', headers: { 'X-API-Key': apiKey } },
-      )) as McomEntitlement | { data?: McomEntitlement }
+      )
 
-      return ((res as { data?: McomEntitlement })?.data ?? res) as McomEntitlement
+      return this.unwrapEntitlement(res)
     } catch {
       return null
     }
+  }
+
+  /**
+   * Central wraps introspection responses as `{ success, entitlement, ... }`.
+   * Older/alternate endpoints return the entitlement under `data`. Normalize
+   * both so callers always receive the `PlatformEntitlement` itself.
+   */
+  private unwrapEntitlement(res: unknown): McomEntitlement {
+    const body = (res ?? {}) as Record<string, unknown>
+
+    if (body.entitlement && typeof body.entitlement === 'object') {
+      return body.entitlement as McomEntitlement
+    }
+
+    const data = body.data as Record<string, unknown> | undefined
+    if (data?.entitlement && typeof data.entitlement === 'object') {
+      return data.entitlement as McomEntitlement
+    }
+
+    if (data && typeof data === 'object') {
+      return data as McomEntitlement
+    }
+
+    return body as McomEntitlement
   }
 
   /** Refresh an expired Central access token. Central does not rotate refresh tokens. */
@@ -283,6 +283,11 @@ export class McomService {
   /** The dynamic permission key Central uses for this platform (e.g. canAccess_vcard). */
   get platformPermissionKey(): string {
     return `canAccess_${this.platformSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+  }
+
+  /** Configured platform slug (e.g. `vcards`). */
+  get platformSlugName(): string {
+    return this.platformSlug
   }
 
   /**

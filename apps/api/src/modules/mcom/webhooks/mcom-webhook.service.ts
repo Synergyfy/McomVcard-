@@ -7,6 +7,8 @@ import { UsersService } from '../../users/users.service'
 import { McomWebhookEvent } from './mcom-webhook-event.entity'
 import { McomWebhookDto } from '../dto/mcom-webhook.dto'
 import { McomPackagesService } from '../packages/mcom-packages.service'
+import { McomService } from '../mcom.service'
+import { decideAccess, type McomEntitlement } from '../access-decision'
 
 export interface WebhookProcessResult {
   handled: boolean
@@ -33,6 +35,7 @@ export class McomWebhookService {
     private readonly config: ConfigService,
     private readonly usersService: UsersService,
     private readonly packagesService: McomPackagesService,
+    private readonly mcomService: McomService,
   ) {
     this.platformSlug = (this.config.get<string>('MCOM_PLATFORM_SLUG') || 'vcards')
       .toLowerCase()
@@ -74,6 +77,40 @@ export class McomWebhookService {
 
   // ── per-event application logic ───────────────────────────────────────────
 
+  /**
+   * Re-read the user's entitlement from Central and apply the normalized
+   * decision locally. Used for membership/entitlement lifecycle webhooks so a
+   * membership change or `entitlement.trial_started` takes effect immediately.
+   */
+  private async refreshEntitlement(userId: string, mcomUserId: string | null): Promise<void> {
+    if (!mcomUserId) {
+      this.logger.warn(`Entitlement webhook for ${userId} has no MCOM user id — skipped`)
+      return
+    }
+
+    const entitlement = await this.mcomService.getEntitlementForUser(mcomUserId)
+    if (!entitlement) {
+      this.logger.warn(
+        `Entitlement re-introspection failed for ${mcomUserId} — keeping current access`,
+      )
+      return
+    }
+
+    const decision = decideAccess(entitlement)
+    await this.usersService.update(userId, {
+      mcomEntitlement: entitlement as unknown as Record<string, unknown>,
+      mcomAccess: decision,
+      mcomCanAccessVcard: decision.allowed,
+      mcomMembershipLevel: decision.membershipLevel ?? undefined,
+      mcomMembershipStatus: decision.membershipStatus ?? (decision.allowed ? 'active' : 'inactive'),
+      mcomLastSyncAt: new Date(),
+    })
+
+    this.logger.log(
+      `Entitlement synced for ${mcomUserId}: ${decision.accessType} (${decision.source}) allowed=${decision.allowed}`,
+    )
+  }
+
   private async applyEvent(dto: McomWebhookDto): Promise<void> {
     const user =
       (dto.data.externalCustomerId
@@ -87,6 +124,13 @@ export class McomWebhookService {
       this.logger.log(
         `Webhook ${dto.event} for unknown user ${dto.data.externalCustomerId ?? dto.data.mcomUserId} — skipped`,
       )
+      return
+    }
+
+    // Membership / entitlement lifecycle events are a signal to re-introspect
+    // Central — never the source of truth themselves.
+    if (dto.event.startsWith('entitlement.') || dto.event.startsWith('membership.')) {
+      await this.refreshEntitlement(user.id, dto.data.mcomUserId ?? dto.data.userId ?? user.mcomUserId)
       return
     }
 

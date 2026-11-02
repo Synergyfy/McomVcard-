@@ -29,6 +29,23 @@ export const TIER_LABEL: Record<PlanTier, string> = {
   'Pro+': 'Pro+',
 }
 
+/**
+ * Variant = duration. Standard is always 90 days (quarterly price), Pro is
+ * always 180 days (semiannual) and Pro+ is always 1 year (annual). There is no
+ * separate billing-cycle choice, so the old 90/180/Annual toggle is gone.
+ */
+export const BILLING_BY_TIER: Record<PlanTier, BillingCycle> = {
+  Normal: 'quarterly',
+  Pro: 'semiannual',
+  'Pro+': 'annual',
+}
+
+export const VARIANT_DURATION: Record<PlanTier, string> = {
+  Normal: '90 days',
+  Pro: '180 days',
+  'Pro+': '1 year',
+}
+
 const PLAN_STYLES: Record<string, { chip: string; ring: string; badge: string; gradient: string; selected: string }> = {
   Bronze: {
     chip: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
@@ -217,20 +234,20 @@ export function LevelDropdown({ state, level, onChange }: {
 
 /* ── Step 2 — choose the access level (Standard / Pro / Pro+) ────── */
 
-function accessPrice(plan: MembershipPricingState['plans'][number], tier: PlanTier, billing: BillingCycle): { price: number; periodLabel: string; annual: boolean } {
-  if (tier === 'Pro+') {
-    return { price: plan.tiers['Pro+'].annual, periodLabel: '/year', annual: true }
-  }
-  const price = plan.tiers[tier][billing]
-  const periodLabel = billing === 'quarterly' ? '/90 days' : billing === 'semiannual' ? '/180 days' : billing === 'annual' ? '/year' : '/month'
-  return { price, periodLabel, annual: false }
+function accessPrice(plan: MembershipPricingState['plans'][number], tier: PlanTier): { price: number; periodLabel: string; annual: boolean; cycle: BillingCycle } {
+  // Duration is fixed by the variant — Standard 90d, Pro 180d, Pro+ 1 year.
+  const cycle = BILLING_BY_TIER[tier]
+  const price = plan.tiers[tier][cycle]
+  const periodLabel = cycle === 'quarterly' ? '/90 days' : cycle === 'semiannual' ? '/180 days' : cycle === 'annual' ? '/year' : '/month'
+  return { price, periodLabel, annual: tier === 'Pro+', cycle }
 }
 
-export function AccessCards({ state, level, tier, billing, onSelect, onChoose, selectedOnly }: {
+export function AccessCards({ state, level, tier, onSelect, onChoose, selectedOnly }: {
   state: MembershipPricingState
   level: PlanLevel
   tier: PlanTier
-  billing: BillingCycle
+  /** @deprecated duration is fixed by the variant; kept for call-site compat. */
+  billing?: BillingCycle
   onSelect?: (t: PlanTier) => void
   onChoose?: (level: PlanLevel, tier: PlanTier) => void
   selectedOnly?: PlanTier
@@ -245,15 +262,14 @@ export function AccessCards({ state, level, tier, billing, onSelect, onChoose, s
     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       {tiers.map(t => {
         const meta = ACCESS_META[t]
-        const { price, periodLabel, annual } = accessPrice(plan, t, billing)
+        const { price, periodLabel, annual, cycle } = accessPrice(plan, t)
         const active = (selectedOnly ?? tier) === t
-        const monthlyEquivalent = annual
-          ? Math.round(price / 12)
-          : billing === 'annual'
+        const monthlyEquivalent =
+          cycle === 'annual'
             ? Math.round(price / 12)
-            : billing === 'quarterly'
+            : cycle === 'quarterly'
               ? Math.round(price / 3)
-              : billing === 'semiannual'
+              : cycle === 'semiannual'
                 ? Math.round(price / 6)
                 : price
 
@@ -391,6 +407,12 @@ export function BillingToggle({ billing, onChange }: { billing: BillingCycle; on
 
 /* ── Legacy tier tabs (kept for admin preview + subscription page) ── */
 
+const VARIANT_DURATION_LABEL: Record<PlanTier, string> = {
+  Normal: '90 days',
+  Pro: '180 days',
+  'Pro+': '1 year',
+}
+
 export function PricingTierTabs({ tier, onChange }: { tier: PlanTier; onChange: (t: PlanTier) => void }) {
   const tiers: PlanTier[] = ['Normal', 'Pro', 'Pro+']
   return (
@@ -402,7 +424,7 @@ export function PricingTierTabs({ tier, onChange }: { tier: PlanTier; onChange: 
           className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${tier === t ? 'bg-orange-500 text-white shadow' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'}`}
         >
           {TIER_LABEL[t]}
-          <span className={`block text-[8px] font-medium ${tier === t ? 'text-white/80' : 'text-gray-400'}`}>{ACCESS_META[t].sub}</span>
+          <span className={`block text-[8px] font-medium ${tier === t ? 'text-white/80' : 'text-gray-400'}`}>{VARIANT_DURATION_LABEL[t]}</span>
         </button>
       ))}
     </div>
@@ -458,9 +480,6 @@ export function PricingCard({ state, tier, billing, onChoose, currentPlan }: {
             )}
             {billing === 'semiannual' && (
               <p className="text-[9px] text-emerald-600 mb-2">180 days access · £{monthlyEquivalent}/mo</p>
-            )}
-            {p.trialDays > 0 && (
-              <p className="text-[9px] text-gray-400 mb-2">{p.trialDays}-day free trial{p.setupFee > 0 ? ` · ${formatPounds(p.setupFee)} setup` : ''}</p>
             )}
             <ul className="mt-3 mb-6 space-y-2 flex-1">
               {plan.features.map((f, i) => (

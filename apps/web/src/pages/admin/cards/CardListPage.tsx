@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 import { MiniCardPreview, CardFlip } from '../../../components/admin/BusinessCardPreview'
@@ -127,7 +127,10 @@ export default function CardListPage() {
   const navigate = useNavigate()
   const [data, setData] = useState<CardDesign[]>([])
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'Business' | 'Consumer'>('Business')
+  const location = useLocation()
+  const [tab, setTab] = useState<'Business' | 'Consumer'>(
+    location.pathname.endsWith('/consumer') ? 'Consumer' : 'Business',
+  )
   const [previewDesign, setPreviewDesign] = useState<CardDesign | null>(null)
   const [editDesign, setEditDesign] = useState<CardDesign | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ design: CardDesign; action: 'suspend' | 'archive' } | null>(null)
@@ -165,8 +168,10 @@ export default function CardListPage() {
       <Helmet><title>Card Designs - MCOM VCard Social Bio</title></Helmet>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Card Designs</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Business card design blueprints — {data.length} designs ({data.filter((d) => d.status === 'archived').length} archived)</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{tab} Card Designs</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          {tab} card design blueprints — {tabData.length} designs ({tabData.filter((d) => d.status === 'archived').length} archived)
+        </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-1 inline-flex gap-1">

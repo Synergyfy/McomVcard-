@@ -8,6 +8,7 @@ import { UserRelationship } from '../../relationships/entities/user-relationship
 import { ChildCard } from '../../child-cards/entities/child-card.entity'
 import { Wishlist } from '../../wishlists/entities/wishlist.entity'
 import { Affiliate } from '../../affiliates/entities/affiliate.entity'
+import type { McomAccessDecision } from '../../mcom/access-decision'
 
 @Entity({ name: 'users' })
 export class User {
@@ -124,6 +125,12 @@ export class User {
 
   @Column({ name: 'mcom_entitlement', type: 'jsonb', nullable: true })
   mcomEntitlement!: Record<string, unknown> | null
+
+  // Normalized decision derived from the entitlement (access source, plan,
+  // expiry, quotas/limits/features and trial tasks). Kept alongside the raw
+  // entitlement so the SPA can render the source without re-deriving it.
+  @Column({ name: 'mcom_access', type: 'jsonb', nullable: true })
+  mcomAccess!: McomAccessDecision | null
 
   @Column({ name: 'mcom_last_sync_at', type: 'timestamptz', nullable: true })
   mcomLastSyncAt!: Date | null

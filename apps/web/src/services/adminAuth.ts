@@ -97,7 +97,8 @@ export const adminAuthService = {
   },
 
   async restore(): Promise<{ user: User; roles: string[] } | null> {
-    if (!adminSession.hasSession()) return null
+    // Try the HttpOnly admin refresh cookie even when sessionStorage is empty
+    // (new tab / restored tab). The cookie is the durable part of the session.
     if (restoreInFlight) return restoreInFlight
 
     restoreInFlight = adminApi

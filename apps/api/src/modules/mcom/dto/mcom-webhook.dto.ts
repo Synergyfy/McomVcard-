@@ -9,6 +9,7 @@ export const MCOM_WEBHOOK_EVENTS = [
   'payment.failed',
   'payment.succeeded',
   'payment.refunded',
+  'entitlement.trial_started',
 ] as const
 
 export type McomWebhookEvent = (typeof MCOM_WEBHOOK_EVENTS)[number]
@@ -27,6 +28,11 @@ export class McomWebhookDataDto {
   @IsOptional()
   @IsString()
   mcomUserId?: string
+
+  @ApiPropertyOptional({ example: 'usr_uuid_456', description: 'Alias for mcomUserId used by entitlement events' })
+  @IsOptional()
+  @IsString()
+  userId?: string
 
   @ApiPropertyOptional({ example: 'clx8p2qr10000x4vj3k5m7n9p', description: 'MCOM Pay charge id' })
   @IsOptional()

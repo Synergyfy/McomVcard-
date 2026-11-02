@@ -10,11 +10,14 @@ import { ConfigService } from '@nestjs/config'
 import { PlansService } from '../../plans/plans.service'
 import { PlanConfiguration, PlanVariantKey } from '../../plans/entities/plan.entity'
 import { mergeConfiguration } from '../../plans/plan-variants'
+import { AccessPassesService } from '../../access-passes/access-passes.service'
 import { UsersService } from '../../users/users.service'
 import { SubscriptionsService } from '../../subscriptions/subscriptions.service'
 import { AppCharge, McomPayError, McomPayService } from '../mcom-pay.service'
 import { InitiatePurchaseDto } from './dto/initiate-purchase.dto'
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto'
+import { InitiateAccessPassPurchaseDto } from './dto/initiate-access-pass-purchase.dto'
+import { ConfirmAccessPassPurchaseDto } from './dto/confirm-access-pass-purchase.dto'
 
 /** One of the three fixed-duration variants a buyer can choose. */
 export interface PurchasableVariant {
@@ -22,8 +25,6 @@ export interface PurchasableVariant {
   name: string
   durationDays: number
   price: number
-  setupFee: number
-  trialDays: number
   description: string
   features: string[]
   configuration?: PlanConfiguration | null
@@ -39,6 +40,18 @@ export interface PurchasablePlan {
   variants: PurchasableVariant[]
 }
 
+/** A single-duration access pass a user can purchase. */
+export interface PurchasableAccessPass {
+  id: string
+  name: string
+  description: string
+  price: number
+  durationDays: number
+  currency: string
+  features: string[]
+  configuration?: PlanConfiguration | null
+}
+
 interface ResolvedPurchase {
   planId: string
   planName: string | null
@@ -46,15 +59,36 @@ interface ResolvedPurchase {
   variant: PurchasableVariant
 }
 
+interface ResolvedAccessPassPurchase {
+  accessPassId: string
+  name: string
+  price: number
+  durationDays: number
+  currency: string
+}
+
 /** Reference format carried on every MCOM Pay plan charge. */
 export const PLAN_PAYMENT_REFERENCE_PREFIX = 'vcards:plan:'
 const PLAN_REFERENCE_RE = /^vcards:plan:([0-9a-fA-F-]{36}):(standard|pro|pro_plus)$/
+
+/** Reference format carried on every MCOM Pay access-pass charge. */
+export const ACCESS_PASS_PAYMENT_REFERENCE_PREFIX = 'vcards:access-pass:'
+const ACCESS_PASS_REFERENCE_RE = /^vcards:access-pass:([0-9a-fA-F-]{36})$/
 
 export function parsePlanPaymentReference(reference?: string | null): { planId: string; variant: PlanVariantKey } | null {
   if (!reference) return null
   const match = PLAN_REFERENCE_RE.exec(reference)
   if (!match) return null
   return { planId: match[1], variant: match[2] as PlanVariantKey }
+}
+
+export function parseAccessPassPaymentReference(
+  reference?: string | null,
+): { accessPassId: string } | null {
+  if (!reference) return null
+  const match = ACCESS_PASS_REFERENCE_RE.exec(reference)
+  if (!match) return null
+  return { accessPassId: match[1] }
 }
 
 /** Minimal charge shape needed to activate/revoke a plan entitlement. */
@@ -81,6 +115,7 @@ export class McomPackagesService {
   constructor(
     private readonly config: ConfigService,
     private readonly plansService: PlansService,
+    private readonly accessPassesService: AccessPassesService,
     private readonly usersService: UsersService,
     private readonly mcomPay: McomPayService,
     private readonly subscriptionsService: SubscriptionsService,
@@ -109,14 +144,28 @@ export class McomPackagesService {
             name: variant.name,
             durationDays: variant.durationDays,
             price: variant.price,
-            setupFee: variant.setupFee,
-            trialDays: variant.trialDays,
             description: variant.description,
             features: (variant.features?.length ? variant.features : plan.features ?? []).map((f) => f.text),
             configuration: mergeConfiguration(plan.configuration, variant.configuration),
           })),
       }))
       .filter((plan) => plan.variants.length > 0)
+  }
+
+  /** Active access passes, each with a single duration and price. */
+  async listAccessPasses(): Promise<PurchasableAccessPass[]> {
+    const passes = await this.accessPassesService.findPurchasable()
+
+    return passes.map((pass) => ({
+      id: pass.id,
+      name: pass.name,
+      description: pass.description,
+      price: pass.price,
+      durationDays: pass.durationDays,
+      currency: pass.currency,
+      features: (pass.features ?? []).map((feature) => feature.text),
+      configuration: pass.configuration,
+    }))
   }
 
   /**
@@ -142,6 +191,7 @@ export class McomPackagesService {
         planName: resolved.planName,
         level: resolved.planLevel ?? resolved.planName,
         tier: resolved.variant.name,
+        variant: resolved.variant.key,
         durationDays: resolved.variant.durationDays,
         paymentReference: freeReference,
       })
@@ -272,48 +322,224 @@ export class McomPackagesService {
   }
 
   /**
+   * Charge the customer's MCOM Wallet for an access pass. As with plans, the
+   * amount is resolved server-side from the stored pass, never the request.
+   */
+  async initiateAccessPass(userId: string, dto: InitiateAccessPassPurchaseDto) {
+    const resolved = await this.resolveAccessPassPurchase(dto.accessPassId)
+    const user = await this.requireLinkedUser(userId)
+
+    const amountMinor = Math.round(resolved.price * 100)
+    if (!Number.isFinite(amountMinor) || amountMinor < 0) {
+      throw new BadRequestException('This access pass has an invalid price')
+    }
+
+    if (amountMinor === 0) {
+      const freeReference = this.mcomPay.idempotencyKey(
+        'free-access-pass',
+        user.id,
+        dto.idempotencyKey,
+      )
+      await this.accessPassesService.activatePurchase({
+        userId: user.id,
+        accessPassId: resolved.accessPassId,
+        paymentReference: freeReference,
+      })
+
+      return {
+        charge: {
+          id: freeReference,
+          amountMinor: '0',
+          currency: resolved.currency,
+          feeMinor: '0',
+          netMinor: '0',
+          method: 'wallet',
+          status: 'paid',
+          reference: `${ACCESS_PASS_PAYMENT_REFERENCE_PREFIX}${resolved.accessPassId}`,
+          externalCustomerId: user.id,
+          createdAt: new Date().toISOString(),
+        },
+        accessPass: {
+          id: resolved.accessPassId,
+          name: resolved.name,
+          durationDays: resolved.durationDays,
+          price: 0,
+        },
+        canAccessVcard: true,
+      }
+    }
+
+    if (!this.mcomPay.enabled) {
+      throw new ServiceUnavailableException('MCOM Pay is not configured on this server')
+    }
+
+    const reference = `${ACCESS_PASS_PAYMENT_REFERENCE_PREFIX}${resolved.accessPassId}`
+    const idempotencyKey = this.mcomPay.idempotencyKey(
+      'access-pass',
+      user.id,
+      dto.idempotencyKey,
+    )
+
+    try {
+      const result = await this.mcomPay.createCharge(
+        {
+          amountMinor: String(amountMinor),
+          currency: resolved.currency,
+          method: dto.provider,
+          reference,
+          description: `MCOM VCard — ${resolved.name} (${resolved.durationDays} days)`,
+          mcomUserId: user.mcomUserId as string,
+          externalCustomerId: user.id,
+          metadata: {
+            purpose: 'vcard-access-pass',
+            accessPassId: resolved.accessPassId,
+            durationDays: resolved.durationDays,
+            userId: user.id,
+            provider: dto.provider,
+          },
+        },
+        idempotencyKey,
+      )
+
+      const activated = await this.activateAccessPassIfPaid(result.charge, resolved, user.id)
+
+      return {
+        charge: result.charge,
+        clientSecret: result.clientSecret ?? null,
+        approvalUrl: result.approvalUrl ?? null,
+        accessPass: {
+          id: resolved.accessPassId,
+          name: resolved.name,
+          durationDays: resolved.durationDays,
+          price: resolved.price,
+        },
+        canAccessVcard: activated,
+      }
+    } catch (err) {
+      this.rethrowPayError(err)
+    }
+  }
+
+  /** Confirm an access pass charge (safe replay path for lost responses). */
+  async confirmAccessPass(userId: string, dto: ConfirmAccessPassPurchaseDto) {
+    if (!this.mcomPay.enabled) {
+      throw new ServiceUnavailableException('MCOM Pay is not configured on this server')
+    }
+
+    const resolved = await this.resolveAccessPassPurchase(dto.accessPassId)
+    await this.requireLinkedUser(userId)
+
+    try {
+      let charge = await this.mcomPay.getCharge(dto.chargeId)
+
+      const expectedReference = `${ACCESS_PASS_PAYMENT_REFERENCE_PREFIX}${resolved.accessPassId}`
+      const expectedAmountMinor = String(Math.round(resolved.price * 100))
+      if (
+        charge.reference !== expectedReference ||
+        charge.externalCustomerId !== userId ||
+        charge.amountMinor !== expectedAmountMinor
+      ) {
+        throw new BadRequestException('This charge does not match the selected access pass')
+      }
+
+      if (charge.status === 'pending' && dto.paymentIntentId) {
+        charge = await this.mcomPay.confirmCharge(charge.id, { paymentIntentId: dto.paymentIntentId })
+      } else if (charge.status === 'pending' && dto.orderId) {
+        charge = await this.mcomPay.confirmCharge(charge.id, { orderId: dto.orderId })
+      }
+
+      const activated = await this.activateAccessPassIfPaid(charge, resolved, userId)
+
+      return {
+        charge,
+        accessPass: {
+          id: resolved.accessPassId,
+          name: resolved.name,
+          durationDays: resolved.durationDays,
+          price: resolved.price,
+        },
+        canAccessVcard: activated,
+      }
+    } catch (err) {
+      this.rethrowPayError(err)
+    }
+  }
+
+  /**
    * Webhook backstop: activate a paid plan charge from its MCOM Pay reference.
    * Returns true when access was granted.
    */
   async activateFromCharge(charge: PlanChargeLike): Promise<boolean> {
     if (charge.status !== 'paid') return false
 
-    const parsed = parsePlanPaymentReference(charge.reference)
-    if (!parsed) return false
-
     const userId = charge.externalCustomerId
     if (!userId) return false
 
-    const user = await this.usersService.findById(userId)
-    if (!user) return false
+    const parsed = parsePlanPaymentReference(charge.reference)
+    if (parsed) {
+      const user = await this.usersService.findById(userId)
+      if (!user) return false
 
-    const plan = await this.plansService.findOne(parsed.planId).catch(() => null)
-    if (!plan) return false
+      const plan = await this.plansService.findOne(parsed.planId).catch(() => null)
+      if (!plan) return false
 
-    const variant = (plan.variants ?? []).find((candidate) => candidate.key === parsed.variant)
-    if (!variant) return false
+      const variant = (plan.variants ?? []).find((candidate) => candidate.key === parsed.variant)
+      if (!variant) return false
 
-    await this.subscriptionsService.activatePlan({
-      userId,
-      planId: plan.id,
-      planName: plan.name,
-      level: plan.level ?? plan.name,
-      tier: variant.name,
-      durationDays: variant.durationDays,
-      paymentReference: charge.id,
-    })
+      await this.subscriptionsService.activatePlan({
+        userId,
+        planId: plan.id,
+        planName: plan.name,
+        level: plan.level ?? plan.name,
+        tier: variant.name,
+        variant: parsed.variant,
+        durationDays: variant.durationDays,
+        paymentReference: charge.id,
+      })
 
-    return true
+      return true
+    }
+
+    const parsedPass = parseAccessPassPaymentReference(charge.reference)
+    if (parsedPass) {
+      const user = await this.usersService.findById(userId)
+      if (!user) return false
+
+      const pass = await this.accessPassesService
+        .findOne(parsedPass.accessPassId)
+        .catch(() => null)
+      if (!pass) return false
+
+      await this.accessPassesService.activatePurchase({
+        userId,
+        accessPassId: pass.id,
+        paymentReference: charge.id,
+      })
+
+      return true
+    }
+
+    return false
   }
 
-  /** Revoke local access when a plan charge is fully refunded. */
+  /** Revoke local access when a plan or access-pass charge is refunded. */
   async revokeFromCharge(charge: PlanChargeLike): Promise<boolean> {
-    const parsed = parsePlanPaymentReference(charge.reference)
     const userId = charge.externalCustomerId
-    if (!parsed || !userId) return false
+    if (!userId) return false
 
-    await this.subscriptionsService.cancelPaidPlan(userId, parsed.planId)
-    return true
+    const parsed = parsePlanPaymentReference(charge.reference)
+    if (parsed) {
+      await this.subscriptionsService.cancelPaidPlan(userId, parsed.planId)
+      return true
+    }
+
+    const parsedPass = parseAccessPassPaymentReference(charge.reference)
+    if (parsedPass) {
+      await this.accessPassesService.cancelPurchase(userId, parsedPass.accessPassId)
+      return true
+    }
+
+    return false
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -339,11 +565,55 @@ export class McomPackagesService {
       planName: resolved.planName,
       level: resolved.planLevel ?? resolved.planName,
       tier: resolved.variant.name,
+      variant: resolved.variant.key,
       durationDays: resolved.variant.durationDays,
       paymentReference: charge.id,
     })
 
     return true
+  }
+
+  private async activateAccessPassIfPaid(
+    charge: AppCharge,
+    resolved: ResolvedAccessPassPurchase,
+    userId: string,
+  ): Promise<boolean> {
+    if (charge.status !== 'paid') return false
+
+    const expectedReference = `${ACCESS_PASS_PAYMENT_REFERENCE_PREFIX}${resolved.accessPassId}`
+    if (
+      charge.reference !== expectedReference ||
+      (charge.externalCustomerId != null && charge.externalCustomerId !== userId)
+    ) {
+      throw new BadRequestException('This charge does not belong to this account or access pass')
+    }
+
+    await this.accessPassesService.activatePurchase({
+      userId,
+      accessPassId: resolved.accessPassId,
+      paymentReference: charge.id,
+    })
+
+    return true
+  }
+
+  /** Resolve the stored access pass being purchased. */
+  private async resolveAccessPassPurchase(accessPassId: string): Promise<ResolvedAccessPassPurchase> {
+    const pass = await this.accessPassesService.findOne(accessPassId)
+    if (pass.status !== 'active') {
+      throw new BadRequestException('This access pass is not available for purchase')
+    }
+    if (!(pass.durationDays > 0)) {
+      throw new BadRequestException('This access pass has an invalid duration')
+    }
+
+    return {
+      accessPassId: pass.id,
+      name: pass.name,
+      price: pass.price,
+      durationDays: pass.durationDays,
+      currency: pass.currency || 'GBP',
+    }
   }
 
   /**
@@ -390,8 +660,6 @@ export class McomPackagesService {
         name: match.name,
         durationDays: match.durationDays,
         price: match.price,
-        setupFee: match.setupFee,
-        trialDays: match.trialDays,
         description: match.description,
         features: (match.features?.length ? match.features : plan.features ?? []).map((f) => f.text),
         configuration: mergeConfiguration(plan.configuration, match.configuration),

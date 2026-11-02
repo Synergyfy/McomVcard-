@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { loadMembershipPricing, PLAN_TIERS, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
-import { LevelDropdown, AccessCards, AccessComparison, BillingToggle, TIER_LABEL } from '../../components/public/PricingCards'
+import { loadMembershipPricing, PLAN_TIERS, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { LevelDropdown, AccessCards, AccessComparison, BILLING_BY_TIER, TIER_LABEL } from '../../components/public/PricingCards'
 import { businessService, type Membership } from '../../services/businessApi'
 
 export default function MembershipPlansPage() {
@@ -21,7 +21,7 @@ export default function MembershipPlansPage() {
   const currentTier = (PLAN_TIERS as string[]).find((t) => currentPlan.toLowerCase().includes(t.toLowerCase())) as PlanTier | undefined
   const [level, setLevel] = useState<PlanLevel>(currentLevel)
   const [tier, setTier] = useState<PlanTier>(currentTier ?? 'Normal')
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
+  const billing = BILLING_BY_TIER[tier]
 
   const choose = (lvl: PlanLevel, t: PlanTier) => {
     toast.success(`Opening MCOM Wallet checkout for ${lvl} ${t === 'Normal' ? 'Standard' : t}`)
@@ -43,7 +43,7 @@ export default function MembershipPlansPage() {
         </div>
       </div>
       <div><p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Step 1 · Choose your membership level</p><LevelDropdown state={state} level={level} onChange={setLevel} /></div>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>{tier !== 'Pro+' ? <BillingToggle billing={billing} onChange={setBilling} /> : <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-800/40 text-orange-600 text-[11px] font-bold">Pro+ · Annual membership</span>}</div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p><span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">Standard 90 days · Pro 180 days · Pro+ 1 year</span></div>
       <AccessCards state={state} level={level} tier={tier} billing={billing} onSelect={setTier} onChoose={choose} />
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5"><h2 className="text-base font-bold text-gray-900 dark:text-white">Compare {level} access</h2><p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 mb-4">{TIER_LABEL[tier]} · how the three access levels scale for {level}. Pro+ is the annual membership.</p><AccessComparison state={state} level={level} /><p className="text-[10px] text-gray-400 mt-4">Plan changes are managed by MCOM Solutions on the Admin dashboard. Selecting a plan submits an upgrade request.</p></div>
     </div>

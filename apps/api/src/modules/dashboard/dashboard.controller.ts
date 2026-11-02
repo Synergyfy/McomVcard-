@@ -2,6 +2,8 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiUnauthorizedResponse, ApiForbiddenResponse, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { DashboardService } from './dashboard.service'
 
@@ -21,6 +23,8 @@ export class DashboardController {
   }
 
   @Get('reports')
+  @RequireCapability('reports')
+  @UseGuards(CapabilityGuard)
   @ApiOperation({ summary: 'Get aggregated business reports for a date range' })
   @ApiQuery({ name: 'range', required: false, enum: ['7d', '30d', '90d'] })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
@@ -30,6 +34,8 @@ export class DashboardController {
   }
 
   @Get('qr-stats')
+  @RequireCapability('customQrCodes')
+  @UseGuards(CapabilityGuard)
   @ApiOperation({ summary: 'Get QR scan statistics for the business' })
   @ApiQuery({ name: 'days', required: false, type: Number })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })

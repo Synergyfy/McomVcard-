@@ -34,6 +34,7 @@ import {
 import { ShareCentreControls, ExchangeCentreControls, RedeemCentreControls } from './BusinessCentrePanels'
 import AppointmentSettingsPanel from './AppointmentSettingsPanel'
 import { businessService } from '../../../services/businessApi'
+import { useCapabilities } from '../../../hooks/useCapabilities'
 
 /* ------------------------------------------------------------------ */
 /*  Small building blocks                                              */
@@ -622,6 +623,7 @@ function PasswordProtectionPanel({ protection, onChange, sections }: {
 type Device = 'phone' | 'tablet' | 'desktop'
 
 export default function VCardContentEditorPage() {
+  const { can } = useCapabilities()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const vcardId = Number(id)
@@ -983,7 +985,7 @@ export default function VCardContentEditorPage() {
                   <span className="ml-auto text-[9px] font-medium text-gray-400">{group.length} {group.length === 1 ? 'section' : 'sections'}</span>
                 </div>
                 <div className="p-2.5 space-y-2.5">
-                  {hasAppointmentPanel && (
+                  {hasAppointmentPanel && can('appointments') && (
                     <AppointmentSettingsPanel settings={appointment} onChange={setAppointment} />
                   )}
                   {group.map(section => (
@@ -1008,14 +1010,14 @@ export default function VCardContentEditorPage() {
           {/* Share / Exchange / Redeem — business controls for each centre.
               Content designed here feeds the Share · Exchange · Redeem sections
               shown on the published card page. */}
-          <div className="pt-1">
+          {(can('share') || can('exchange') || can('redeem')) && <div className="pt-1">
             <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Share · Exchange · Redeem controls</h4>
             <div className="space-y-3">
-              <ShareCentreControls controls={centreControls} onChange={setCentreControls} />
-              <ExchangeCentreControls controls={centreControls} onChange={setCentreControls} />
-              <RedeemCentreControls controls={centreControls} onChange={setCentreControls} />
+              {can('share') && <ShareCentreControls controls={centreControls} onChange={setCentreControls} />}
+              {can('exchange') && <ExchangeCentreControls controls={centreControls} onChange={setCentreControls} />}
+              {can('redeem') && <RedeemCentreControls controls={centreControls} onChange={setCentreControls} />}
             </div>
-          </div>
+          </div>}
 
           <PasswordProtectionPanel
             protection={protection}

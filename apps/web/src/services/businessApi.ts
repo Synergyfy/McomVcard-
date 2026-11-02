@@ -913,9 +913,9 @@ export const businessService = {
     }
   },
 
-  async claimTemplate(businessId: string, templateId: string, customSlug?: string): Promise<VCard | null> {
+  async claimTemplate(businessId: string, templateId: string, customSlug?: string, type?: 'BUSINESS_VCARD' | 'BUSINESS_CARD'): Promise<VCard | null> {
     try {
-      const res = await api.post('/cards/claim', { business_id: businessId, template_id: templateId, custom_slug: customSlug })
+      const res = await api.post('/cards/claim', { business_id: businessId, template_id: templateId, custom_slug: customSlug, type })
       return res.data.data ?? res.data
     } catch {
       return null

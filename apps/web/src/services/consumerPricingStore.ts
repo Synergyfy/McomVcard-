@@ -23,13 +23,11 @@ export function consumerDescribe(scope: RuleScope): string {
   return scope
 }
 
-const t = (monthly: number, annual: number, trialDays = 14): PlanTierPricing => ({
+const t = (monthly: number, annual: number): PlanTierPricing => ({
   monthly,
   quarterly: Math.round(monthly * 2.7),
   semiannual: Math.round(monthly * 5.4),
   annual,
-  setupFee: 0,
-  trialDays,
   description: '',
   scope: 'All',
 })
@@ -77,7 +75,7 @@ export function defaultConsumerPricing(): MembershipPricingState {
           r('Loyalty points multiplier', '1x', '2x', '3x', 'Points earned per purchase, multiplied by level.', 'All'),
           r('Wishlist size', '25', '50', '100', 'Saved businesses and cards in your wishlist.', 'All'),
         ],
-        tiers: { Normal: t(0, 0), Pro: t(9, 90), 'Pro+': t(19, 190, 7) },
+        tiers: { Normal: t(0, 0), Pro: t(9, 90), 'Pro+': t(19, 190) },
       },
       {
         id: 'Silver',
@@ -104,7 +102,7 @@ export function defaultConsumerPricing(): MembershipPricingState {
           r('Loyalty points multiplier', '2x', '3x', '4x', 'Points earned per purchase, multiplied by level.', 'All'),
           r('Wishlist size', '50', '100', '200', 'Saved businesses and cards in your wishlist.', 'All'),
         ],
-        tiers: { Normal: t(0, 0), Pro: t(19, 190), 'Pro+': t(29, 290, 7) },
+        tiers: { Normal: t(0, 0), Pro: t(19, 190), 'Pro+': t(29, 290) },
       },
       {
         id: 'Gold',
@@ -132,7 +130,7 @@ export function defaultConsumerPricing(): MembershipPricingState {
           r('Loyalty points multiplier', '3x', '4x', '5x', 'Points earned per purchase, multiplied by level.', 'All'),
           r('Wishlist size', '100', '200', '400', 'Saved businesses and cards in your wishlist.', 'All'),
         ],
-        tiers: { Normal: t(0, 0), Pro: t(29, 290), 'Pro+': t(39, 390, 7) },
+        tiers: { Normal: t(0, 0), Pro: t(29, 290), 'Pro+': t(39, 390) },
       },
       {
         id: 'Platinum',
@@ -159,7 +157,7 @@ export function defaultConsumerPricing(): MembershipPricingState {
           r('Loyalty points multiplier', '4x', '5x', '6x', 'Points earned per purchase, multiplied by level.', 'All'),
           r('Wishlist size', '200', '400', 'Unlimited', 'Saved businesses and cards in your wishlist.', 'All'),
         ],
-        tiers: { Normal: t(0, 0), Pro: t(49, 490), 'Pro+': t(69, 690, 7) },
+        tiers: { Normal: t(0, 0), Pro: t(49, 490), 'Pro+': t(69, 690) },
       },
     ],
   }
@@ -179,8 +177,6 @@ function normalizePlan(raw: any): PlanCard | null {
       quarterly: Number(tr?.quarterly) || Math.round(monthly * 2.7),
       semiannual: Number(tr?.semiannual) || Math.round(monthly * 5.4),
       annual: Number(tr?.annual) || 0,
-      setupFee: Number(tr?.setupFee) || 0,
-      trialDays: Number(tr?.trialDays) || 0,
       description: typeof tr?.description === 'string' ? tr.description : '',
       scope: RULE_SCOPES.includes(tr?.scope) ? tr.scope : 'All',
     }

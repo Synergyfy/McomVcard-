@@ -21,15 +21,12 @@ function makeVariant(
   name: string,
   durationDays: number,
   price: number,
-  trialDays = 14,
 ) {
   return {
     key,
     name,
     durationDays,
     price,
-    setupFee: 0,
-    trialDays,
     description: `${durationDays} days of access`,
     features: null,
     rules: null,
@@ -95,7 +92,6 @@ describe('SystemPlansService', () => {
         name: 'Business Growth',
         description: 'High-tier access',
         monthlyPrice: 10,
-        trialDuration: 14,
         features: ['50 Business VCards'],
         configuration: { quotas: { maxVCards: 50 }, featureFlags: { customDomains: true } },
         isDefault: false,
@@ -115,9 +111,9 @@ describe('SystemPlansService', () => {
       const createArg = plansService.create!.mock.calls[0][0] as any
       expect(createArg.level).toBeUndefined()
       expect(createArg.variants).toEqual([
-        expect.objectContaining({ key: 'standard', price: 10, trialDays: 14 }),
-        expect.objectContaining({ key: 'pro', price: 30, trialDays: 14 }),
-        expect.objectContaining({ key: 'pro_plus', price: 120, trialDays: 14 }),
+        expect.objectContaining({ key: 'standard', price: 10 }),
+        expect.objectContaining({ key: 'pro', price: 30 }),
+        expect.objectContaining({ key: 'pro_plus', price: 120 }),
       ])
 
       // Read side surfaces the variant prices on the flat connector fields.
@@ -128,7 +124,6 @@ describe('SystemPlansService', () => {
         quarterlyPrice: 54,
         semiannualPrice: 54,
         annualPrice: 100,
-        trialDuration: 14,
         isActive: true,
         type: 'STANDARD',
         features: ['50 Business VCards'],
@@ -202,15 +197,6 @@ describe('SystemPlansService', () => {
       const createArg = plansService.create!.mock.calls[0][0] as any
       expect(createArg.name).toBe('Tes Plan')
       expect(createArg.level).toBeUndefined()
-    })
-
-    it('uses a 14-day trial when type is TRIAL and no trialDuration given', async () => {
-      plansService.create!.mockResolvedValue(makePlan())
-
-      await service.create({ name: 'Trial Plan', monthlyPrice: 10, type: 'TRIAL' })
-
-      const createArg = plansService.create!.mock.calls[0][0] as any
-      expect(createArg.variants[0].trialDays).toBe(14)
     })
 
     it('marks the plan as the free/default plan when isDefault is true', async () => {

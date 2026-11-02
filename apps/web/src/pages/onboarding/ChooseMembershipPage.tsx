@@ -4,8 +4,9 @@ import { Helmet } from 'react-helmet-async'
 import OnboardingLayout from '../../components/onboarding/OnboardingLayout'
 import { mockBusinessProfile } from '../../services/businessStore'
 import { loadMembershipPricing, type BillingCycle, type PlanLevel, type PlanTier } from '../../services/membershipPricingStore'
+import { BILLING_BY_TIER } from '../../components/public/PricingCards'
 import { buildSelection, saveOnboardingSelection, type OnboardingSelection } from '../../services/onboardingStore'
-import { LevelDropdown, AccessCards, AccessComparison, AudienceSwitch, BillingToggle, type PricingAudience } from '../../components/public/PricingCards'
+import { LevelDropdown, AccessCards, AccessComparison, AudienceSwitch, type PricingAudience } from '../../components/public/PricingCards'
 import { inviteQuery } from '../../utils/inviteContext'
 
 /* ------------------------------------------------------------------ */
@@ -25,10 +26,10 @@ export default function ChooseMembershipPage() {
   const [audience, setAudience] = useState<PricingAudience>('business')
   const [level, setLevel] = useState<PlanLevel>('Gold')
   const [tier, setTier] = useState<PlanTier>('Normal')
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
+  const billing = BILLING_BY_TIER[tier]
 
   const choose = (lvl: PlanLevel, t: PlanTier) => {
-    const effectiveBilling: BillingCycle = t === 'Pro+' ? 'annual' : billing
+    const effectiveBilling: BillingCycle = BILLING_BY_TIER[t]
     const sel: OnboardingSelection = buildSelection(state, lvl, t, effectiveBilling)
     saveOnboardingSelection(sel)
     navigate(`/onboarding/payment${ctx}`)
@@ -78,12 +79,9 @@ export default function ChooseMembershipPage() {
       <div className="mb-6">
         <div className="flex flex-col items-center gap-3 mb-6">
           <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">Step 2 · Choose your access</p>
-          {tier !== 'Pro+' && <BillingToggle billing={billing} onChange={setBilling} />}
-          {tier === 'Pro+' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-800/40 text-indigo-600 text-[11px] font-bold">
-              Pro+ · Annual membership selected
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-semibold">
+            Standard 90 days · Pro 180 days · Pro+ 1 year
+          </span>
         </div>
 
         <AccessCards

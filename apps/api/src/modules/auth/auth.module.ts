@@ -15,6 +15,7 @@ import { JwtStrategy } from './jwt.strategy'
 import { JwtAuthGuard } from './jwt-auth.guard'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
+import { AccessPassPurchase } from '../access-passes/entities/access-pass-purchase.entity'
 
 
 @Module({
@@ -24,7 +25,7 @@ import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity
     EmailVerificationModule,
     RolesModule,
     forwardRef(() => AffiliatesModule),
-    TypeOrmModule.forFeature([RefreshToken, SubscribedPlan]),
+    TypeOrmModule.forFeature([RefreshToken, SubscribedPlan, AccessPassPurchase]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

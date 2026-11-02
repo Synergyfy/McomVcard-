@@ -14,6 +14,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -23,7 +25,8 @@ import { ShareResponseDto, ShareStatsResponseDto } from './dto/share-response.dt
 
 @ApiTags('shares')
 @ApiExtraModels(ApiResponse, ShareResponseDto, ShareStatsResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
+@RequireCapability('share')
 @Controller('shares')
 export class SharesController {
   constructor(private readonly sharesService: SharesService) {}

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import InfoTooltip from '../../components/common/InfoTooltip'
 import { businessService, type Business, type BusinessFamilyMember, type BusinessFamilyStatus, type BusinessPermissions } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 const RELATIONSHIPS = ['Family', 'Spouse', 'Partner', 'Child', 'Parent', 'Sibling', 'Friend', 'Team member', 'Other']
 const COLORS = ['bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-rose-500', 'bg-cyan-500']
@@ -16,6 +17,7 @@ const occupies = (s: BusinessFamilyStatus) => s === 'active' || s === 'allocated
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function FamilyPage() {
+  const { capabilities } = useCapabilities()
   const [business, setBusiness] = useState<Business | null>(null)
   const [permissions, setPermissions] = useState<BusinessPermissions | null>(null)
   const [members, setMembers] = useState<BusinessFamilyMember[]>([])
@@ -44,7 +46,14 @@ export default function FamilyPage() {
     return () => { cancelled = true }
   }, [])
 
-  const limit = permissions?.limits.friends_family ?? null
+  const familyCapability = capabilities?.capabilities['maxFriendsFamily']
+  const limit = familyCapability
+    ? familyCapability.mode === 'unlimited'
+      ? null
+      : familyCapability.mode === 'disabled'
+        ? 0
+        : familyCapability.limit
+    : null
   const used = members.filter((m) => occupies(m.status)).length
   const remaining = limit === null ? null : Math.max(0, limit - used)
   const canAllocate = limit === null || (remaining ?? 0) > 0

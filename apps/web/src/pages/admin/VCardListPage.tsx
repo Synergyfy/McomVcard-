@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../services/admin'
 import { rowsOf } from '../../services/adminList'
@@ -8,6 +9,7 @@ import ActionDropdown from '../../components/common/ActionDropdown'
 
 export default function VCardListPage() {
   const { t } = useTranslation()
+  const location = useLocation()
   const [vcards, setVcards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -26,14 +28,26 @@ export default function VCardListPage() {
     try { await adminService.deleteVcard(String(id)); setVcards(vcards.filter((v) => String(v.id) !== id)) } catch { setVcards(vcards.filter((v) => String(v.id) !== id)) }
   }
 
-  const filtered = vcards.filter((v) => {
+  // The three routes share this page: /admin/vcards (all),
+  // /admin/vcards/business and /admin/vcards/consumer.
+  const routeType = location.pathname.endsWith('/business')
+    ? 'BUSINESS_VCARD'
+    : location.pathname.endsWith('/consumer')
+      ? 'CONSUMER_VCARD'
+      : null
+
+  const scoped = routeType ? vcards.filter((v) => v.type === routeType) : vcards
+
+  const filtered = scoped.filter((v) => {
     const q = search.toLowerCase()
-    const matchSearch = !search || v.name.toLowerCase().includes(q) || (v.url_slug || '').toLowerCase().includes(q) || (v.user?.name || '').toLowerCase().includes(q)
-    const matchStatus = filterStatus === 'all' || (filterStatus === 'active' && v.status) || (filterStatus === 'inactive' && !v.status)
+    const name = String(v.name ?? v.slug ?? '')
+    const ownerName = typeof v.owner === 'string' ? v.owner : (v.owner?.name ?? '')
+    const matchSearch = !search || name.toLowerCase().includes(q) || (v.url_slug || '').toLowerCase().includes(q) || ownerName.toLowerCase().includes(q)
+    const matchStatus = filterStatus === 'all' || (filterStatus === 'active' && v.status === 'active') || (filterStatus === 'inactive' && v.status !== 'active')
     return matchSearch && matchStatus
   })
 
-  const activeCount = vcards.filter((v) => v.status).length
+  const activeCount = scoped.filter((v) => v.status === 'active').length
 
   return (
     <div>
@@ -42,14 +56,16 @@ export default function VCardListPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.nav.vcards')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{vcards.length} total vCards</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {scoped.length} total {routeType === 'BUSINESS_VCARD' ? 'business' : routeType === 'CONSUMER_VCARD' ? 'consumer' : ''} vCards
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Total</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{vcards.length}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{scoped.length}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider">Active</p>
@@ -93,12 +109,14 @@ export default function VCardListPage() {
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {filtered.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{v.name}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">{v.url_slug || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{v.user?.name || '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{v.name || v.slug || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">{v.url_slug || v.slug || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      {typeof v.owner === 'string' ? v.owner : (v.owner?.name || v.owner?.email || '—')}
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v.status ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                        {v.status ? 'Active' : 'Inactive'}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v.status === 'active' ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                        {v.status === 'active' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">

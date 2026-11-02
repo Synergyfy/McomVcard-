@@ -12,6 +12,7 @@ import { Card } from '../cards/entities/card.entity'
 import { Membership } from '../memberships/entities/membership.entity'
 import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
 import { BusinessesService } from '../businesses/businesses.service'
+import { CapabilitiesService } from '../capabilities/capabilities.service'
 import { CacheService } from '../../lib/cache/cache.service'
 
 const VIEW_EVENTS = ['card_view', 'profile_view', 'view']
@@ -35,6 +36,7 @@ export class DashboardService {
     @InjectRepository(Membership) private memberships: Repository<Membership>,
     @InjectRepository(AnalyticsEvent) private analyticsEvents: Repository<AnalyticsEvent>,
     private readonly businessesService: BusinessesService,
+    private readonly capabilities: CapabilitiesService,
     private readonly cache: CacheService,
   ) {}
 
@@ -100,7 +102,7 @@ export class DashboardService {
       }
 
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
-      const [stats, events, permissionsResponse] = await Promise.all([
+      const [stats, events, permissionsResponse, capabilities] = await Promise.all([
         this.getStats(business.id, userId),
         this.analyticsEvents.createQueryBuilder('e')
           .select("DATE_TRUNC('day', e.created_at)", 'day')
@@ -112,6 +114,7 @@ export class DashboardService {
           .addGroupBy('e.event_type')
           .getRawMany<{ day: Date | string; eventType: string; count: string }>(),
         this.businessesService.getPermissionsForUser(userId),
+        this.capabilities.resolveForUser(userId),
       ])
 
       const permissions = permissionsResponse as {
@@ -135,7 +138,13 @@ export class DashboardService {
       const totalViews = dailyViews.reduce((sum, point) => sum + point.value, 0)
       const totalScans = dailyScans.reduce((sum, point) => sum + point.value, 0)
       const totalShares = Math.max(stats.totalShares, [...shareMap.values()].reduce((a, b) => a + b, 0))
-      const toLimit = (limit: number | null) => (limit === null ? 'Unlimited' : String(limit))
+      const toCapabilityLimit = (key: string) => {
+        const capability = capabilities.capabilities[key]
+        if (!capability) return 'Unlimited'
+        if (capability.mode === 'unlimited') return 'Unlimited'
+        if (capability.mode === 'disabled') return '0'
+        return String(capability.limit ?? 0)
+      }
 
       return {
         range,
@@ -158,10 +167,10 @@ export class DashboardService {
           { action: 'Reviews', count: stats.totalReviews },
         ],
         membershipUsage: [
-          { resource: 'Business VCards', used: permissions.allocated.vcards, limit: toLimit(permissions.limits.vcards) },
-          { resource: 'Business Cards', used: permissions.allocated.business_cards, limit: toLimit(permissions.limits.business_cards) },
-          { resource: 'Friends & Family', used: 0, limit: toLimit(permissions.limits.friends_family) },
-          { resource: 'QR routing rules', used: 0, limit: toLimit(permissions.limits.qr_routing_rules) },
+          { resource: 'Business VCards', used: permissions.allocated.vcards, limit: toCapabilityLimit('maxVCards') },
+          { resource: 'Business Cards', used: permissions.allocated.business_cards, limit: toCapabilityLimit('maxBusinessCards') },
+          { resource: 'Friends & Family', used: 0, limit: toCapabilityLimit('maxFriendsFamily') },
+          { resource: 'QR routing rules', used: 0, limit: toCapabilityLimit('qrRoutingRules') },
         ],
       }
     })

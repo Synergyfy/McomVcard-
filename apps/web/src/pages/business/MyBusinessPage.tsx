@@ -15,6 +15,7 @@ import {
     type VCard,
 } from '../../services/businessApi'
 import MyPlanCard from '../../components/business/MyPlanCard'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 const greeting = () => {
     const h = new Date().getHours()
@@ -45,6 +46,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function BusinessHomePage() {
+    const { can } = useCapabilities()
     const [business, setBusiness] = useState<Business | null>(null)
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [wallet, setWallet] = useState<Wallet | null>(null)
@@ -62,12 +64,15 @@ export default function BusinessHomePage() {
             try {
                 const [businesses, notifs, walletData, memberData, dashStats, activityData, analyticsData, seasons] = await Promise.all([
                     businessService.getMyBusinesses(),
-                    businessService.getNotifications(),
-                    businessService.getWallet(),
+                    // Feature-gated modules return 403 when the active plan or
+                    // access pass does not include them. Treat those as empty
+                    // so the rest of the dashboard still renders.
+                    businessService.getNotifications().catch(() => []),
+                    businessService.getWallet().catch(() => null),
                     businessService.getMyMemberships(),
                     businessService.getDashboardStats(),
                     businessService.getActivity(10),
-                    businessService.getAnalyticsOverview(),
+                    businessService.getAnalyticsOverview().catch(() => ({})),
                     businessService.getSeasons(),
                 ])
 
@@ -132,9 +137,9 @@ export default function BusinessHomePage() {
         { label: 'My VCard', subtitle: 'Digital profile', value: stats?.totalCards?.toString() ?? '--', icon: vcardIcon, gradient: 'from-orange-500 to-amber-500', to: '/b/vcards' },
         { label: 'My Business Card', subtitle: `${activeCards} active . ${activeCardName}`, value: stats?.totalShares?.toString() ?? '--', icon: cardIcon, gradient: 'from-slate-600 to-slate-800', to: '/b/cards' },
         { label: 'Membership', subtitle: activeMembership ? `${membershipName} . ${activeMembership.status}` : 'No active membership', value: membershipName, icon: membershipIcon, gradient: 'from-amber-500 to-orange-600', to: '/b/membership' },
-        { label: 'Customers', subtitle: 'New & returning guests', value: stats?.totalAppointments?.toString() ?? '--', icon: customersIcon, gradient: 'from-blue-500 to-indigo-600', to: '/b/customers' },
-        { label: 'Rewards', subtitle: 'Points, perks & campaigns', value: stats?.totalRewardsRedeemed?.toString() ?? '--', icon: rewardsIcon, gradient: 'from-purple-500 to-violet-600', to: '/b/rewards' },
-        { label: 'Wallet / Smart Money', subtitle: wallet ? `${wallet.currency} balance` : 'No wallet yet', value: wallet ? `${symbol}${walletBalance.toFixed(2)}` : '--', icon: walletIcon, gradient: 'from-emerald-500 to-teal-600', to: '/b/wallet' },
+        { label: 'Customers', subtitle: 'New & returning guests', value: stats?.totalAppointments?.toString() ?? '--', icon: customersIcon, gradient: 'from-blue-500 to-indigo-600', to: '/b/customers', capability: 'customerCrm' },
+        { label: 'Rewards', subtitle: 'Points, perks & campaigns', value: stats?.totalRewardsRedeemed?.toString() ?? '--', icon: rewardsIcon, gradient: 'from-purple-500 to-violet-600', to: '/b/rewards', capability: 'rewards' },
+        { label: 'Wallet / Smart Money', subtitle: wallet ? `${wallet.currency} balance` : 'No wallet yet', value: wallet ? `${symbol}${walletBalance.toFixed(2)}` : '--', icon: walletIcon, gradient: 'from-emerald-500 to-teal-600', to: '/b/wallet', capability: 'wallet' },
     ]
 
     const performance = [
@@ -151,12 +156,12 @@ export default function BusinessHomePage() {
     const actionItems = [
         { label: 'View VCard', subtitle: 'Digital profile', icon: vcardIcon, color: 'from-orange-500 to-amber-500', to: '/b/vcards' },
         { label: 'View Business Card', subtitle: '85 x 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/b/cards' },
-        { label: 'Share', subtitle: 'Send to anyone', icon: shareIcon, color: 'from-blue-500 to-cyan-500', to: '/b/vcards?centre=share' },
-        { label: 'Show QR', subtitle: 'Scan & connect', icon: qrIcon, color: 'from-purple-500 to-violet-600', to: '/b/qr' },
-        { label: 'Reward Customer', subtitle: 'Points & perks', icon: rewardsIcon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue' },
-        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: bookIcon, color: 'from-cyan-500 to-sky-600', to: '/b/appointments' },
+        { label: 'Share', subtitle: 'Send to anyone', icon: shareIcon, color: 'from-blue-500 to-cyan-500', to: '/b/vcards?centre=share', capability: 'share' },
+        { label: 'Show QR', subtitle: 'Scan & connect', icon: qrIcon, color: 'from-purple-500 to-violet-600', to: '/b/qr', capability: 'customQrCodes' },
+        { label: 'Reward Customer', subtitle: 'Points & perks', icon: rewardsIcon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue', capability: 'rewards' },
+        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: bookIcon, color: 'from-cyan-500 to-sky-600', to: '/b/appointments', capability: 'appointments' },
         { label: 'View Membership', subtitle: 'Plan & benefits', icon: membershipIcon, color: 'from-amber-500 to-orange-600', to: '/b/membership' },
-        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/wallet' },
+        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/wallet', capability: 'wallet' },
     ]
 
     const alerts = [
@@ -247,7 +252,7 @@ export default function BusinessHomePage() {
             <section>
                 <SectionTitle>Your Business</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
-                    {mainCards.map((c) => (
+                    {mainCards.filter((c) => !c.capability || can(c.capability)).map((c) => (
                         <Link key={c.label} to={c.to} className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all">
                             <div className="flex items-center justify-between mb-2">
                                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
@@ -281,7 +286,7 @@ export default function BusinessHomePage() {
             <section>
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
-                    {actionItems.map((a) => (
+                    {actionItems.filter((a) => !a.capability || can(a.capability)).map((a) => (
                         <Link key={a.label} to={a.to} className="group flex items-start gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-3.5 hover:shadow-md transition-all">
                             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform shrink-0`}>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={a.icon} /></svg>

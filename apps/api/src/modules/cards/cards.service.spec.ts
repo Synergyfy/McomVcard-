@@ -21,6 +21,7 @@ import { Season } from '../seasons/entities/season.entity'
 import { Wallet } from '../finance/entities/wallet.entity'
 import { RewardBalance } from '../finance/entities/reward-balance.entity'
 import { BusinessesService } from '../businesses/businesses.service'
+import { CapabilitiesService } from '../capabilities/capabilities.service'
 import { CreateCardDto } from './dto/create-card.dto'
 import { CreateCardProfileDto } from './dto/create-card-profile.dto'
 import { CreateCardCustomizationDto } from './dto/create-card-customization.dto'
@@ -150,6 +151,7 @@ describe('CardsService', () => {
     templatesRepo = createMockRepo()
     analyticsRepo = createMockRepo()
     businessesService = { findOwned: jest.fn() }
+    const capabilitiesService = { assertQuota: jest.fn(), assertFeature: jest.fn() }
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -172,6 +174,7 @@ describe('CardsService', () => {
         { provide: getRepositoryToken(Wallet), useValue: createMockRepo() },
         { provide: getRepositoryToken(RewardBalance), useValue: createMockRepo() },
         { provide: BusinessesService, useValue: businessesService },
+        { provide: CapabilitiesService, useValue: capabilitiesService },
       ],
     }).compile()
 

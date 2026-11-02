@@ -1,3 +1,5 @@
+import type { McomAccessDecision } from '../services/mcom'
+
 export interface Feature {
   id: string
   name: string
@@ -154,6 +156,8 @@ export interface User {
   access_reason?: string | null
   /** Central Hub Solution page where the user can buy a membership */
   upgrade_url?: string | null
+  /** Normalized Central entitlement decision (source, plan, expiry, trial tasks). */
+  access?: McomAccessDecision | null
   /** Canonical Central Hub Solution role (BUSINESS | CUSTOMER | AGENT | ...) */
   role?: string | null
   /** Central profile discriminator — tells which role profile is populated */
@@ -670,6 +674,7 @@ export interface ApiUserResponse {
   membership_status?: string | null
   access_reason?: string | null
   upgrade_url?: string | null
+  access?: McomAccessDecision | null
   role?: string | null
   profile_type?: string | null
   is_affiliate?: boolean

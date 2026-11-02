@@ -6,7 +6,7 @@ import {
 } from '../../../services/membershipPricingStore'
 import { getSystemResources, systemResource, resourceUsage, type SystemResource } from '../../../services/membershipResources'
 import { parseLimit } from '../../../services/membershipEnforcement'
-import { BillingToggle, PricingCard, PricingTierTabs } from '../../public/PricingCards'
+import { PricingCard, PricingTierTabs } from '../../public/PricingCards'
 
 /* ------------------------------------------------------------------ */
 /*  Plans & Pricing — a single comparison-table editor (Stripe-style).  */
@@ -24,6 +24,24 @@ const PLAN_COLORS: Record<string, string> = {
   Silver: 'bg-slate-400',
   Gold: 'bg-yellow-500',
   Platinum: 'bg-blue-600',
+}
+
+/**
+ * A variant is a duration, not a separate billing choice:
+ *   Standard = 90 days, Pro = 180 days, Pro+ = 1 year.
+ * The legacy store still keys prices per tier × cycle, so each variant maps to
+ * the one cycle that matches its duration.
+ */
+const BILLING_BY_TIER: Record<PlanTier, BillingCycle> = {
+  Normal: 'quarterly',
+  Pro: 'semiannual',
+  'Pro+': 'annual',
+}
+
+const ACCESS_LABEL_BY_TIER: Record<PlanTier, string> = {
+  Normal: 'Standard',
+  Pro: 'Pro',
+  'Pro+': 'Pro+',
 }
 
 function Num({ value, onChange, prefix }: { value: number; onChange: (v: number) => void; prefix?: string }) {
@@ -161,7 +179,6 @@ export function PlansPricingSection({ state, update }: {
   update: (fn: (s: MembershipPricingState) => MembershipPricingState) => void
 }) {
   const [tier, setTier] = useState<PlanTier>('Normal')
-  const [billing, setBilling] = useState<BillingCycle>('quarterly')
   const [open, setOpen] = useState<'price' | 'feature' | 'rule' | null>(null)
   const [resources, setResources] = useState<SystemResource[]>([])
 
@@ -179,11 +196,12 @@ export function PlansPricingSection({ state, update }: {
 
   const newRule = () => ({ label: '', values: { Normal: '' as const, Pro: '' as const, 'Pro+': '' as const }, description: '', scope: 'All' as const })
 
+  // The selected variant determines the billing cycle — there is no separate
+  // 90/180/Annual switch, because that would allow "Pro+ for 90 days".
+  const billing = BILLING_BY_TIER[tier]
+
   const setPrice = (id: string, v: number) =>
     patchPlan(id, p => ({ ...p, tiers: { ...p.tiers, [tier]: { ...p.tiers[tier], [billing]: v } } }))
-
-  const setTierNum = (id: string, key: 'setupFee' | 'trialDays', v: number) =>
-    patchPlan(id, p => ({ ...p, tiers: { ...p.tiers, [tier]: { ...p.tiers[tier], [key]: v } } }))
 
   const setTagline = (id: string, v: string) => patchPlan(id, p => ({ ...p, tagline: v }))
 
@@ -245,12 +263,12 @@ export function PlansPricingSection({ state, update }: {
         <div>
           <h2 className="text-sm font-bold text-gray-900 dark:text-white">Plans & Pricing</h2>
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-            Edit tagline, price, setup, trial, features and rules. Price, Feature and Rule are collapsible sections.
+            One variant at a time: <strong>Standard = 90 days</strong>, <strong>Pro = 180 days</strong>, <strong>Pro+ = 1 year</strong>.
+            Edit tagline, price, features and rules. Price, Feature and Rule are collapsible sections.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <PricingTierTabs tier={tier} onChange={setTier} />
-          <BillingToggle billing={billing} onChange={setBilling} />
         </div>
       </div>
 
@@ -315,7 +333,9 @@ export function PlansPricingSection({ state, update }: {
                   <tr className="border-b border-gray-50 dark:border-gray-700/50">
                     <td className="px-4 py-3">
                       <p className={rowLabel}>Price</p>
-                      <p className="text-[9px] text-gray-400">{billing === 'quarterly' ? 'per 90 days' : billing === 'semiannual' ? 'per 180 days' : billing === 'annual' ? 'per year' : 'per month'} · {tier} tier</p>
+                      <p className="text-[9px] text-gray-400">
+                        {ACCESS_LABEL_BY_TIER[tier]} · {billing === 'quarterly' ? '90 days' : billing === 'semiannual' ? '180 days' : '1 year'}
+                      </p>
                     </td>
                     {state.plans.map(plan => (
                       <td key={plan.id} className="px-3 py-3">
@@ -323,19 +343,7 @@ export function PlansPricingSection({ state, update }: {
                       </td>
                     ))}
                   </tr>
-                  {/* Setup + trial */}
-                  <tr className="border-b border-gray-50 dark:border-gray-700/50">
-                    <td className="px-4 py-3">
-                      <p className={rowLabel}>Setup & trial</p>
-                      <p className="text-[9px] text-gray-400">One-off setup fee and free-trial days for {tier}</p>
-                    </td>
-                    {state.plans.map(plan => (
-                      <td key={plan.id} className="px-3 py-3 space-y-1.5">
-                        <Num prefix={state.currency === 'USD' ? '$' : '£'} value={plan.tiers[tier].setupFee} onChange={v => setTierNum(plan.id, 'setupFee', v)} />
-                        <Num value={plan.tiers[tier].trialDays} onChange={v => setTierNum(plan.id, 'trialDays', v)} />
-                      </td>
-                    ))}
-                  </tr>
+
                 </>
               )}
 

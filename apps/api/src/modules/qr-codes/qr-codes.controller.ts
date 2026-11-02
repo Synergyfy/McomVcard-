@@ -14,6 +14,8 @@ import {
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -23,12 +25,13 @@ import { QrCodeResponseDto, QrResolveResponseDto } from './dto/qr-code-response.
 
 @ApiTags('qr-codes')
 @ApiExtraModels(ApiResponse, QrCodeResponseDto, QrResolveResponseDto)
+@RequireCapability('customQrCodes')
 @Controller('qr-codes')
 export class QrCodesController {
   constructor(private readonly qrCodesService: QrCodesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a QR code for a card', description: 'Creates a QR code attached to one of the authenticated user\'s cards. Each QR targets a destination (VCARD, BUSINESS_PROFILE, OFFER, CAMPAIGN) and is scannable at its public url: https://mcomvcard.link/qr/<id>.' })
   @ApiBody({
@@ -55,7 +58,7 @@ export class QrCodesController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List my QR codes', description: 'Returns every QR code across the authenticated user\'s cards, newest first.' })
   @ApiOkResponse({
@@ -73,7 +76,7 @@ export class QrCodesController {
   }
 
   @Get('cards/:cardId')
-  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List QR codes for a card', description: 'Returns every QR code attached to one of the authenticated user\'s cards.' })
   @ApiOkResponse({
@@ -92,7 +95,7 @@ export class QrCodesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a QR code', description: 'Updates the destination type, destination, or active state of a QR code belonging to one of the authenticated user\'s cards.' })
   @ApiBody({
@@ -116,7 +119,7 @@ export class QrCodesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a QR code', description: 'Permanently deletes a QR code belonging to one of the authenticated user\'s cards.' })
   @ApiOkResponse({

@@ -40,8 +40,6 @@ export interface PlanTierPricing {
   quarterly: number
   semiannual: number
   annual: number
-  setupFee: number
-  trialDays: number
   description: string
   scope: RuleScope
 }
@@ -85,8 +83,6 @@ export interface PlanVariant {
   name: string
   durationDays: number
   price: number
-  setupFee: number
-  trialDays: number
   description: string
   features: PlanFeature[] | null
   rules: PlanRule[] | null

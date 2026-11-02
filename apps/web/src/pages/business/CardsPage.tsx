@@ -9,6 +9,7 @@ import type { CardFaces } from '../../services/cardTemplateStore'
 import type { CardSectionState } from '../../services/cardTemplateStore'
 import { BIZ_CARD_SECTIONS } from '../../services/businessCardEditorStore'
 import { businessService, type Business, type VCard, type VCardSection, type Template, type BusinessPermissions } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 /* ── Map API card sections onto the preview renderer's state shape ── */
 
@@ -44,6 +45,7 @@ function formatDate(value: string | null): string {
 }
 
 export default function BusinessCardsPage() {
+    const { capabilities, can } = useCapabilities()
     const [showTemplates, setShowTemplates] = useState(false)
     const [showQR, setShowQR] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -70,7 +72,7 @@ export default function BusinessCardsPage() {
                     businessService.getBusinessPermissions(),
                 ])
                 if (cancelled) return
-                const bizCards = biz ? myCards : myCards.filter(c => c.type === 'BUSINESS')
+                const bizCards = myCards.filter(c => c.type === 'BUSINESS_CARD')
                 setCards(bizCards)
                 setTemplates(tpl)
                 setPermissions(perms)
@@ -87,6 +89,16 @@ export default function BusinessCardsPage() {
 
     const activeCard = cards.find(c => c.id === activeCardId) ?? cards[0]
     const activeFaces = activeCard ? apiSectionsToFaces(activeCard.sections ?? []) : { front: [], back: [] }
+    const cardCapability = capabilities?.capabilities['maxBusinessCards']
+    const cardLimit = cardCapability
+        ? cardCapability.mode === 'unlimited'
+            ? Infinity
+            : cardCapability.mode === 'disabled'
+                ? 0
+                : cardCapability.limit
+        : null
+    const cardLimitLabel = cardLimit === null || cardLimit === Infinity ? 'Unlimited' : String(cardLimit)
+    const atCardLimit = cardLimit !== null && cardLimit !== Infinity && cards.length >= cardLimit
 
     const totals = {
         views: cards.reduce((s, c) => s + (c.views ?? 0), 0),
@@ -116,7 +128,7 @@ export default function BusinessCardsPage() {
                     toast.error('Create your business profile first')
                     return
                 }
-                const claimed = await businessService.claimTemplate(business.id, template.id)
+                const claimed = await businessService.claimTemplate(business.id, template.id, undefined, 'BUSINESS_CARD')
                 if (!claimed) {
                     toast.error('Could not apply this template')
                     return
@@ -133,6 +145,10 @@ export default function BusinessCardsPage() {
 
     const duplicateActiveCard = async () => {
         if (!activeCard) return
+        if (atCardLimit) {
+            toast.error(`You have reached your ${cardLimitLabel} business card limit`)
+            return
+        }
         setClaiming(true)
         try {
             const copy = await businessService.duplicateCard(activeCard.id)
@@ -165,11 +181,9 @@ export default function BusinessCardsPage() {
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Static 85 × 55 mm identity cards assigned to your business by Admin — design and structure are fixed, you choose the template and customize your content.</p>
                         <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
-                            <span>{cards.length} allocated</span>
+                            <span>{cards.length} of {cardLimitLabel} created</span>
                             {permissions && (
                                 <>
-                                    <span>·</span>
-                                    <span>{permissions.remaining.business_cards === null ? 'Unlimited' : `${permissions.remaining.business_cards} remaining`}</span>
                                     <span>·</span>
                                     <span>{permissions.plan_level} {permissions.plan_tier !== 'Normal' ? permissions.plan_tier : ''} plan</span>
                                 </>
@@ -179,10 +193,10 @@ export default function BusinessCardsPage() {
                     </div>
                     <button
                         onClick={() => setShowTemplates(true)}
-                        disabled={claiming}
-                        className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 shrink-0 disabled:opacity-50"
+                        disabled={claiming || atCardLimit}
+                        className="px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Choose a Template
+                        {atCardLimit ? 'Allocation full' : 'Choose a Template'}
                     </button>
                 </div>
             </div>
@@ -228,6 +242,8 @@ export default function BusinessCardsPage() {
                     onUseTemplate={() => setShowTemplates(true)}
                     onShowQR={() => setShowQR(true)}
                     onDuplicate={duplicateActiveCard}
+                    atLimit={atCardLimit}
+                    can={can}
                 />
             )}
 
@@ -238,7 +254,7 @@ export default function BusinessCardsPage() {
                     </div>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No business cards yet</p>
                     <p className="text-xs text-gray-400 mb-4">{business ? 'Choose a published template to create your first Business Card.' : 'Create your business profile first, then choose a template.'}</p>
-                    <button onClick={() => setShowTemplates(true)} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600">Choose a Template</button>
+                    <button onClick={() => setShowTemplates(true)} disabled={atCardLimit} className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed">{atCardLimit ? 'Allocation full' : 'Choose a Template'}</button>
                 </div>
             )}
 
@@ -350,12 +366,14 @@ function FlipCard({ faces, widthClass = 'w-[300px] sm:w-[340px]', flipHint = tru
 
 /* ── Business Card preview + actions ─────────────────────────────── */
 
-function BusinessCardSection({ card, faces, onUseTemplate, onShowQR, onDuplicate }: {
+function BusinessCardSection({ card, faces, onUseTemplate, onShowQR, onDuplicate, atLimit, can }: {
     card: VCard | undefined
     faces: CardFaces
     onUseTemplate: () => void
     onShowQR: () => void
     onDuplicate: () => void
+    atLimit: boolean
+    can: (key: string) => boolean
 }) {
     const navigate = useNavigate()
     const isActive = card?.status === 'active'
@@ -369,7 +387,13 @@ function BusinessCardSection({ card, faces, onUseTemplate, onShowQR, onDuplicate
         { label: 'Duplicate', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z', onClick: onDuplicate },
         { label: 'QR Code', icon: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h.01M5 20H4m0-4h.01M6 4h.01M8 4h.01M4 8h.01M20 8h.01M20 4h.01M20 12h.01', onClick: onShowQR },
         { label: 'Customize', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', onClick: () => card && navigate(`/b/cards/${card.id}/edit`) },
-    ]
+    ].filter((action) => {
+        if (action.label === 'Share') return can('share')
+        if (action.label === 'QR Code') return can('customQrCodes')
+        if (action.label === 'Customize') return can('content')
+        if (action.label === 'Duplicate') return !atLimit
+        return true
+    })
 
     return (
         <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">

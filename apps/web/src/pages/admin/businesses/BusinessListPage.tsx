@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getFeaturedIds, toggleFeatured } from '../../../services/participatingBusinesses'
+import { adminApi } from '../../../services/adminAuth'
 
 const PAGE_SIZES = [25, 50, 100]
 const ACCOUNT_STATUSES = ['All', 'Active', 'Pending', 'Suspended', 'Deactivated']
@@ -35,16 +36,28 @@ function lastActivityLabel(hoursAgo: number): string {
   return `${Math.floor(hoursAgo / 24)} days ago`
 }
 
+interface ApiBusinessOwner {
+  first_name?: string | null
+  last_name?: string | null
+  email?: string | null
+}
+
 interface ApiBusiness {
   id: string
   name: string
-  owner?: string
+  owner?: string | ApiBusinessOwner | null
   email?: string
   phone?: string
   status?: string
   plan?: string
   created_at?: string
   [key: string]: any
+}
+
+function ownerLabel(owner: ApiBusiness['owner']): string {
+  if (!owner) return '—'
+  if (typeof owner === 'string') return owner
+  return [owner.first_name, owner.last_name].filter(Boolean).join(' ') || owner.email || '—'
 }
 
 function mapBizData(b: ApiBusiness) {
@@ -64,6 +77,7 @@ function mapBizData(b: ApiBusiness) {
 
   return {
     ...b,
+    owner: ownerLabel(b.owner),
     businessId: `BUS-${String(b.id).padStart(6, '0')}`,
     membership,
     membershipStatus,
@@ -159,11 +173,11 @@ export default function BusinessListPage() {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    fetch('/api/admin/businesses')
-      .then((r) => r.json())
+    adminApi
+      .get('/admin/businesses')
       .then((res) => {
         if (!cancelled) {
-          const raw = res?.data ?? res ?? []
+          const raw = res.data?.data ?? res.data ?? []
           setBizData(Array.isArray(raw) ? raw.map(mapBizData) : [])
         }
       })
@@ -259,7 +273,7 @@ export default function BusinessListPage() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return items
-  }, [search, statusFilter, membershipFilter, bizVcardFilter, bizCardFilter, consumerVAlloc, consumerCAlloc, dateRange, activityRange, sortKey, sortDir, kpiFilter, featuredFilter, featuredIds])
+  }, [bizData, search, statusFilter, membershipFilter, bizVcardFilter, bizCardFilter, consumerVAlloc, consumerCAlloc, dateRange, activityRange, sortKey, sortDir, kpiFilter, featuredFilter, featuredIds])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paginated = filtered.slice(page * pageSize, (page + 1) * pageSize)

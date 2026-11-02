@@ -16,6 +16,8 @@ import {
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { AppointmentsService } from './appointments.service'
@@ -30,7 +32,8 @@ import { UpdateBookingRuleDto } from './dto/update-booking-rule.dto'
 
 @ApiTags('appointments')
 @ApiExtraModels(ApiResponse, AppointmentResponseDto, AvailabilityResponseDto, BookingRuleResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
+@RequireCapability('appointments')
 @Controller()
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}

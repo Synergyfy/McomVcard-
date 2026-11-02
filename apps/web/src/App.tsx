@@ -14,6 +14,7 @@ import RequireCustomer from './components/auth/RequireCustomer'
 import RequireBusiness from './components/auth/RequireBusiness'
 import RequireBusinessAccess from './components/auth/RequireBusinessAccess'
 import RequireAdmin from './components/auth/RequireAdmin'
+import CapabilityGate from './components/business/CapabilityGate'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
@@ -53,6 +54,10 @@ const PlanListPage = lazy(() => import('./pages/admin/plans/PlanListPage'))
 const PlanCreatePage = lazy(() => import('./pages/admin/plans/PlanCreatePage'))
 const PlanEditPage = lazy(() => import('./pages/admin/plans/PlanEditPage'))
 const PlanDetailPage = lazy(() => import('./pages/admin/plans/PlanDetailPage'))
+const AccessPassListPage = lazy(() => import('./pages/admin/access-passes/AccessPassListPage'))
+const AccessPassCreatePage = lazy(() => import('./pages/admin/access-passes/AccessPassCreatePage'))
+const AccessPassEditPage = lazy(() => import('./pages/admin/access-passes/AccessPassEditPage'))
+const AccessPassDetailPage = lazy(() => import('./pages/admin/access-passes/AccessPassDetailPage'))
 const TemplateListPage = lazy(() => import('./pages/admin/templates/TemplateListPage'))
 const CurrencyListPage = lazy(() => import('./pages/admin/currencies/CurrencyListPage'))
 const CurrencyCreatePage = lazy(() => import('./pages/admin/currencies/CurrencyCreatePage'))
@@ -275,35 +280,35 @@ export default function App() {
                   <Route path="/b/dashboard" element={<MyBusinessPage />} />
                   <Route path="/b/vcards" element={<BusinessVCardsPage />} />
                   <Route path="/b/vcards/:id" element={<BusinessVCardDetailPage />} />
-                  <Route path="/b/vcards/:id/edit" element={<BusinessVCardContentEditorPage />} />
+                  <Route path="/b/vcards/:id/edit" element={<CapabilityGate capability="content"><BusinessVCardContentEditorPage /></CapabilityGate>} />
                   <Route path="/b/cards" element={<BusinessMyCardsPage />} />
                   <Route path="/b/cards/:id" element={<BusinessCardDetailPage />} />
-                  <Route path="/b/cards/:id/edit" element={<BusinessCardContentEditorPage />} />
+                  <Route path="/b/cards/:id/edit" element={<CapabilityGate capability="content"><BusinessCardContentEditorPage /></CapabilityGate>} />
                   <Route path="/b/membership" element={<BusinessMembershipPage />} />
                   <Route path="/b/membership/plans" element={<BusinessMembershipPlansPage />} />
                   <Route path="/b/membership/payment" element={<Navigate to="/plans" replace />} />
                   <Route path="/b/membership/confirmation" element={<BusinessMembershipConfirmationPage />} />
-                  <Route path="/b/reports" element={<BusinessReportsPage />} />
-                  <Route path="/b/integrations" element={<BusinessIntegrationsPage />} />
+                  <Route path="/b/reports" element={<CapabilityGate capability="reports"><BusinessReportsPage /></CapabilityGate>} />
+                  <Route path="/b/integrations" element={<CapabilityGate capability="integrations"><BusinessIntegrationsPage /></CapabilityGate>} />
                   <Route path="/b/help" element={<BusinessHelpSupportPage />} />
                   <Route path="/b/settings" element={<BusinessSettingsPage />} />
-                  <Route path="/b/customers" element={<BusinessCustomersPage />} />
-                  <Route path="/b/customers/:id" element={<BusinessCustomerDetailPage />} />
-                  <Route path="/b/rewards" element={<BusinessRewardsPage />} />
-                  <Route path="/b/rewards/issue" element={<BusinessIssueRewardPage />} />
-                  <Route path="/b/rewards/campaigns" element={<BusinessCampaignsPage />} />
-                  <Route path="/b/rewards/coupons" element={<BusinessCouponsPage />} />
-                  <Route path="/b/rewards/cashback" element={<BusinessCashbackPage />} />
-                  <Route path="/b/rewards/gift-cards" element={<BusinessGiftCardsPage />} />
-                  <Route path="/b/rewards/history" element={<BusinessRedeemHistoryPage />} />
-                  <Route path="/b/rewards/issued" element={<BusinessRewardsIssuedPage />} />
-                  <Route path="/b/rewards/pending" element={<BusinessPendingRewardsPage />} />
-                  <Route path="/b/family" element={<BusinessFamilyPage />} />
-                  <Route path="/b/appointments" element={<BusinessAppointmentsPage />} />
-                  <Route path="/b/analytics" element={<BusinessAnalyticsPage />} />
-                  <Route path="/b/notifications" element={<BusinessNotificationsPage />} />
-                  <Route path="/b/wallet" element={<BusinessWalletPage />} />
-                  <Route path="/b/qr" element={<BusinessQRCodePage />} />
+                  <Route path="/b/customers" element={<CapabilityGate capability="customerCrm"><BusinessCustomersPage /></CapabilityGate>} />
+                  <Route path="/b/customers/:id" element={<CapabilityGate capability="customerCrm"><BusinessCustomerDetailPage /></CapabilityGate>} />
+                  <Route path="/b/rewards" element={<CapabilityGate capability="rewards"><BusinessRewardsPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/issue" element={<CapabilityGate capability="rewards"><BusinessIssueRewardPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/campaigns" element={<CapabilityGate capability="campaigns"><BusinessCampaignsPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/coupons" element={<CapabilityGate capability="coupons"><BusinessCouponsPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/cashback" element={<CapabilityGate capability="cashbackPrograms"><BusinessCashbackPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/gift-cards" element={<CapabilityGate capability="giftCards"><BusinessGiftCardsPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/history" element={<CapabilityGate capability="rewards"><BusinessRedeemHistoryPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/issued" element={<CapabilityGate capability="rewards"><BusinessRewardsIssuedPage /></CapabilityGate>} />
+                  <Route path="/b/rewards/pending" element={<CapabilityGate capability="rewards"><BusinessPendingRewardsPage /></CapabilityGate>} />
+                  <Route path="/b/family" element={<CapabilityGate capability="friendsFamily"><BusinessFamilyPage /></CapabilityGate>} />
+                  <Route path="/b/appointments" element={<CapabilityGate capability="appointments"><BusinessAppointmentsPage /></CapabilityGate>} />
+                  <Route path="/b/analytics" element={<CapabilityGate capability="advancedAnalytics"><BusinessAnalyticsPage /></CapabilityGate>} />
+                  <Route path="/b/notifications" element={<CapabilityGate capability="notifications"><BusinessNotificationsPage /></CapabilityGate>} />
+                  <Route path="/b/wallet" element={<CapabilityGate capability="wallet"><BusinessWalletPage /></CapabilityGate>} />
+                  <Route path="/b/qr" element={<CapabilityGate capability="customQrCodes"><BusinessQRCodePage /></CapabilityGate>} />
                 </Route>
                 </Route>
 
@@ -422,6 +427,10 @@ export default function App() {
                   <Route path="/admin/plans/create" element={<PlanCreatePage />} />
                   <Route path="/admin/plans/:id" element={<PlanDetailPage />} />
                   <Route path="/admin/plans/:id/edit" element={<PlanEditPage />} />
+                  <Route path="/admin/access-passes" element={<AccessPassListPage />} />
+                  <Route path="/admin/access-passes/create" element={<AccessPassCreatePage />} />
+                  <Route path="/admin/access-passes/:id" element={<AccessPassDetailPage />} />
+                  <Route path="/admin/access-passes/:id/edit" element={<AccessPassEditPage />} />
                   <Route path="/admin/currencies" element={<CurrencyListPage />} />
                   <Route path="/admin/currencies/create" element={<CurrencyCreatePage />} />
                   <Route path="/admin/roles" element={<RoleListPage />} />

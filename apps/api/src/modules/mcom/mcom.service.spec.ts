@@ -32,6 +32,30 @@ describe('McomService entitlements', () => {
 
   afterEach(() => jest.clearAllMocks())
 
+  describe('getEntitlement', () => {
+    it('unwraps the entitlement from a Central introspection envelope', async () => {
+      const entitlement = { access: { hasAccess: true, accessType: 'PAID_MEMBERSHIP' }, plan: { planId: 'p1' } }
+      jest.spyOn(service as any, 'request').mockResolvedValue({
+        success: true,
+        entitlement,
+        appPlan: { planId: 'p1' },
+      })
+
+      const result = await service.getEntitlement('token-1')
+
+      expect(result).toEqual(entitlement)
+    })
+
+    it('accepts an entitlement nested under data', async () => {
+      const entitlement = { access: { hasAccess: false, reason: 'TRIAL_NO_TASKS' }, plan: null }
+      jest.spyOn(service as any, 'request').mockResolvedValue({ data: { entitlement } })
+
+      const result = await service.getEntitlement('token-1')
+
+      expect(result).toEqual(entitlement)
+    })
+  })
+
   describe('getUserPackages', () => {
     it('requests the central packages endpoint and returns the data array', async () => {
       const packages: McomUserPackage[] = [

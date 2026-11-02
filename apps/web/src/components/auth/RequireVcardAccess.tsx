@@ -18,6 +18,20 @@ export default function RequireVcardAccess() {
 
   const hasAccess = user?.permissions?.can_access_vcard === true
 
+  const reason = user?.access_reason
+  const reasonMessage =
+    reason === 'PLATFORM_NOT_IN_MEMBERSHIP'
+      ? 'Your membership is active, but it does not include MCOM VCard. Ask your admin to add the VCard plan to your membership, or choose a plan below.'
+      : reason === 'TRIAL_NO_TASKS'
+        ? 'Trial access to MCOM VCard is not available yet — Central needs an active programme task for this app. Please check back soon.'
+        : reason === 'TRIAL_EXPIRED'
+          ? 'Your VCard trial has ended. Pick a plan or membership below to continue.'
+          : reason === 'UNVERIFIED'
+            ? 'Your business still needs to complete verification on Central Hub before VCard access can start.'
+            : reason === 'MEMBERSHIP_EXPIRED'
+              ? 'Your membership has expired. Renew it on Central Hub or choose a VCard plan below.'
+              : null
+
   // The Central Hub Solution page where a user can buy/upgrade a membership.
   // Prefer the URL Central attached to the user's entitlement, then the
   // secret-free config endpoint. Only needed when access is missing.
@@ -73,9 +87,9 @@ export default function RequireVcardAccess() {
               you'd like to get access:
             </p>
 
-            {user?.access_reason === 'TRIAL_EXPIRED' && (
+            {reasonMessage && (
               <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2.5">
-                Your trial has ended. Pick a plan or membership below to continue.
+                {reasonMessage}
               </p>
             )}
 

@@ -24,9 +24,12 @@ import { Request, Response } from 'express'
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { ConfigService } from '@nestjs/config'
 import { McomEntitlement, McomService, hasVcardAccess } from './mcom.service'
+import { decideAccess, isDecisionExpired, type McomAccessDecision } from './access-decision'
 import { AuthService, McomUserInfo } from '../auth/auth.service'
 import { UsersService } from '../users/users.service'
 import { PlansService } from '../plans/plans.service'
+import { AccessPassesService, expiryTime } from '../access-passes/access-passes.service'
+import { AccessPassResponseDto } from '../access-passes/dto/access-pass-response.dto'
 import { SubscriptionsService } from '../subscriptions/subscriptions.service'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
@@ -67,6 +70,7 @@ export class McomController {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly plansService: PlansService,
+    private readonly accessPassesService: AccessPassesService,
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
@@ -274,7 +278,11 @@ export class McomController {
     }
 
     const activePlan = await this.resolveActivePlan(current.id)
-    return ApiResponse.success({ ...payload, active_plan: activePlan }, 'MCOM access status', 200)
+    return ApiResponse.success(
+      { ...payload, active_plan: activePlan },
+      'MCOM access status',
+      200,
+    )
   }
 
   /** Public (secret-free) MCOM config for the frontend — e.g. the membership upgrade URL. */
@@ -320,41 +328,147 @@ export class McomController {
   // ── helpers ────────────────────────────────────────────────────────────────
 
   /**
-   * Resolve the user's active Vcard plan purchased on MCOM Central back to a
-   * local Plan, exposing its entitlements (quotas/featureFlags/trial) so the
-   * frontend can enforce permission by plan.
+   * Resolve the plan/pass that is granting access to VCard right now.
+   *
+   * Central is authoritative for membership and trial access:
+   * - membership → `plan.planId` maps to a local Plan (published through the
+   *   connector), with the membership's quotas/limits applied;
+   * - trial → a synthetic "Programme Trial Access" plan carrying the trial
+   *   countdown and programme tasks;
+   * - local in-app purchases remain supported as a fallback.
    */
   private async resolveActivePlan(userId: string) {
-    // A locally paid VCard plan (MCOM Pay wallet) is the primary entitlement
-    // now that partner apps own their subscriptions.
+    const dbUser = await this.usersService.findById(userId)
+    const access = this.accessForUser(dbUser?.mcomAccess ?? null, dbUser?.mcomEntitlement ?? null)
+
+    // A locally purchased VCard plan or access pass is the primary
+    // entitlement. It must win even when Central also reports a
+    // membership/trial, matching the CapabilitiesService resolution order used
+    // for enforcement. If both exist, show whichever runs longer.
     try {
-      const local = await this.subscriptionsService.findActiveForUser(userId)
+      const [local, localPass] = await Promise.all([
+        this.subscriptionsService.findActiveForUser(userId),
+        this.accessPassesService.findActivePurchaseForUser(userId),
+      ])
+
+      if (
+        localPass &&
+        (!local || expiryTime(localPass.expiresAt) > expiryTime(local.expiresAt))
+      ) {
+        const pass = await this.accessPassesService.findOne(localPass.accessPassId)
+        return this.accessPassPayload(pass, localPass.expiresAt?.toISOString() ?? null)
+      }
+
       if (local) {
         const plan = await this.plansService.findOne(local.planId)
-        return this.planPayload(plan, local.expiresAt?.toISOString() ?? null)
+        return this.planPayload(plan, local.expiresAt?.toISOString() ?? null, { source: 'local' })
       }
     } catch {
-      // fall through to the legacy Central package lookup
+      // fall through to Central membership/trial/legacy package lookup
     }
 
+    // A membership that bundles VCard: show the included plan, not the
+    // membership bundle's marketing name.
+    if (access?.allowed && access.source === 'membership') {
+      const plan = await this.findPlan(access.planId, access.planName)
+      if (plan) {
+        return this.planPayload(plan, access.expiresAt, {
+          source: 'membership',
+          membershipName: access.membershipName,
+          membershipLevel: access.membershipLevel,
+          quotas: access.quotas,
+          limits: access.limits,
+          features: access.features,
+        })
+      }
+
+      // The local catalogue may not contain the ID yet (e.g. an old plan was
+      // renamed). Still surface the Central plan and its entitlements.
+      return this.entitlementPlanPayload(access)
+    }
+
+    if (access?.allowed && access.source === 'trial') {
+      return this.entitlementPlanPayload(access)
+    }
+
+    // Legacy Central package lookup (pre-entitlement integrations).
     try {
-      const dbUser = await this.usersService.findById(userId)
       if (!dbUser?.mcomUserId) return null
 
       const pkg = await this.mcomService.getActiveVcardPackage(dbUser.mcomUserId)
       if (!pkg?.externalPlanId) return null
 
       const plan = await this.plansService.findOne(pkg.externalPlanId)
-      return this.planPayload(plan, pkg.expiresAt ?? null)
+      return this.planPayload(plan, pkg.expiresAt ?? null, { source: 'direct' })
     } catch {
       return null
     }
   }
 
-  private planPayload(plan: Awaited<ReturnType<PlansService['findOne']>>, expiresAt: string | null) {
+  /** Stored decision, or derive one from the raw entitlement snapshot. */
+  private accessForUser(
+    stored: McomAccessDecision | null,
+    entitlement: Record<string, unknown> | null,
+  ): McomAccessDecision | null {
+    const decision = stored ?? (entitlement ? decideAccess(entitlement as McomEntitlement) : null)
+    if (!decision || !isDecisionExpired(decision)) return decision
+
+    // Revoke locally the moment a pass/trial window ends.
+    return {
+      ...decision,
+      allowed: false,
+      reason: decision.source === 'trial' ? 'TRIAL_EXPIRED' : 'NO_ACTIVE_ENTITLEMENT',
+    }
+  }
+
+  /** Resolve a Central `planId` to a local Plan, falling back to the name. */
+  private async findPlan(planId: string | null, planName: string | null) {
+    if (planId) {
+      try {
+        return await this.plansService.findOne(planId)
+      } catch {
+        // Not a local plan UUID — try the human-readable name below.
+      }
+    }
+
+    if (!planName) return null
+
+    try {
+      const plans = await this.plansService.findAll('business')
+      const target = planName.toLowerCase()
+      const withoutVariant = planName.replace(/\s+(standard|pro\+?|pro)$/i, '').trim().toLowerCase()
+      return (
+        plans.find((candidate) => {
+          const name = candidate.name?.toLowerCase()
+          return name === target || (withoutVariant !== target && name === withoutVariant)
+        }) ?? null
+      )
+    } catch {
+      return null
+    }
+  }
+
+  private planPayload(
+    plan: Awaited<ReturnType<PlansService['findOne']>>,
+    expiresAt: string | null,
+    overrides?: {
+      source?: string
+      membershipName?: string | null
+      membershipLevel?: string | null
+      quotas?: Record<string, unknown>
+      limits?: Record<string, unknown>
+      features?: string[]
+    },
+  ) {
     const standard = plan.variants.find((variant) => variant.key === 'standard')
     const pro = plan.variants.find((variant) => variant.key === 'pro')
     const proPlus = plan.variants.find((variant) => variant.key === 'pro_plus')
+
+    const localFeatures = (plan.features ?? []).map((f) => f.text)
+    const features =
+      overrides?.features && overrides.features.length > 0 ? overrides.features : localFeatures
+    const quotas = this.nonEmpty(overrides?.quotas) ?? plan.configuration?.quotas ?? {}
+    const limits = this.nonEmpty(overrides?.limits) ?? {}
 
     return {
       id: plan.id,
@@ -363,16 +477,80 @@ export class McomController {
       audience: plan.audience,
       status: plan.status,
       isDefault: plan.isDefault,
-      trialDays: standard?.trialDays ?? undefined,
       monthlyPrice: standard ? Math.round(standard.price / 3) : undefined,
       quarterlyPrice: standard?.price,
       semiannualPrice: pro?.price,
       annualPrice: proPlus?.price,
       variants: plan.variants,
       configuration: plan.configuration ?? undefined,
-      features: (plan.features ?? []).map((f) => f.text),
+      features,
+      quotas,
+      limits,
+      source: overrides?.source ?? 'local',
+      membershipName: overrides?.membershipName ?? null,
+      membershipLevel: overrides?.membershipLevel ?? null,
       expiresAt: expiresAt ?? undefined,
     }
+  }
+
+  /** Payload for a locally purchased access pass. */
+  private accessPassPayload(pass: AccessPassResponseDto, expiresAt: string | null) {
+    return {
+      id: pass.id,
+      name: pass.name,
+      level: pass.name,
+      audience: 'business',
+      status: pass.status,
+      isDefault: false,
+      variants: [],
+      configuration: pass.configuration ?? undefined,
+      features: (pass.features ?? []).map((feature) => feature.text),
+      quotas: pass.configuration?.quotas ?? {},
+      limits: pass.configuration?.featureFlags ?? {},
+      price: pass.price,
+      durationDays: pass.durationDays,
+      currency: pass.currency,
+      source: 'access_pass',
+      membershipName: null,
+      membershipLevel: null,
+      expiresAt: expiresAt ?? undefined,
+    }
+  }
+
+  /** Synthetic plan payload for a Central plan/trial not stored locally. */
+  private entitlementPlanPayload(access: McomAccessDecision) {
+    const isTrial = access.source === 'trial'
+    const quotas = access.quotas ?? {}
+    const featureFlags: Record<string, boolean> = {}
+    for (const [key, value] of Object.entries(access.limits ?? {})) {
+      if (typeof value === 'boolean') featureFlags[key] = value
+    }
+
+    return {
+      id: access.planId ?? `trial_${this.mcomService.platformSlugName}`,
+      name: access.planName ?? (isTrial ? 'Programme Trial Access' : 'MCOM VCard plan'),
+      level: access.membershipLevel ?? access.planName ?? null,
+      audience: 'business',
+      status: isTrial ? 'trial' : 'active',
+      isDefault: false,
+      trialDays: isTrial ? access.trialDaysRemaining : undefined,
+      variants: [],
+      configuration: { quotas, featureFlags },
+      features: access.features ?? [],
+      quotas,
+      limits: access.limits ?? {},
+      source: access.source,
+      membershipName: access.membershipName,
+      membershipLevel: access.membershipLevel,
+      trialDaysRemaining: isTrial ? access.trialDaysRemaining : 0,
+      trialTasks: isTrial ? access.tasks : [],
+      expiresAt: access.expiresAt ?? undefined,
+    }
+  }
+
+  private nonEmpty(value?: Record<string, unknown>): Record<string, unknown> | null {
+    if (!value) return null
+    return Object.keys(value).length > 0 ? value : null
   }
 
   private permissionFromMap(permissions: Record<string, boolean>): boolean {
@@ -385,6 +563,8 @@ export class McomController {
       can_access_vcard: hasVcardAccess(user.permissions),
       membership_level: user.membership_level,
       membership_status: user.membership_status,
+      access: user.access ?? null,
+      trial_tasks: user.access?.tasks ?? [],
     }
   }
 

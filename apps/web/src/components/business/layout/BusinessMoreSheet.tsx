@@ -1,5 +1,23 @@
 import { Link } from 'react-router-dom'
 import { businessVCardLink } from '../../../services/businessLinks'
+import { useCapabilities } from '../../../hooks/useCapabilities'
+
+const CAPABILITY_BY_LABEL: Record<string, string> = {
+    Share: 'share',
+    Exchange: 'exchange',
+    Redeem: 'redeem',
+    Customers: 'customerCrm',
+    'Friends & Family': 'friendsFamily',
+    Appointments: 'appointments',
+    Rewards: 'rewards',
+    Campaigns: 'campaigns',
+    'QR Code': 'customQrCodes',
+    Analytics: 'advancedAnalytics',
+    Wallet: 'wallet',
+    'Smart Money': 'wallet',
+    Notifications: 'notifications',
+    Reports: 'reports',
+}
 
 interface BusinessMoreSheetProps {
     open: boolean
@@ -51,6 +69,7 @@ const groups: SheetGroup[] = [
 ]
 
 export default function BusinessMoreSheet({ open, onClose }: BusinessMoreSheetProps) {
+    const { can } = useCapabilities()
     if (!open) return null
 
     return (
@@ -72,7 +91,7 @@ export default function BusinessMoreSheet({ open, onClose }: BusinessMoreSheetPr
                 {groups.map((group) => (
                     <div key={group.label} className="px-2 pt-1">
                         <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{group.label}</p>
-                        {group.items.map((item) => (
+                        {group.items.filter((item) => !CAPABILITY_BY_LABEL[item.label] || can(CAPABILITY_BY_LABEL[item.label])).map((item) => (
                             <Link
                                 key={item.label}
                                 to={item.to}

@@ -21,6 +21,11 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap')
   app.setGlobalPrefix('api')
 
+  // API responses are per-user and must not be revalidated from the browser
+  // cache. Express's conditional GET can answer with a bodyless 304, which
+  // axios/fetch consumers see as an empty payload (blank admin lists).
+  app.getHttpAdapter().getInstance().set('etag', false)
+
   // Serve uploaded media files (spec §45): bytes live on disk, metadata in DB.
   app.use('/media/uploads', express.static(join(process.cwd(), 'uploads', 'media')))
 

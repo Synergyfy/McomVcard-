@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 import { BusinessFamilyMember } from './entities/business-family-member.entity'
 import { BusinessesService } from './businesses.service'
+import { CapabilitiesService } from '../capabilities/capabilities.service'
 import { CreateBusinessFamilyMemberDto, UpdateBusinessFamilyMemberStatusDto } from './dto/business-family-member.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 
@@ -13,6 +14,7 @@ export class BusinessFamilyService {
   constructor(
     @InjectRepository(BusinessFamilyMember) private members: Repository<BusinessFamilyMember>,
     private readonly businessesService: BusinessesService,
+    private readonly capabilities: CapabilitiesService,
   ) {}
 
   async list(userId: string, businessId: string) {
@@ -59,13 +61,11 @@ export class BusinessFamilyService {
   }
 
   private async assertWithinLimit(userId: string, businessId: string) {
-    const response = await this.businessesService.getPermissionsForUser(userId)
-    const permissions = response as { limits: { friends_family: number | null } }
-    const limit = permissions.limits.friends_family
-    if (limit === null) return
-    const used = await this.members.count({ where: { businessId, status: In([...OCCUPYING_STATUSES]) } })
-    if (used >= limit) {
-      throw new BadRequestException(`Your membership allows ${limit} Friends & Family cards. Remove or replace a card, or upgrade to add more.`)
-    }
+    const used = await this.members.count({
+      where: { businessId, status: In([...OCCUPYING_STATUSES]) },
+    })
+    // Plan-variant quota first; the service resolves legacy memberships and
+    // Central entitlements as fallbacks, so existing users keep working.
+    await this.capabilities.assertQuota(userId, 'maxFriendsFamily', used)
   }
 }

@@ -35,9 +35,9 @@ export class PlansController {
           { label: 'Business VCards', values: { Normal: '50', Pro: '100', 'Pro+': '200' }, description: 'Business vCards the business can create and publish.', scope: 'All' },
         ],
         tiers: {
-          Normal: { monthly: 0, quarterly: 0, semiannual: 0, annual: 0, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-          Pro: { monthly: 449, quarterly: 1212, semiannual: 2425, annual: 4490, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-          'Pro+': { monthly: 674, quarterly: 1818, semiannual: 3637, annual: 6735, setupFee: 0, trialDays: 7, description: '', scope: 'All' },
+          Normal: { monthly: 0, quarterly: 0, semiannual: 0, annual: 0, description: '', scope: 'All' },
+          Pro: { monthly: 449, quarterly: 1212, semiannual: 2425, annual: 4490, description: '', scope: 'All' },
+          'Pro+': { monthly: 674, quarterly: 1818, semiannual: 3637, annual: 6735, description: '', scope: 'All' },
         },
         sections: {
           price: { description: 'Prices for the selected tier...' },
@@ -65,9 +65,9 @@ export class PlansController {
           { label: 'Store Cards collectable', values: { Normal: '40', Pro: '80', 'Pro+': '160' }, description: 'Number of business store cards you can collect.', scope: 'All' },
         ],
         tiers: {
-          Normal: { monthly: 0, quarterly: 0, semiannual: 0, annual: 0, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-          Pro: { monthly: 29, quarterly: 78, semiannual: 157, annual: 290, setupFee: 0, trialDays: 14, description: '', scope: 'All' },
-          'Pro+': { monthly: 44, quarterly: 117, semiannual: 235, annual: 435, setupFee: 0, trialDays: 7, description: '', scope: 'All' },
+          Normal: { monthly: 0, quarterly: 0, semiannual: 0, annual: 0, description: '', scope: 'All' },
+          Pro: { monthly: 29, quarterly: 78, semiannual: 157, annual: 290, description: '', scope: 'All' },
+          'Pro+': { monthly: 44, quarterly: 117, semiannual: 235, annual: 435, description: '', scope: 'All' },
         },
         sections: {
           price: { description: 'Consumer access prices...' },

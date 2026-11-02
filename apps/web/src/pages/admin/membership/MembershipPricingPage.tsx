@@ -94,7 +94,12 @@ export default function MembershipPricingPage() {
             <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             <h1 className="text-sm font-bold text-gray-900 dark:text-white">Pricing &amp; Plans</h1>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400">One place to manage plans, entitlements, promotions, plan changes and settings for businesses and consumers.</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            Display configuration for the public pricing page. The enforced plan catalogue (variants, quotas and
+            feature access) lives in{' '}
+            <Link to="/admin/plans" className="font-semibold text-orange-600 hover:underline">Plans &amp; Variants</Link>.
+            A plan has exactly three variants: Standard (90 days), Pro (180 days) and Pro+ (1 year).
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-600 p-0.5 mr-1">

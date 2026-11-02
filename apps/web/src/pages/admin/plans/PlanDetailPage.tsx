@@ -3,8 +3,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { plansService, type Plan, type PlanPayload, type PlanVariantKey } from '../../../services/plans'
+import { PLAN_CAPABILITY_LABELS } from '../../../services/planCapabilitySchema'
 
 const VARIANT_ORDER: PlanVariantKey[] = ['standard', 'pro', 'pro_plus']
+
+function capabilityLabel(key: string): string {
+  return PLAN_CAPABILITY_LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase()).trim()
+}
+
+function quotaLabel(value: number | boolean): string {
+  if (value === -1 || value === true) return 'Unlimited'
+  if (value === false || value === 0) return 'Disabled'
+  return String(value)
+}
 
 function currencySymbol(currency?: string): string {
   return currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£'
@@ -62,8 +73,6 @@ export default function PlanDetailPage() {
       variants: plan.variants.map((variant) => ({
         key: variant.key,
         price: variant.price,
-        setupFee: variant.setupFee,
-        trialDays: variant.trialDays,
         description: variant.description,
         features: variant.features ?? undefined,
         rules: variant.rules ?? undefined,
@@ -178,21 +187,19 @@ export default function PlanDetailPage() {
               {symbol}{variant.price.toLocaleString()}
             </p>
             <div className="mt-2 space-y-1 text-[11px] text-gray-500">
-              <p>Setup fee: {symbol}{variant.setupFee.toLocaleString()}</p>
-              <p>Trial: {variant.trialDays > 0 ? `${variant.trialDays} days` : 'None'}</p>
               {variant.description && <p className="text-gray-600 dark:text-gray-400">{variant.description}</p>}
             </div>
             {variant.configuration && (
               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-[11px] text-gray-500 space-y-1">
                 {Object.entries(variant.configuration.quotas ?? {}).map(([key, value]) => (
                   <div key={`q-${key}`} className="flex justify-between gap-2">
-                    <span>{key}</span>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{String(value)}</span>
+                    <span>{capabilityLabel(key)}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{quotaLabel(value)}</span>
                   </div>
                 ))}
                 {Object.entries(variant.configuration.featureFlags ?? {}).map(([key, value]) => (
                   <div key={`f-${key}`} className="flex justify-between gap-2">
-                    <span>{key}</span>
+                    <span>{capabilityLabel(key)}</span>
                     <span className={`font-medium ${value ? 'text-green-600' : 'text-gray-400'}`}>{value ? 'On' : 'Off'}</span>
                   </div>
                 ))}
@@ -267,8 +274,8 @@ export default function PlanDetailPage() {
               ) : (
                 Object.entries(plan.configuration.quotas ?? {}).map(([key, value]) => (
                   <div key={key} className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700/50">
-                    <span className="text-gray-500">{key}</span>
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{String(value)}</span>
+                    <span className="text-gray-500">{capabilityLabel(key)}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{quotaLabel(value)}</span>
                   </div>
                 ))
               )}
@@ -280,7 +287,7 @@ export default function PlanDetailPage() {
               ) : (
                 Object.entries(plan.configuration.featureFlags ?? {}).map(([key, value]) => (
                   <div key={key} className="flex justify-between py-1 border-b border-gray-50 dark:border-gray-700/50">
-                    <span className="text-gray-500">{key}</span>
+                    <span className="text-gray-500">{capabilityLabel(key)}</span>
                     <span className={`font-medium ${value ? 'text-green-600' : 'text-gray-400'}`}>{value ? 'On' : 'Off'}</span>
                   </div>
                 ))

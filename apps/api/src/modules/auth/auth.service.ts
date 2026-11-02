@@ -16,8 +16,10 @@ import { encryptMcomToken } from '../../lib/utils/mcom-crypto.util'
 import { User } from '../users/entities/user.entity'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity'
+import { AccessPassPurchase } from '../access-passes/entities/access-pass-purchase.entity'
 import { EmailVerificationService } from '../email-verification/email-verification.service'
 import { type McomEntitlement, type McomUserInfo, hasVcardAccess } from '../mcom/mcom.service'
+import { decideAccess, isDecisionExpired, type McomAccessDecision } from '../mcom/access-decision'
 
 const DUMMY_PASSWORD_HASH = '$2a$10$RF/CnYUA.cgdY7yxwC5m3ejBtM4Oqnj1Ka.LUGy7j29woMBj4B2HW'
 
@@ -54,6 +56,8 @@ export class AuthService {
     private jwtService: JwtService,
     @InjectRepository(RefreshToken) private refreshTokensRepo: Repository<RefreshToken>,
     @InjectRepository(SubscribedPlan) private subscribedPlansRepo: Repository<SubscribedPlan>,
+    @InjectRepository(AccessPassPurchase)
+    private accessPassPurchasesRepo: Repository<AccessPassPurchase>,
     private config: ConfigService,
     private emailVerificationService: EmailVerificationService,
     private rolesService: RolesService,
@@ -445,14 +449,22 @@ async syncMcomSession(
     return UserResponseDto.fromEntity(updated)
   }
 
-  /** True when the user has a locally paid, unexpired VCard plan. */
+  /** True when the user has a locally paid, unexpired plan or access pass. */
   private async hasActiveLocalPlan(userId: string): Promise<boolean> {
-    const active = await this.subscribedPlansRepo.findOne({
-      where: { userId, status: 'active' },
-      order: { expiresAt: 'DESC' },
-    })
-    if (!active) return false
-    return !active.expiresAt || active.expiresAt.getTime() > Date.now()
+    const [active, activePass] = await Promise.all([
+      this.subscribedPlansRepo.findOne({
+        where: { userId, status: 'active' },
+        order: { expiresAt: 'DESC' },
+      }),
+      this.accessPassPurchasesRepo.findOne({
+        where: { userId, status: 'active' },
+        order: { expiresAt: 'DESC' },
+      }),
+    ])
+
+    const planActive = active ? !active.expiresAt || active.expiresAt.getTime() > Date.now() : false
+    const passActive = activePass ? activePass.expiresAt.getTime() > Date.now() : false
+    return planActive || passActive
   }
 
   /**
@@ -477,7 +489,11 @@ async syncMcomSession(
     }
 
     const entitlement = (user.mcomEntitlement ?? null) as McomEntitlement | null
-    if (entitlement?.access?.hasAccess === false && user.mcomCanAccessVcard === true) {
+    const decision =
+      (user.mcomAccess ?? null) ??
+      (entitlement ? decideAccess(entitlement) : null)
+    const expired = decision ? isDecisionExpired(decision) : false
+    if ((decision?.allowed === false || expired) && user.mcomCanAccessVcard === true) {
       return (
         (await this.usersService.update(user.id, {
           mcomCanAccessVcard: false,
@@ -524,14 +540,28 @@ async syncMcomSession(
     // Central's unified entitlement wins over the legacy permission map. If
     // neither is present (e.g. a transient lookup failure) keep the existing
     // local value rather than revoking access accidentally.
+    const decision = entitlement ? decideAccess(entitlement) : null
     const accessGranted =
-      entitlement?.access?.hasAccess === true ||
+      decision?.allowed === true ||
       (entitlement?.access?.hasAccess !== false &&
         (hasVcardAccess(userInfo.permissions) ||
           (entitlement?.whitelabel?.enabled === true && entitlement.whitelabel?.granted === true))) ||
       (entitlement == null &&
         userInfo.permissions === undefined &&
         current?.mcomCanAccessVcard === true)
+
+    // A locally paid plan survives a Central sync that reports no platform
+    // package; the caller applies that fallback after this patch is built.
+    const membershipLevel =
+      userInfo.membershipLevel ??
+      businessField('membershipLevel') ??
+      decision?.membershipLevel ??
+      null
+    const membershipStatus =
+      userInfo.membershipStatus ??
+      businessField('membershipStatus') ??
+      decision?.membershipStatus ??
+      null
 
     return {
       firstName: keep(userInfo.firstName, current?.firstName ?? null) ?? firstFromFullName,
@@ -553,23 +583,20 @@ async syncMcomSession(
       companyWebsite: keep(businessField('website'), current?.companyWebsite ?? null),
       companyLogo: keep(userInfo.avatarUrl ?? businessField('logoUrl'), current?.companyLogo ?? null),
       mcomBusinessId: keep(userInfo.businessId, current?.mcomBusinessId ?? null),
-      mcomMembershipLevel: keep(
-        userInfo.membershipLevel ?? businessField('membershipLevel'),
-        current?.mcomMembershipLevel ?? null,
-      ),
+      mcomMembershipLevel: keep(membershipLevel, current?.mcomMembershipLevel ?? null),
       mcomMembershipTier: keep(
         userInfo.membershipTier ?? businessField('membershipTier'),
         current?.mcomMembershipTier ?? null,
       ),
-      mcomMembershipStatus: keep(
-        userInfo.membershipStatus ?? businessField('membershipStatus'),
-        current?.mcomMembershipStatus ?? null,
-      ),
+      mcomMembershipStatus: keep(membershipStatus, current?.mcomMembershipStatus ?? null),
       mcomCanAccessVcard: accessGranted,
       mcomProfile: keep(roleProfile as Record<string, unknown> | null, current?.mcomProfile ?? null),
       mcomEntitlement: entitlement
         ? (entitlement as Record<string, unknown>)
         : current?.mcomEntitlement ?? null,
+      mcomAccess: entitlement
+        ? (decision as McomAccessDecision)
+        : current?.mcomAccess ?? null,
       mcomLastSyncAt: new Date(),
     }
   }

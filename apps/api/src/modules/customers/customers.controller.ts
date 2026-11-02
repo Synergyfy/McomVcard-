@@ -2,6 +2,8 @@ import { Controller, Get, Query, Param, Post, Patch, Delete, Body, UseGuards, No
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiUnauthorizedResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiCreatedResponse, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CacheService } from '../../lib/cache/cache.service'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { CustomersService } from './customers.service'
@@ -13,7 +15,8 @@ import { UpdateCustomerNoteDto } from './dto/update-customer-note.dto'
 
 @ApiTags('customers')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BusinessAccessGuard)
+@UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
+@RequireCapability('customerCrm')
 @Controller('customers')
 export class CustomersController {
   constructor(

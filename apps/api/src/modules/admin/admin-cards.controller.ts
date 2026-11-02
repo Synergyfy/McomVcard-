@@ -46,10 +46,17 @@ export class AdminCardsController {
 
     const mapped = data.map((c) => ({
       id: c.id,
+      name: c.name ?? c.slug,
       slug: c.slug,
+      url_slug: c.urlSlug ?? c.slug,
       type: c.type,
+      card_product: c.cardProduct,
+      audience: c.audience,
       status: c.status,
-      owner: c.owner ? { id: c.owner.id, first_name: c.owner.firstName, last_name: c.owner.lastName, email: c.owner.email } : null,
+      views: c.views,
+      scans: c.scans,
+      shares: c.shares,
+      owner: c.owner ? { id: c.owner.id, name: [c.owner.firstName, c.owner.lastName].filter(Boolean).join(' ') || c.owner.email, first_name: c.owner.firstName, last_name: c.owner.lastName, email: c.owner.email } : null,
       template: c.template ? { id: c.template.id, name: c.template.name } : null,
       created_at: c.createdAt,
       updated_at: c.updatedAt,

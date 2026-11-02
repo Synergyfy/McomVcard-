@@ -1,4 +1,4 @@
-import api from './api'
+import { adminApi as api } from './adminAuth'
 
 export type PlanVariantKey = 'standard' | 'pro' | 'pro_plus'
 export type PlanAudience = 'business' | 'consumer'
@@ -27,8 +27,6 @@ export interface PlanVariant {
   name: string
   durationDays: number
   price: number
-  setupFee: number
-  trialDays: number
   description: string
   features: PlanFeature[] | null
   rules: PlanRule[] | null
@@ -62,8 +60,6 @@ export interface Plan {
 export interface PlanVariantPayload {
   key: PlanVariantKey
   price: number
-  setupFee?: number
-  trialDays?: number
   description?: string
   features?: PlanFeature[]
   rules?: PlanRule[]

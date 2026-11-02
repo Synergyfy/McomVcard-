@@ -21,7 +21,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    if (!adminSession.hasSession()) {
+
+    // On the login screen there is nothing to restore; everywhere else try the
+    // HttpOnly admin cookie so a new tab can resume the admin session.
+    if (!adminSession.hasSession() && window.location.pathname.startsWith('/admin/login')) {
       setIsLoading(false)
       return
     }

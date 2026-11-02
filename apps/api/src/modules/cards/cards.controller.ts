@@ -13,8 +13,11 @@ import {
   ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger'
+import { CardType } from './entities/card.entity'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -57,7 +60,7 @@ import { CardActivityResponseDto } from './dto/card-activity-response.dto'
   CardCentreControlResponseDto,
   CardActivityResponseDto,
 )
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
 @Controller()
 export class CardsController {
   constructor(private readonly cardsService: CardsService) {}
@@ -142,6 +145,7 @@ export class CardsController {
   }
 
   @Patch('cards/:id')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card', description: 'Updates a card owned by the authenticated user.' })
   @ApiBody({ type: UpdateCardDto, examples: { default: { summary: 'Update card', value: { type: 'BUSINESS', template_id: undefined } } } })
@@ -184,6 +188,7 @@ export class CardsController {
   // ---- Profiles ----
 
   @Post('cards/:id/profile')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a profile to a card', description: 'Creates the profile (one per card) for a card owned by the authenticated user.' })
   @ApiBody({ type: CreateCardProfileDto, examples: { default: { summary: 'New profile', value: { display_name: 'Jane Doe', bio: 'Digital marketer', job_title: 'Marketing Lead', email: 'jane@example.com', phone: '+15551234567' } } } })
@@ -223,6 +228,7 @@ export class CardsController {
   }
 
   @Patch('card-profiles/:profileId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card profile', description: 'Updates a profile. The profile must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardProfileDto, examples: { default: { summary: 'Update profile', value: { job_title: 'VP Marketing' } } } })
@@ -243,6 +249,7 @@ export class CardsController {
   }
 
   @Delete('card-profiles/:profileId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a card profile', description: 'Deletes a profile. The profile must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
@@ -264,6 +271,7 @@ export class CardsController {
   // ---- Customizations ----
 
   @Post('cards/:id/customization')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a customization to a card', description: 'Creates the customization (one per card) for a card owned by the authenticated user.' })
   @ApiBody({ type: CreateCardCustomizationDto, examples: { default: { summary: 'New customization', value: { logo: 'https://cdn.example.com/logo.png', primary_color: '#0f172a', secondary_color: '#f59e0b', font: 'Poppins', layout: 'modern' } } } })
@@ -303,6 +311,7 @@ export class CardsController {
   }
 
   @Patch('cards/:cardId/customization')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card customization by card ID', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardCustomizationDto, examples: { default: { summary: 'Update customization', value: { primary_color: '#1e293b' } } } })
@@ -323,6 +332,7 @@ export class CardsController {
   }
 
   @Patch('card-customizations/:customizationId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card customization', description: 'Updates a customization. The customization must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardCustomizationDto, examples: { default: { summary: 'Update customization', value: { primary_color: '#1e293b' } } } })
@@ -343,6 +353,7 @@ export class CardsController {
   }
 
   @Delete('card-customizations/:customizationId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a card customization', description: 'Deletes a customization. The customization must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
@@ -364,6 +375,7 @@ export class CardsController {
   // ---- Social links ----
 
   @Post('cards/:id/social-links')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a social link to a card', description: 'Creates a social link for a card owned by the authenticated user.' })
   @ApiBody({ type: CreateSocialLinkDto, examples: { default: { summary: 'New social link', value: { platform: 'instagram', url: 'https://instagram.com/janedoe', display_order: 0 } } } })
@@ -405,6 +417,7 @@ export class CardsController {
   }
 
   @Patch('social-links/:linkId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card social link', description: 'Updates a social link. The link must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateSocialLinkDto, examples: { default: { summary: 'Update social link', value: { url: 'https://instagram.com/jane.doe' } } } })
@@ -425,6 +438,7 @@ export class CardsController {
   }
 
   @Delete('social-links/:linkId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a card social link', description: 'Deletes a social link. The link must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
@@ -446,6 +460,7 @@ export class CardsController {
   // ---- Card access ----
 
   @Post('cards/:id/access')
+  @RequireCapability('passwordAccess')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add access settings to a card', description: 'Creates the access settings (one per card) for a card owned by the authenticated user.' })
   @ApiBody({ type: CreateCardAccessDto, examples: { default: { summary: 'New access settings', value: { is_enabled: true, password: 'secret123', protected_sections: { wallet: true }, access_expiry: 'never' } } } })
@@ -467,6 +482,7 @@ export class CardsController {
   }
 
   @Get('cards/:id/access')
+  @RequireCapability('passwordAccess')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a card access settings', description: 'Returns the access settings of a card. Readable by any authenticated user.' })
   @ApiOkResponse({
@@ -485,6 +501,7 @@ export class CardsController {
   }
 
   @Patch('card-access/:cardId')
+  @RequireCapability('passwordAccess')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a card access settings', description: 'Updates access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiBody({ type: UpdateCardAccessDto, examples: { default: { summary: 'Update access settings', value: { is_enabled: false } } } })
@@ -506,6 +523,7 @@ export class CardsController {
   }
 
   @Delete('card-access/:cardId')
+  @RequireCapability('passwordAccess')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a card access settings', description: 'Deletes access settings for a card by card ID. The settings must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
@@ -596,7 +614,7 @@ export class CardsController {
   @Post('cards/claim')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Claim a template', description: 'Creates a new card from a published template, linking it to a business.' })
-  @ApiBody({ schema: { properties: { template_id: { type: 'string', format: 'uuid' }, business_id: { type: 'string', format: 'uuid' }, custom_slug: { type: 'string' } } } })
+  @ApiBody({ schema: { properties: { template_id: { type: 'string', format: 'uuid' }, business_id: { type: 'string', format: 'uuid' }, custom_slug: { type: 'string' }, type: { type: 'string', enum: [CardType.BUSINESS_VCARD, CardType.BUSINESS_CARD] } } } })
   @ApiCreatedResponse({
     description: 'Template claimed',
     schema: {
@@ -609,14 +627,15 @@ export class CardsController {
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @ApiForbiddenResponse({ description: 'You do not own this business' })
   @ApiBadRequestResponse({ description: 'Template not found or not published' })
-  async claimTemplate(@CurrentUser() user: UserResponseDto, @Body() body: { template_id: string; business_id: string; custom_slug?: string }) {
-    return this.cardsService.claimTemplate(user.id, body.business_id, body.template_id, body.custom_slug)
+  async claimTemplate(@CurrentUser() user: UserResponseDto, @Body() body: { template_id: string; business_id: string; custom_slug?: string; type?: CardType }) {
+    return this.cardsService.claimTemplate(user.id, body.business_id, body.template_id, body.custom_slug, body.type)
   }
 
   // ---- Template applying (replace on an existing card) ----
 
   @UseGuards(BusinessAccessGuard)
   @Post('cards/:id/apply-template')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Apply a template to an existing card',
@@ -728,6 +747,7 @@ export class CardsController {
   }
 
   @Patch('cards/:id/sections')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Upsert card sections', description: 'Creates or updates sections for a card owned by the authenticated user. Sections are matched by schema_id.' })
   @ApiBody({ type: [UpsertCardSectionDto] })
@@ -751,6 +771,7 @@ export class CardsController {
   }
 
   @Delete('sections/:sectionId')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a section', description: 'Deletes a section. The section must belong to a card the authenticated user owns.' })
   @ApiOkResponse({
@@ -793,6 +814,7 @@ export class CardsController {
   }
 
   @Patch('cards/:id/centre-controls')
+  @RequireCapability('content')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Upsert card centre controls', description: 'Creates or updates centre controls for a card owned by the authenticated user.' })
   @ApiBody({ type: [UpsertCentreControlDto] })

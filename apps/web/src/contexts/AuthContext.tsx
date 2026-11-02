@@ -56,6 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Admin pages use their own isolated session (AdminAuthProvider). Trying
+    // the regular user refresh there always 401s because the admin cookie is
+    // scoped to /api/admin, so skip it and avoid noisy failed requests.
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      tokenStore.clear()
+      setIsLoading(false)
+      return
+    }
+
     // The access token lives only in memory, so on a fresh page load we
     // exchange the HttpOnly refresh cookie for a new access token, then load
     // the profile. No refresh cookie = not authenticated.

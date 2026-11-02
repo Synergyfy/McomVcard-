@@ -4,6 +4,7 @@ import { SystemApiKeyGuard } from './system-api-key.guard'
 import { SystemPlansService } from './system-plans.service'
 import { CreateSystemPlanDto, UpdateSystemPlanDto, SystemPlanResponseDto } from './dto/system-plan.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
+import { PLAN_CAPABILITY_SCHEMA } from '../plans/plan-capability-schema'
 
 export interface PlanSchemaField {
   key: string
@@ -22,20 +23,22 @@ export interface PlanSchema {
  * Solutions renders quota/flag forms from this schema when creating or editing
  * plans for this platform. `unlimited` marks numeric quotas that support the
  * "Unlimited" (=-1) toggle.
+ *
+ * The field catalogue is shared with the internal admin plan builder so both
+ * surfaces configure exactly the same business-dashboard modules and limits.
  */
 export const VCARD_PLAN_SCHEMA: PlanSchema = {
-  quotas: [
-    { key: 'maxVCards', label: 'Max VCards', type: 'number', unlimited: true },
-    { key: 'maxConsumerVCards', label: 'Max Consumer VCards', type: 'number', unlimited: true },
-    { key: 'maxTeamMembers', label: 'Max Team Members', type: 'number', unlimited: true },
-  ],
-  featureFlags: [
-    { key: 'allowNfc', label: 'Allow NFC', type: 'boolean' },
-    { key: 'customDomains', label: 'Custom Domains', type: 'boolean' },
-    { key: 'customQrCodes', label: 'Custom QR Codes', type: 'boolean' },
-    { key: 'advancedAnalytics', label: 'Advanced Analytics', type: 'boolean' },
-    { key: 'dedicatedSupport', label: 'Dedicated Support', type: 'boolean' },
-  ],
+  quotas: PLAN_CAPABILITY_SCHEMA.quotas.map(({ key, label, unlimited }) => ({
+    key,
+    label,
+    type: 'number',
+    unlimited,
+  })),
+  featureFlags: PLAN_CAPABILITY_SCHEMA.featureFlags.map(({ key, label }) => ({
+    key,
+    label,
+    type: 'boolean',
+  })),
 }
 
 /**

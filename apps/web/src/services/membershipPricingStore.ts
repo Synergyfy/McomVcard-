@@ -27,8 +27,6 @@ export interface PlanTierPricing {
   quarterly: number
   semiannual: number
   annual: number
-  setupFee: number
-  trialDays: number
   description: string
   scope: RuleScope
 }
@@ -77,13 +75,11 @@ export interface MembershipPricingState {
 
 /* ── Defaults (seeded from the master plan catalogue) ─────────────── */
 
-const t = (monthly: number, annual: number, trialDays = 14): PlanTierPricing => ({
+const t = (monthly: number, annual: number): PlanTierPricing => ({
   monthly,
   quarterly: Math.round(monthly * 2.7),
   semiannual: Math.round(monthly * 5.4),
   annual,
-  setupFee: 0,
-  trialDays,
   description: '',
   scope: 'All',
 })
@@ -99,7 +95,7 @@ const r = (label: string, n: string, pro: string, proPlus: string, description: 
 })
 
 export const DEFAULT_SECTIONS: PricingSections = {
-  price: { description: 'Prices for the selected tier, per billing cycle. Includes the one-off setup fee and free-trial days.' },
+  price: { description: 'Prices for the selected tier, per billing cycle.' },
   feature: { description: 'Check-list items shown on the plan cards.' },
   rule: { description: 'Limits enforced across admin setup, business usage and consumer usage, and shown in the public comparison table.' },
 }
@@ -143,7 +139,7 @@ export function defaultMembershipPricing(): MembershipPricingState {
           r('QR scan rules', 'Daily:100, Seasonal:2000', 'Daily:250, Seasonal:5000', 'Daily:250, Seasonal:5000, Unlimited', 'Scan rules for business QR codes — Daily, Seasonal allowance or Unlimited.', 'Business usage'),
           r('Additional Cards', '0', '0', '2', 'Extra cards the business can issue on top of the plan and share to family & friends.', 'Business usage'),
         ],
-        tiers: { Normal: t(49, 490), Pro: t(79, 790), 'Pro+': t(119, 1190, 7) },
+        tiers: { Normal: t(49, 490), Pro: t(79, 790), 'Pro+': t(119, 1190) },
       },
       {
         id: 'Silver',
@@ -171,7 +167,7 @@ export function defaultMembershipPricing(): MembershipPricingState {
           r('QR scan rules', 'Daily:250, Seasonal:5000', 'Daily:500, Seasonal:10000, Unlimited', 'Daily:500, Seasonal:10000, Unlimited', 'Scan rules for business QR codes — Daily, Seasonal allowance or Unlimited.', 'Business usage'),
           r('Additional Cards', '2', '3', '4', 'Extra cards the business can issue on top of the plan and share to family & friends.', 'Business usage'),
         ],
-        tiers: { Normal: t(149, 1490), Pro: t(219, 2190), 'Pro+': t(299, 2990, 7) },
+        tiers: { Normal: t(149, 1490), Pro: t(219, 2190), 'Pro+': t(299, 2990) },
       },
       {
         id: 'Gold',
@@ -200,7 +196,7 @@ export function defaultMembershipPricing(): MembershipPricingState {
           r('QR scan rules', 'Daily:500, Seasonal:10000, Unlimited', 'Daily:500, Seasonal:10000, Unlimited', 'Daily:500, Seasonal:10000, Unlimited', 'Scan rules for business QR codes — Daily, Seasonal allowance or Unlimited.', 'Business usage'),
           r('Additional Cards', '4', '5', '8', 'Extra cards the business can issue on top of the plan and share to family & friends.', 'Business usage'),
         ],
-        tiers: { Normal: t(449, 4490), Pro: t(649, 6490), 'Pro+': t(899, 8990, 7) },
+        tiers: { Normal: t(449, 4490), Pro: t(649, 6490), 'Pro+': t(899, 8990) },
       },
       {
         id: 'Platinum',
@@ -229,7 +225,7 @@ export function defaultMembershipPricing(): MembershipPricingState {
           r('QR scan rules', 'Daily:1000, Seasonal:25000, Unlimited', 'Daily:1000, Seasonal:25000, Unlimited', 'Daily:1000, Seasonal:25000, Unlimited', 'Scan rules for business QR codes — Daily, Seasonal allowance or Unlimited.', 'Business usage'),
           r('Additional Cards', '8', '10', '15', 'Extra cards the business can issue on top of the plan and share to family & friends.', 'Business usage'),
         ],
-        tiers: { Normal: t(1499, 14990), Pro: t(2499, 24990), 'Pro+': t(3999, 39990, 7) },
+        tiers: { Normal: t(1499, 14990), Pro: t(2499, 24990), 'Pro+': t(3999, 39990) },
       },
     ],
   }
@@ -253,8 +249,6 @@ function normalizePlan(raw: any): PlanCard | null {
       quarterly: Number(tr?.quarterly) || Math.round(monthly * 2.7),
       semiannual: Number(tr?.semiannual) || Math.round(monthly * 5.4),
       annual: Number(tr?.annual) || 0,
-      setupFee: Number(tr?.setupFee) || 0,
-      trialDays: Number(tr?.trialDays) || 0,
       description: typeof tr?.description === 'string' ? tr.description : '',
       scope: RULE_SCOPES.includes(tr?.scope) ? tr.scope : 'All',
     }

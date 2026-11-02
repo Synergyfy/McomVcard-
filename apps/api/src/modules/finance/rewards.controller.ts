@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -22,7 +24,8 @@ import { CreateRewardTransactionDto } from './dto/create-reward-transaction.dto'
 
 @ApiTags('finance')
 @ApiExtraModels(ApiResponse, RewardBalanceResponseDto, RewardTransactionResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
+@RequireCapability('rewards')
 @Controller()
 export class RewardsController {
   constructor(private readonly rewardsService: RewardsService) {}

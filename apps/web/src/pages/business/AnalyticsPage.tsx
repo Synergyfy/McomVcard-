@@ -8,6 +8,7 @@ import {
   type Membership,
   type MembershipBenefit,
 } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 interface SeriesPoint { label: string; value: number }
 interface AnalyticsSeries { key: string; label: string; icon: string; color: string; total: string; points: SeriesPoint[] }
@@ -40,6 +41,7 @@ function groupPoints(rows: { date: string; eventType: string; count: number }[],
 }
 
 export default function AnalyticsPage() {
+  const { capabilities } = useCapabilities()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [timeseries, setTimeseries] = useState<{ date: string; eventType: string; count: number }[]>([])
@@ -89,11 +91,18 @@ export default function AnalyticsPage() {
 
   const benefits = tierBenefits.length > 0 ? tierBenefits : allBenefits
   const membershipDays = membership?.expires_at ? Math.max(0, Math.ceil((new Date(membership.expires_at).getTime() - Date.now()) / 86400000)) : null
+  const entitlementLimit = (key: string): string => {
+    const capability = capabilities?.capabilities[key]
+    if (!capability) return 'Unlimited'
+    if (capability.mode === 'unlimited') return 'Unlimited'
+    if (capability.mode === 'disabled') return '0'
+    return String(capability.limit ?? 0)
+  }
   const entitlements = permissions ? [
-    { resource: 'Business VCards', used: permissions.allocated.vcards, limit: permissions.limits.vcards === null ? 'Unlimited' : String(permissions.limits.vcards) },
-    { resource: 'Business Cards', used: permissions.allocated.business_cards, limit: permissions.limits.business_cards === null ? 'Unlimited' : String(permissions.limits.business_cards) },
-    { resource: 'Friends & Family', used: 0, limit: permissions.limits.friends_family === null ? 'Unlimited' : String(permissions.limits.friends_family) },
-    { resource: 'QR routing rules', used: 0, limit: permissions.limits.qr_routing_rules === null ? 'Unlimited' : String(permissions.limits.qr_routing_rules) },
+    { resource: 'Business VCards', used: permissions.allocated.vcards, limit: entitlementLimit('maxVCards') },
+    { resource: 'Business Cards', used: permissions.allocated.business_cards, limit: entitlementLimit('maxBusinessCards') },
+    { resource: 'Friends & Family', used: 0, limit: entitlementLimit('maxFriendsFamily') },
+    { resource: 'QR routing rules', used: 0, limit: entitlementLimit('qrRoutingRules') },
   ] : []
 
   return (

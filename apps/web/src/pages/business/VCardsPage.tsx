@@ -9,6 +9,7 @@ import ScrollingVCard, { type ScrollingVCardHandle } from '../../components/comm
 import { buildBusinessCentres, BIZ_SECTION_CENTRES, type BizSectionState } from '../../services/businessVCardEditorStore'
 import ClaimTemplateModal from './vcard/ClaimTemplateModal'
 import { businessService, type VCard as ApiVCard, type Template as ApiTemplate, type BusinessPermissions } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 import type { AssignedVCard } from '../../types/business'
 
 /* Map API card sections onto the BizSectionState shape used by the phone preview */
@@ -106,11 +107,20 @@ export default function VCardsPage() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
     const [perms, setPerms] = useState<BusinessPermissions | null>(null)
+    const { capabilities } = useCapabilities()
 
     useEffect(() => {
         businessService.getBusinessPermissions().then(setPerms).catch(() => {})
     }, [])
-    const limit = perms?.limits.vcards ?? null
+    const vcardCapability = capabilities?.capabilities['maxVCards']
+    const limit = vcardCapability
+        ? vcardCapability.mode === 'unlimited'
+            ? Infinity
+            : vcardCapability.mode === 'disabled'
+                ? 0
+                : vcardCapability.limit
+        : null
+    const limitLabel = limit === null || limit === Infinity ? 'Unlimited' : String(limit)
 
     const [mainTab, setMainTab] = useState<'vcards' | 'templates'>('vcards')
     const [search, setSearch] = useState('')
@@ -149,7 +159,7 @@ export default function VCardsPage() {
 
     /* Map API cards to AssignedVCard format */
     const all = useMemo(() => {
-        return apiCards.map(c => ({
+        return apiCards.filter(c => c.type === 'BUSINESS_VCARD').map(c => ({
             id: parseInt(c.id.slice(0, 8), 16) || 0,
             name: c.name || c.slug || 'Untitled',
             type: c.type === 'BUSINESS' ? 'Business VCard' : c.type === 'PERSONAL' ? 'Personal VCard' : c.type,
@@ -179,7 +189,7 @@ export default function VCardsPage() {
     }, [apiCards, navigate, searchParams, setSearchParams])
 
     const used = all.length
-    const remaining = limit === null ? 'Unlimited' : Math.max(0, limit - used)
+    const remaining = limit === null || limit === Infinity ? 'Unlimited' : String(Math.max(0, limit - used))
 
     const filtered = useMemo(() => {
         return all.filter(v => {
@@ -276,7 +286,7 @@ export default function VCardsPage() {
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Long-scrolling digital profiles assigned to your business by Admin — or claim one from the template library. Structure is fixed; you can edit approved content.</p>
                         <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1">
-                            <span>{used} assigned · {remaining} remaining</span>
+                            <span>{used} of {limitLabel} created · {remaining} remaining</span>
                             {perms && (
                                 <>
                                     <span>·</span>
@@ -327,7 +337,7 @@ export default function VCardsPage() {
                     </div>
                     <div className="p-2.5">
                         <p className="text-[10px] text-gray-400">Allocation</p>
-                        <p className="text-lg font-bold text-orange-600">{used} / {limit === null ? '∞' : limit}</p>
+                        <p className="text-lg font-bold text-orange-600">{used} / {limit === null || limit === Infinity ? '∞' : limit}</p>
                     </div>
                 </div>
             </div>

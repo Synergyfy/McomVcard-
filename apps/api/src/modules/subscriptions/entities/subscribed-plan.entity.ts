@@ -9,7 +9,7 @@ import {
   Index,
 } from 'typeorm'
 import { User } from '../../users/entities/user.entity'
-import { Plan } from '../../plans/entities/plan.entity'
+import { Plan, PlanVariantKey } from '../../plans/entities/plan.entity'
 
 @Entity({ name: 'subscribed_plans' })
 @Index(['userId', 'status'])
@@ -34,6 +34,14 @@ export class SubscribedPlan {
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status!: 'active' | 'cancelled' | 'expired'
+
+  /**
+   * The purchased plan variant: standard (90d), pro (180d) or pro_plus (365d).
+   * Stored so entitlements/capabilities can be resolved for the exact variant
+   * the customer bought rather than guessing from the price/expiry.
+   */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  variant!: PlanVariantKey | null
 
   @Column({ name: 'started_at', type: 'timestamptz' })
   startedAt!: Date

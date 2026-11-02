@@ -21,35 +21,7 @@ import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
 import { Card, CardType } from '../cards/entities/card.entity'
 import { CacheService } from '../../lib/cache/cache.service'
-
-/* Plan levels + per-tier limits, mirroring the default pricing catalogue
-   (membershipPricingStore defaults on the frontend). null = Unlimited. */
-const PLAN_LEVELS = ['Bronze', 'Silver', 'Gold', 'Platinum'] as const
-type PlanLevel = (typeof PLAN_LEVELS)[number]
-
-const PLAN_LIMIT_MATRIX: Record<PlanLevel, {
-  vcards: (number | null)[]
-  businessCards: (number | null)[]
-  friendsFamily: (number | null)[]
-  qrRoutingRules: (number | null)[]
-}> = {
-  Bronze:   { vcards: [10, 25, 50],       businessCards: [25, 50, 100],    friendsFamily: [10, 25, 50],    qrRoutingRules: [5, 10, 20] },
-  Silver:   { vcards: [20, 50, 100],      businessCards: [50, 100, 200],   friendsFamily: [25, 50, 100],   qrRoutingRules: [10, 25, 50] },
-  Gold:     { vcards: [50, 100, 200],     businessCards: [100, 250, 500],  friendsFamily: [50, 100, 200],  qrRoutingRules: [null, null, null] },
-  Platinum: { vcards: [null, null, null], businessCards: [null, null, null], friendsFamily: [100, 200, 400], qrRoutingRules: [null, null, null] },
-}
-
-function resolvePlanLevel(name: string): PlanLevel {
-  const lower = name.toLowerCase()
-  return PLAN_LEVELS.find(l => lower.includes(l.toLowerCase())) ?? 'Bronze'
-}
-
-function resolvePlanTier(name: string): 'Normal' | 'Pro' | 'Pro+' {
-  const lower = name.toLowerCase()
-  if (lower.includes('pro+')) return 'Pro+'
-  if (lower.includes('pro')) return 'Pro'
-  return 'Normal'
-}
+import { PLAN_LIMIT_MATRIX, resolvePlanLevel, resolvePlanTier, tierIndex } from './plan-limit-matrix'
 
 @Injectable()
 export class BusinessesService {
@@ -137,17 +109,17 @@ export class BusinessesService {
     const tierName = membership?.tier?.name ?? ''
     const planLevel = resolvePlanLevel(tierName)
     const planTier = resolvePlanTier(tierName)
-    const tierIndex = planTier === 'Pro+' ? 2 : planTier === 'Pro' ? 1 : 0
+    const index = tierIndex(planTier)
 
     const matrix = PLAN_LIMIT_MATRIX[planLevel]
     const limits = {
-      vcards: matrix.vcards[tierIndex],
-      business_cards: matrix.businessCards[tierIndex],
-      friends_family: matrix.friendsFamily[tierIndex],
-      qr_routing_rules: matrix.qrRoutingRules[tierIndex],
+      vcards: matrix.vcards[index],
+      business_cards: matrix.businessCards[index],
+      friends_family: matrix.friendsFamily[index],
+      qr_routing_rules: matrix.qrRoutingRules[index],
     }
 
-    const allocatedVcards = await this.cardsRepo.count({ where: { ownerId: userId } })
+    const allocatedVcards = await this.cardsRepo.count({ where: { ownerId: userId, type: CardType.BUSINESS_VCARD } })
     const allocatedBusinessCards = business
       ? await this.cardsRepo.count({ where: { businessId: business.id, type: CardType.BUSINESS_CARD } })
       : 0

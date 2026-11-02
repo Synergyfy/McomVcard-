@@ -14,6 +14,7 @@ interface AdminNotification {
 const pageTitles: Record<string, string> = {
   '/admin': 'Dashboard', '/admin/businesses': 'Businesses', '/admin/consumers': 'Consumers',
   '/admin/vcards': 'VCards', '/admin/cards': 'Cards', '/admin/plans': 'Pricing & Membership',
+  '/admin/access-passes': 'Access Passes',
   '/admin/membership/pricing': 'Pricing & Plans', '/admin/membership/memberships': 'Memberships',
   '/admin/content-sharing': 'Content & Sharing', '/admin/integrations': 'Integrations',
   '/admin/analytics': 'Reports & Analytics', '/admin/settings': 'Settings',

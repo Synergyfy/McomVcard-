@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { McomPackagesService } from './mcom-packages.service'
 import { PlansService } from '../../plans/plans.service'
+import { AccessPassesService } from '../../access-passes/access-passes.service'
 import { UsersService } from '../../users/users.service'
 import { SubscriptionsService } from '../../subscriptions/subscriptions.service'
 import { McomPayError, McomPayService } from '../mcom-pay.service'
@@ -40,10 +41,30 @@ function mockPlan() {
     rules: [],
     configuration: { quotas: { maxVCards: 100 } },
     variants: [
-      { key: 'standard', name: 'Standard', durationDays: 90, price: 49, setupFee: 0, trialDays: 14, description: '90 days', features: null, rules: null, configuration: { quotas: { maxVCards: 50 } }, stripePriceId: null, paypalPlanId: null, isActive: true },
-      { key: 'pro', name: 'Pro', durationDays: 180, price: 89, setupFee: 0, trialDays: 14, description: '180 days', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
-      { key: 'pro_plus', name: 'Pro+', durationDays: 365, price: 149, setupFee: 0, trialDays: 7, description: '1 year', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
+      { key: 'standard', name: 'Standard', durationDays: 90, price: 49, description: '90 days', features: null, rules: null, configuration: { quotas: { maxVCards: 50 } }, stripePriceId: null, paypalPlanId: null, isActive: true },
+      { key: 'pro', name: 'Pro', durationDays: 180, price: 89, description: '180 days', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
+      { key: 'pro_plus', name: 'Pro+', durationDays: 365, price: 149, description: '1 year', features: null, rules: null, configuration: null, stripePriceId: null, paypalPlanId: null, isActive: true },
     ],
+  }
+}
+
+function mockAccessPass() {
+  return {
+    id: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    name: '70-Day Business Boost',
+    description: 'Short-term business access.',
+    price: 30,
+    durationDays: 70,
+    currency: 'GBP',
+    status: 'active',
+    features: [{ text: 'NFC cards', description: '', scope: 'All' }],
+    configuration: { quotas: { maxVCards: 20 }, featureFlags: { rewards: true } },
+    popular: false,
+    sortOrder: 0,
+    stripePriceId: null,
+    paypalPlanId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }
 }
 
@@ -68,6 +89,12 @@ function paidCharge(overrides: Record<string, unknown> = {}) {
 describe('McomPackagesService', () => {
   let service: McomPackagesService
   let plansMock: { findAll: jest.Mock; findOne: jest.Mock }
+  let accessPassesMock: {
+    findPurchasable: jest.Mock
+    findOne: jest.Mock
+    activatePurchase: jest.Mock
+    cancelPurchase: jest.Mock
+  }
   let usersMock: { findById: jest.Mock }
   let payMock: {
     enabled: boolean
@@ -84,6 +111,12 @@ describe('McomPackagesService', () => {
 
   beforeEach(async () => {
     plansMock = { findAll: jest.fn(), findOne: jest.fn() }
+    accessPassesMock = {
+      findPurchasable: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn(),
+      activatePurchase: jest.fn().mockResolvedValue({ id: 'pass-purchase-1' }),
+      cancelPurchase: jest.fn().mockResolvedValue(undefined),
+    }
     usersMock = { findById: jest.fn() }
     payMock = {
       enabled: true,
@@ -105,6 +138,7 @@ describe('McomPackagesService', () => {
         McomPackagesService,
         { provide: ConfigService, useValue: makeConfigMock() },
         { provide: PlansService, useValue: plansMock },
+        { provide: AccessPassesService, useValue: accessPassesMock },
         { provide: UsersService, useValue: usersMock },
         { provide: McomPayService, useValue: payMock },
         { provide: SubscriptionsService, useValue: subscriptionsMock },
@@ -129,6 +163,89 @@ describe('McomPackagesService', () => {
       expect(plans[0].variants[0]).toMatchObject({ name: 'Standard', durationDays: 90, price: 49, features: ['NFC cards'] })
       expect(plans[0].variants[0].configuration).toEqual({ quotas: { maxVCards: 50 } })
       expect(plans[0].variants[2].configuration).toEqual({ quotas: { maxVCards: 100 } })
+    })
+  })
+
+  describe('access passes', () => {
+    it('lists active access passes with their single price and duration', async () => {
+      accessPassesMock.findPurchasable.mockResolvedValue([mockAccessPass()])
+
+      const passes = await service.listAccessPasses()
+
+      expect(passes).toEqual([
+        expect.objectContaining({
+          id: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          name: '70-Day Business Boost',
+          price: 30,
+          durationDays: 70,
+          features: ['NFC cards'],
+        }),
+      ])
+    })
+
+    it('creates a server-priced charge and activates the pass window', async () => {
+      accessPassesMock.findOne.mockResolvedValue(mockAccessPass())
+      payMock.createCharge.mockResolvedValue({
+        charge: paidCharge({
+          amountMinor: '3000',
+          reference: 'vcards:access-pass:b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        }),
+      })
+
+      const result = await service.initiateAccessPass('user-1', {
+        accessPassId: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        provider: 'wallet',
+        idempotencyKey: 'attempt-pass-1234',
+      })
+
+      const [body, key] = payMock.createCharge.mock.calls[0]
+      expect(key).toBe('mcom-vcard-access-pass-user-1-attempt-pass-1234')
+      expect(body).toMatchObject({
+        amountMinor: '3000',
+        reference: 'vcards:access-pass:b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        metadata: expect.objectContaining({ purpose: 'vcard-access-pass', durationDays: 70 }),
+      })
+      expect(accessPassesMock.activatePurchase).toHaveBeenCalledWith({
+        userId: 'user-1',
+        accessPassId: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        paymentReference: 'charge-1',
+      })
+      expect(result.canAccessVcard).toBe(true)
+      expect(result.accessPass).toMatchObject({ durationDays: 70, price: 30 })
+      // Plan activation is untouched.
+      expect(subscriptionsMock.activatePlan).not.toHaveBeenCalled()
+    })
+
+    it('activates an access pass from a webhook reference', async () => {
+      accessPassesMock.findOne.mockResolvedValue(mockAccessPass())
+
+      const activated = await service.activateFromCharge(
+        paidCharge({
+          reference: 'vcards:access-pass:b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        }),
+      )
+
+      expect(activated).toBe(true)
+      expect(accessPassesMock.activatePurchase).toHaveBeenCalledWith({
+        userId: 'user-1',
+        accessPassId: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        paymentReference: 'charge-1',
+      })
+    })
+
+    it('revokes an access pass on a full refund', async () => {
+      const revoked = await service.revokeFromCharge(
+        paidCharge({
+          reference: 'vcards:access-pass:b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        }),
+      )
+
+      expect(revoked).toBe(true)
+      expect(accessPassesMock.cancelPurchase).toHaveBeenCalledWith(
+        'user-1',
+        'b1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      )
+      expect(subscriptionsMock.cancelPaidPlan).not.toHaveBeenCalled()
     })
   })
 

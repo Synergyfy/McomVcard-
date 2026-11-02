@@ -40,7 +40,6 @@ const BUSINESS_PLANS: Array<{
   popular: boolean
   isDefault: boolean
   monthly: number
-  trialDays: number
   features: string[]
   quotas: Record<string, number | boolean>
   featureFlags: Record<string, boolean>
@@ -52,7 +51,6 @@ const BUSINESS_PLANS: Array<{
     popular: false,
     isDefault: true,
     monthly: 49,
-    trialDays: 14,
     features: ['10 Business VCards', 'Standard QR codes', 'Email support'],
     quotas: { maxVCards: 10, maxTeamMembers: 1 },
     featureFlags: { allowNfc: false, customDomains: false },
@@ -64,7 +62,6 @@ const BUSINESS_PLANS: Array<{
     popular: false,
     isDefault: false,
     monthly: 149,
-    trialDays: 14,
     features: ['50 Business VCards', 'Custom QR codes', 'Priority support'],
     quotas: { maxVCards: 50, maxTeamMembers: 5 },
     featureFlags: { allowNfc: true, customDomains: false },
@@ -76,21 +73,18 @@ const BUSINESS_PLANS: Array<{
     popular: true,
     isDefault: false,
     monthly: 449,
-    trialDays: 14,
     features: ['Unlimited Business VCards', 'Analytics dashboard', 'Custom domains'],
     quotas: { maxVCards: 999, maxTeamMembers: 20 },
     featureFlags: { allowNfc: true, customDomains: true },
   },
 ]
 
-function buildTiers(monthly: number, trialDays: number): PlanTierPricingMap {
-  const createTier = (m: number, annual: number, trial = trialDays) => ({
+function buildTiers(monthly: number): PlanTierPricingMap {
+  const createTier = (m: number, annual: number) => ({
     monthly: m,
     quarterly: Math.round(m * 2.7),
     semiannual: Math.round(m * 5.4),
     annual,
-    setupFee: 0,
-    trialDays: trial,
     description: '',
     scope: 'All' as const,
   })
@@ -98,12 +92,12 @@ function buildTiers(monthly: number, trialDays: number): PlanTierPricingMap {
   return {
     Normal: createTier(0, 0),
     Pro: createTier(monthly, monthly * 10),
-    'Pro+': createTier(Math.round(monthly * 1.5), Math.round(monthly * 1.5) * 10, 7),
+    'Pro+': createTier(Math.round(monthly * 1.5), Math.round(monthly * 1.5) * 10),
   }
 }
 
 const DEFAULT_SECTIONS: PricingSections = {
-  price: { description: 'Prices for the selected tier, per billing cycle. Includes the one-off setup fee and free-trial days.' },
+  price: { description: 'Prices for the selected tier, per billing cycle.' },
   feature: { description: 'Check-list items shown on the plan cards.' },
   rule: { description: 'Limits enforced across admin setup, business usage and consumer usage, and shown in the public comparison table.' },
 }
@@ -201,7 +195,7 @@ async function seed() {
           sortOrder: spec.sortOrder,
           features,
           rules: [],
-          tiers: buildTiers(spec.monthly, spec.trialDays),
+          tiers: buildTiers(spec.monthly),
           sections: DEFAULT_SECTIONS,
           annualDiscount: DEFAULT_ANNUAL_DISCOUNT,
           currency: 'GBP',

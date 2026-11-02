@@ -8,6 +8,7 @@ import {
   packagesService,
   type PlanPaymentProvider,
   type PlanVariantKey,
+  type PurchasableAccessPass,
   type PurchasablePlan,
   type PurchasableVariant,
 } from '../../services/packages'
@@ -18,9 +19,16 @@ const PENDING_KEY = 'vcard_pending_wallet_purchase'
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined
 const stripePromise: Promise<Stripe | null> | null = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null
 
+type PurchaseTarget =
+  | { kind: 'plan'; planId: string; variant: PlanVariantKey }
+  | { kind: 'access_pass'; accessPassId: string }
+
 interface PendingPurchase {
+  /** Older pending purchases predate this field and are treated as plans. */
+  kind?: 'plan' | 'access_pass'
   externalPlanId: string
-  variant: PlanVariantKey
+  variant?: PlanVariantKey
+  accessPassId?: string
   provider: PlanPaymentProvider
   idempotencyKey: string
   chargeId?: string
@@ -242,7 +250,9 @@ export default function PlanCheckoutPage() {
   const { refreshMcomStatus, loginWithMcom } = useAuth()
 
   const [plans, setPlans] = useState<PurchasablePlan[]>([])
+  const [accessPasses, setAccessPasses] = useState<PurchasableAccessPass[]>([])
   const [selectedId, setSelectedId] = useState('')
+  const [selectedAccessPassId, setSelectedAccessPassId] = useState('')
   const [selectedVariant, setSelectedVariant] = useState<PlanVariantKey | ''>('')
   const [provider, setProvider] = useState<PlanPaymentProvider>('wallet')
   const [wallet, setWallet] = useState<WalletSummary | null>(null)
@@ -265,10 +275,23 @@ export default function PlanCheckoutPage() {
   const paypalWindowRef = useRef<Window | null>(null)
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedId), [plans, selectedId])
+  const selectedAccessPass = useMemo(
+    () => accessPasses.find((pass) => pass.id === selectedAccessPassId),
+    [accessPasses, selectedAccessPassId],
+  )
   const selectedPlanVariant = useMemo<PurchasableVariant | undefined>(
     () => selectedPlan?.variants.find((variant) => variant.key === selectedVariant),
     [selectedPlan, selectedVariant],
   )
+  const currentTarget = useMemo<PurchaseTarget | null>(() => {
+    if (selectedAccessPass) {
+      return { kind: 'access_pass', accessPassId: selectedAccessPass.id }
+    }
+    if (selectedPlan && selectedPlanVariant) {
+      return { kind: 'plan', planId: selectedPlan.id, variant: selectedPlanVariant.key }
+    }
+    return null
+  }, [selectedAccessPass, selectedPlan, selectedPlanVariant])
 
   const variantTabs = useMemo(() => {
     const keys: PlanVariantKey[] = ['standard', 'pro', 'pro_plus']
@@ -287,8 +310,8 @@ export default function PlanCheckoutPage() {
     })
   }, [plans])
 
-  const price = selectedPlanVariant?.price ?? 0
-  const currency = selectedPlan?.currency
+  const price = selectedAccessPass?.price ?? selectedPlanVariant?.price ?? 0
+  const currency = selectedAccessPass?.currency ?? selectedPlan?.currency
   const isFree = price <= 0
   const walletActive = wallet?.enabled === true && String(wallet.status || '').toUpperCase() === 'ACTIVE'
   const walletInsufficient = walletActive && wallet.availableBalance + 1e-9 < price
@@ -328,8 +351,46 @@ export default function PlanCheckoutPage() {
       })
   }, [])
 
+  const initiateTarget = useCallback(
+    (target: PurchaseTarget, provider: PlanPaymentProvider, key: string) =>
+      target.kind === 'plan'
+        ? packagesService.initiate({
+            externalPlanId: target.planId,
+            variant: target.variant,
+            provider,
+            idempotencyKey: key,
+          })
+        : packagesService.initiateAccessPass({
+            accessPassId: target.accessPassId,
+            provider,
+            idempotencyKey: key,
+          }),
+    [],
+  )
+
+  const confirmTarget = useCallback(
+    (
+      target: PurchaseTarget,
+      chargeId: string,
+      extra?: { paymentIntentId?: string; orderId?: string },
+    ) =>
+      target.kind === 'plan'
+        ? packagesService.confirm({
+            externalPlanId: target.planId,
+            variant: target.variant,
+            chargeId,
+            ...extra,
+          })
+        : packagesService.confirmAccessPass({
+            accessPassId: target.accessPassId,
+            chargeId,
+            ...extra,
+          }),
+    [],
+  )
+
   const startPaypalPolling = useCallback(
-    (chargeId: string, planId: string, variant: PlanVariantKey) => {
+    (chargeId: string, target: PurchaseTarget) => {
       stopPolling()
       const startedAt = Date.now()
 
@@ -342,11 +403,7 @@ export default function PlanCheckoutPage() {
         }
 
         try {
-          const result = await packagesService.confirm({
-            externalPlanId: planId,
-            variant,
-            chargeId,
-          })
+          const result = await confirmTarget(target, chargeId)
 
           if (result.canAccessVcard) {
             await finish()
@@ -363,22 +420,53 @@ export default function PlanCheckoutPage() {
         }
       }, 5000)
     },
-    [finish, stopPolling],
+    [confirmTarget, finish, stopPolling],
   )
 
   useEffect(() => {
-    Promise.all([packagesService.listPlans(), paymentsService.getWallet().catch(() => null)])
-      .then(([list, walletSummary]) => {
+    Promise.all([
+      packagesService.listPlans(),
+      packagesService.listAccessPasses().catch(() => [] as PurchasableAccessPass[]),
+      paymentsService.getWallet().catch(() => null),
+    ])
+      .then(([list, passList, walletSummary]) => {
         setPlans(list)
+        setAccessPasses(passList)
         setWallet(walletSummary)
         if (!walletSummary) setWalletError('Could not load your MCOM Wallet balance.')
 
         const pending = loadPendingPurchase()
+
+        if (pending?.kind === 'access_pass' && pending.accessPassId) {
+          const pendingPass = passList.find((pass) => pass.id === pending.accessPassId)
+          if (pendingPass) {
+            setSelectedAccessPassId(pendingPass.id)
+            setSelectedId('')
+            setProvider(pending.provider)
+            setIdempotencyKey(pending.idempotencyKey)
+
+            if (pending.provider === 'paypal' && pending.chargeId) {
+              setPaypalChargeId(pending.chargeId)
+              setPaypalApprovalUrl(pending.approvalUrl ?? '')
+              setPaypalState('waiting')
+              startPaypalPolling(pending.chargeId, {
+                kind: 'access_pass',
+                accessPassId: pendingPass.id,
+              })
+            } else if (pending.provider === 'stripe' && pending.chargeId) {
+              setStripeChargeId(pending.chargeId)
+              setError('A card payment is already in progress. Click “Continue card payment” to finish it.')
+            }
+            return
+          }
+        }
+
         const pendingPlan = pending ? list.find((plan) => plan.id === pending.externalPlanId) : null
         const pendingVariant = pendingPlan?.variants.find((variant) => variant.key === pending?.variant)
 
         if (pending && pendingPlan && pendingVariant) {
           setSelectedId(pendingPlan.id)
+          setSelectedAccessPassId('')
           setSelectedVariant(pendingVariant.key)
           setProvider(pending.provider)
           setIdempotencyKey(pending.idempotencyKey)
@@ -387,7 +475,11 @@ export default function PlanCheckoutPage() {
             setPaypalChargeId(pending.chargeId)
             setPaypalApprovalUrl(pending.approvalUrl ?? '')
             setPaypalState('waiting')
-            startPaypalPolling(pending.chargeId, pendingPlan.id, pendingVariant.key)
+            startPaypalPolling(pending.chargeId, {
+              kind: 'plan',
+              planId: pendingPlan.id,
+              variant: pendingVariant.key,
+            })
           } else if (pending.provider === 'stripe' && pending.chargeId) {
             setStripeChargeId(pending.chargeId)
             setError('A card payment is already in progress. Click “Continue card payment” to finish it.')
@@ -403,6 +495,8 @@ export default function PlanCheckoutPage() {
           const recommended =
             firstPlan.variants.find((variant) => variant.price > 0) ?? firstPlan.variants[0]
           setSelectedVariant(recommended?.key ?? '')
+        } else if (passList[0]) {
+          setSelectedAccessPassId(passList[0].id)
         }
       })
       .catch(() => setError('Could not load plans. Please try again.'))
@@ -435,12 +529,21 @@ export default function PlanCheckoutPage() {
   const selectPlan = (plan: PurchasablePlan) => {
     if (paymentLocked) return
     setSelectedId(plan.id)
+    setSelectedAccessPassId('')
+    resetFlow()
+  }
+
+  const selectAccessPass = (pass: PurchasableAccessPass) => {
+    if (paymentLocked) return
+    setSelectedAccessPassId(pass.id)
+    setSelectedId('')
     resetFlow()
   }
 
   const selectVariantTab = (key: PlanVariantKey) => {
     if (paymentLocked) return
     setSelectedVariant(key)
+    setSelectedAccessPassId('')
     resetFlow()
 
     const current = plans.find((plan) => plan.id === selectedId)
@@ -481,8 +584,22 @@ export default function PlanCheckoutPage() {
     approvalUrl?: string,
     providerOverride?: PlanPaymentProvider,
   ) => {
+    if (selectedAccessPass) {
+      savePendingPurchase({
+        kind: 'access_pass',
+        externalPlanId: selectedAccessPass.id,
+        accessPassId: selectedAccessPass.id,
+        provider: providerOverride ?? provider,
+        idempotencyKey: key,
+        ...(chargeId ? { chargeId } : {}),
+        ...(approvalUrl ? { approvalUrl } : {}),
+      })
+      return
+    }
+
     if (!selectedPlan || !selectedPlanVariant) return
     savePendingPurchase({
+      kind: 'plan',
       externalPlanId: selectedPlan.id,
       variant: selectedPlanVariant.key,
       provider: providerOverride ?? provider,
@@ -495,7 +612,8 @@ export default function PlanCheckoutPage() {
   /* ── Wallet ─────────────────────────────────────────────────────────── */
 
   const payWithWallet = async () => {
-    if (busy || !selectedPlan || !selectedPlanVariant) return
+    const target = currentTarget
+    if (busy || !target) return
     setError('')
     setTopUpUrl('')
     setBusy(true)
@@ -506,12 +624,7 @@ export default function PlanCheckoutPage() {
       setIdempotencyKey(key)
       storePending(key, undefined, undefined, 'wallet')
 
-      const result = await packagesService.initiate({
-        externalPlanId: selectedPlan.id,
-        variant: selectedPlanVariant.key,
-        provider: 'wallet',
-        idempotencyKey: key,
-      })
+      const result = await initiateTarget(target, 'wallet', key)
 
       if (result.canAccessVcard) {
         await finish()
@@ -519,18 +632,14 @@ export default function PlanCheckoutPage() {
       }
 
       if (result.charge?.status === 'pending') {
-        const confirmed = await packagesService.confirm({
-          externalPlanId: selectedPlan.id,
-          variant: selectedPlanVariant.key,
-          chargeId: result.charge.id,
-        })
+        const confirmed = await confirmTarget(target, result.charge.id)
         if (confirmed.canAccessVcard) {
           await finish()
           return
         }
       }
 
-      setError('Your wallet charge was received but the plan is not active yet. Please check your access again.')
+      setError('Your wallet charge was received but access is not active yet. Please check your access again.')
     } catch (err: any) {
       handlePaymentError(err)
     } finally {
@@ -541,7 +650,8 @@ export default function PlanCheckoutPage() {
   /* ── Stripe ─────────────────────────────────────────────────────────── */
 
   const startStripe = async () => {
-    if (busy || !selectedPlan || !selectedPlanVariant) return
+    const target = currentTarget
+    if (busy || !target) return
     if (!STRIPE_KEY) {
       setError('Card payments are not configured on this environment (missing Stripe publishable key).')
       return
@@ -556,12 +666,7 @@ export default function PlanCheckoutPage() {
       const key = idempotencyKey || newIdempotencyKey()
       setIdempotencyKey(key)
 
-      const result = await packagesService.initiate({
-        externalPlanId: selectedPlan.id,
-        variant: selectedPlanVariant.key,
-        provider: 'stripe',
-        idempotencyKey: key,
-      })
+      const result = await initiateTarget(target, 'stripe', key)
 
       if (result.canAccessVcard) {
         await finish()
@@ -585,18 +690,14 @@ export default function PlanCheckoutPage() {
   }
 
   const handleStripePaid = async (paymentIntentId: string) => {
-    if (!selectedPlan || !selectedPlanVariant || !stripeChargeId) return
+    const target = currentTarget
+    if (!target || !stripeChargeId) return
     try {
-      const result = await packagesService.confirm({
-        externalPlanId: selectedPlan.id,
-        variant: selectedPlanVariant.key,
-        chargeId: stripeChargeId,
-        paymentIntentId,
-      })
+      const result = await confirmTarget(target, stripeChargeId, { paymentIntentId })
       if (result.canAccessVcard) {
         await finish()
       } else {
-        setError('Card payment succeeded but the plan is not active yet. Please contact support.')
+        setError('Card payment succeeded but access is not active yet. Please contact support.')
       }
     } catch (err: any) {
       handlePaymentError(err)
@@ -606,7 +707,8 @@ export default function PlanCheckoutPage() {
   /* ── PayPal ─────────────────────────────────────────────────────────── */
 
   const startPaypal = async () => {
-    if (busy || !selectedPlan || !selectedPlanVariant) return
+    const target = currentTarget
+    if (busy || !target) return
 
     // Open the PayPal window synchronously so the browser keeps the user gesture.
     const popup = window.open('about:blank', 'mcom_paypal_checkout', 'width=520,height=760')
@@ -623,12 +725,7 @@ export default function PlanCheckoutPage() {
       const key = idempotencyKey || newIdempotencyKey()
       setIdempotencyKey(key)
 
-      const result = await packagesService.initiate({
-        externalPlanId: selectedPlan.id,
-        variant: selectedPlanVariant.key,
-        provider: 'paypal',
-        idempotencyKey: key,
-      })
+      const result = await initiateTarget(target, 'paypal', key)
 
       if (result.canAccessVcard) {
         if (popup) popup.close()
@@ -656,7 +753,7 @@ export default function PlanCheckoutPage() {
         setPaypalNotice('Your browser blocked the PayPal window. Use the button below to open PayPal.')
       }
 
-      startPaypalPolling(result.charge.id, selectedPlan.id, selectedPlanVariant.key)
+      startPaypalPolling(result.charge.id, target)
     } catch (err: any) {
       if (popup) popup.close()
       paypalWindowRef.current = null
@@ -668,14 +765,11 @@ export default function PlanCheckoutPage() {
   }
 
   const checkPaypalNow = async () => {
-    if (!selectedPlan || !selectedPlanVariant || !paypalChargeId) return
+    const target = currentTarget
+    if (!target || !paypalChargeId) return
     setPaypalNotice('')
     try {
-      const result = await packagesService.confirm({
-        externalPlanId: selectedPlan.id,
-        variant: selectedPlanVariant.key,
-        chargeId: paypalChargeId,
-      })
+      const result = await confirmTarget(target, paypalChargeId)
       if (result.canAccessVcard) {
         await finish()
       } else {
@@ -750,9 +844,9 @@ export default function PlanCheckoutPage() {
               <CheckIcon className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm font-bold text-emerald-900">This plan variant is free</p>
+              <p className="text-sm font-bold text-emerald-900">This access is free</p>
               <p className="mt-1 text-xs leading-relaxed text-emerald-700">
-                No payment is required. Activate it now and start using your VCard plan immediately.
+                No payment is required. Activate it now and start using your VCard access immediately.
               </p>
             </div>
           </div>
@@ -762,7 +856,7 @@ export default function PlanCheckoutPage() {
             disabled={busy}
             className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy ? 'Activating…' : 'Activate free plan'}
+            {busy ? 'Activating…' : 'Activate free access'}
           </button>
         </div>
       )
@@ -973,13 +1067,14 @@ export default function PlanCheckoutPage() {
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600">MCOM VCard plans</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600">MCOM VCard access</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
-              Choose your plan and pay your way
+              Choose your plan or access pass and pay your way
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-500">
-              Standard, Pro and Pro+ give you 90, 180 or 365 days of access. Pay from your MCOM Wallet, by card through
-              Stripe, or with PayPal — all processed securely by MCOM Central Hub.
+              Plans come in Standard, Pro and Pro+ (90, 180 or 365 days). Access passes give you one configured bundle
+              for a fixed number of days. Pay from your MCOM Wallet, by card through Stripe, or with PayPal — all
+              processed securely by MCOM Central Hub.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -990,9 +1085,9 @@ export default function PlanCheckoutPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5">
-          <StepBadge number={1} label="Choose plan" done={Boolean(selectedPlanVariant)} />
+          <StepBadge number={1} label="Choose access" done={Boolean(currentTarget)} />
           <span className="hidden h-px w-8 bg-gray-200 sm:block" />
-          <StepBadge number={2} label="Payment method" active={Boolean(selectedPlanVariant)} />
+          <StepBadge number={2} label="Payment method" active={Boolean(currentTarget)} />
           <span className="hidden h-px w-8 bg-gray-200 sm:block" />
           <StepBadge number={3} label="Access activated" />
           <span className="ml-auto hidden text-[11px] font-semibold text-gray-400 sm:block">
@@ -1033,15 +1128,16 @@ export default function PlanCheckoutPage() {
             <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
             <p className="text-xs font-semibold text-gray-400">Loading plans…</p>
           </div>
-        ) : plans.length === 0 ? (
+        ) : plans.length === 0 && accessPasses.length === 0 ? (
           <div className="mt-10 rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-            <p className="text-sm font-bold text-gray-900">No plans are available yet</p>
-            <p className="mt-1 text-xs text-gray-500">Please contact MCOM Solutions to enable plan purchases.</p>
+            <p className="text-sm font-bold text-gray-900">No plans or access passes are available yet</p>
+            <p className="mt-1 text-xs text-gray-500">Please contact MCOM Solutions to enable purchases.</p>
           </div>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:gap-8">
             <div className="space-y-8">
               {/* Step 1 — plans */}
+              {plans.length > 0 && (
               <section>
                 <div className="flex items-end justify-between gap-3">
                   <div>
@@ -1184,6 +1280,106 @@ export default function PlanCheckoutPage() {
                   </div>
                 </div>
               </section>
+              )}
+
+              {/* Step 1b — access passes */}
+              {accessPasses.length > 0 && (
+                <section>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-black text-gray-900">Access passes</h2>
+                      <p className="mt-1 text-xs text-gray-500">
+                        One-off passes with a single price and a fixed number of days.
+                      </p>
+                    </div>
+                    <span className="hidden text-[11px] font-semibold text-gray-400 sm:block">One payment</span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    {accessPasses.map((pass) => {
+                      const active = pass.id === selectedAccessPassId
+                      return (
+                        <button
+                          key={pass.id}
+                          type="button"
+                          onClick={() => selectAccessPass(pass)}
+                          disabled={paymentLocked}
+                          className={`group flex h-full flex-col rounded-3xl border p-5 text-left transition-all ${
+                            active
+                              ? 'border-blue-600 bg-white shadow-xl shadow-blue-100/70 ring-2 ring-blue-600/15'
+                              : 'border-gray-200 bg-white shadow-sm hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md'
+                          } ${paymentLocked ? 'cursor-not-allowed opacity-70' : ''}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="text-base font-black text-gray-900">{pass.name}</h3>
+                              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                {durationLabel(pass.durationDays)} access
+                              </p>
+                            </div>
+                            <span
+                              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                                active ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                              }`}
+                            >
+                              {active && <CheckIcon className="h-3 w-3 text-white" />}
+                            </span>
+                          </div>
+
+                          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">{pass.description}</p>
+
+                          <div className="mt-4 flex flex-wrap items-end gap-2">
+                            <span className="text-3xl font-black tracking-tight text-gray-900">
+                              {money(pass.price, pass.currency)}
+                            </span>
+                            {pass.price === 0 ? (
+                              <span className="mb-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
+                                Free
+                              </span>
+                            ) : (
+                              <span className="mb-1 text-[11px] font-semibold text-gray-400">
+                                for {durationLabel(pass.durationDays)}
+                              </span>
+                            )}
+                          </div>
+
+                          <ul className="mt-4 space-y-2">
+                            {(pass.features.length > 0
+                              ? pass.features
+                              : ['Configured business features', 'Full access for the pass duration']
+                            )
+                              .slice(0, 5)
+                              .map((feature) => (
+                                <li key={feature} className="flex items-start gap-2 text-[11px] leading-snug text-gray-600">
+                                  <CheckIcon className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" />
+                                  {feature}
+                                </li>
+                              ))}
+                          </ul>
+
+                          <div className="mt-auto pt-5">
+                            <span
+                              className={`flex min-h-[42px] items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                                active
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-100 text-gray-700 group-hover:bg-gray-200'
+                              }`}
+                            >
+                              {active ? (
+                                <>
+                                  <CheckIcon className="h-3.5 w-3.5" /> Selected
+                                </>
+                              ) : (
+                                `Select ${pass.name}`
+                              )}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
 
               {/* Step 2 — payment */}
               <section>
@@ -1290,22 +1486,34 @@ export default function PlanCheckoutPage() {
               <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg shadow-gray-200/50">
                 <div className="border-b border-gray-100 bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Order summary</p>
-                  <p className="mt-2 text-lg font-black">{selectedPlan?.name ?? 'Choose a plan'}</p>
+                  <p className="mt-2 text-lg font-black">
+                    {selectedAccessPass?.name ?? selectedPlan?.name ?? 'Choose access'}
+                  </p>
                   <p className="mt-0.5 text-xs text-white/70">
-                    {selectedPlanVariant ? `${selectedPlanVariant.name} · ${durationLabel(selectedPlanVariant.durationDays)}` : 'Select a variant'}
+                    {selectedAccessPass
+                      ? `Access pass · ${durationLabel(selectedAccessPass.durationDays)}`
+                      : selectedPlanVariant
+                        ? `${selectedPlanVariant.name} · ${durationLabel(selectedPlanVariant.durationDays)}`
+                        : 'Select a plan, variant or access pass'}
                   </p>
                 </div>
 
                 <div className="p-5">
                   <dl className="space-y-3 text-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-gray-500">Plan</dt>
-                      <dd className="text-right font-semibold text-gray-900">{selectedPlan?.name ?? '—'}</dd>
+                      <dt className="text-gray-500">{selectedAccessPass ? 'Access pass' : 'Plan'}</dt>
+                      <dd className="text-right font-semibold text-gray-900">
+                        {selectedAccessPass?.name ?? selectedPlan?.name ?? '—'}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-gray-500">Access</dt>
                       <dd className="text-right font-semibold text-gray-900">
-                        {selectedPlanVariant ? `${selectedPlanVariant.name} (${durationLabel(selectedPlanVariant.durationDays)})` : '—'}
+                        {selectedAccessPass
+                          ? durationLabel(selectedAccessPass.durationDays)
+                          : selectedPlanVariant
+                            ? `${selectedPlanVariant.name} (${durationLabel(selectedPlanVariant.durationDays)})`
+                            : '—'}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
@@ -1336,8 +1544,13 @@ export default function PlanCheckoutPage() {
 
                   <div className="mt-4 rounded-xl bg-gray-50 p-3">
                     <p className="text-[11px] leading-relaxed text-gray-500">
-                      This is a one-time payment for {selectedPlanVariant ? durationLabel(selectedPlanVariant.durationDays) : 'your chosen period'} of
-                      access. It does not auto-renew and no future charges are scheduled.
+                      This is a one-time payment for{' '}
+                      {selectedAccessPass
+                        ? durationLabel(selectedAccessPass.durationDays)
+                        : selectedPlanVariant
+                          ? durationLabel(selectedPlanVariant.durationDays)
+                          : 'your chosen period'}{' '}
+                      of access. It does not auto-renew and no future charges are scheduled.
                     </p>
                   </div>
 

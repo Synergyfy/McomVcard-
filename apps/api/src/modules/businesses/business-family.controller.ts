@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { BusinessAccessGuard } from './guards/business-access.guard'
@@ -9,7 +11,8 @@ import { CreateBusinessFamilyMemberDto, UpdateBusinessFamilyMemberStatusDto } fr
 
 @ApiTags('business-family')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, BusinessAccessGuard)
+@UseGuards(JwtAuthGuard, BusinessAccessGuard, CapabilityGuard)
+@RequireCapability('friendsFamily')
 @Controller()
 export class BusinessFamilyController {
   constructor(private readonly familyService: BusinessFamilyService) {}

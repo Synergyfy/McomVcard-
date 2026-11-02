@@ -20,7 +20,6 @@ function makePlan(): SystemPlanResponseDto {
     isActive: true,
     isDefault: false,
     type: 'STANDARD',
-    trialDuration: 14,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
   }
@@ -83,10 +82,15 @@ describe('SystemPlansController', () => {
 
       expect(result).toEqual(VCARD_PLAN_SCHEMA)
       expect(result.quotas.some((q) => q.key === 'maxVCards' && q.unlimited)).toBe(true)
-      expect(result.quotas.some((q) => q.key === 'maxConsumerVCards')).toBe(true)
-      expect(result.quotas.some((q) => q.key === 'maxTeamMembers')).toBe(true)
-      expect(result.featureFlags.some((f) => f.key === 'allowNfc' && f.type === 'boolean')).toBe(true)
-      expect(result.featureFlags.some((f) => f.key === 'customDomains')).toBe(true)
+      expect(result.quotas.some((q) => q.key === 'maxConsumerVCards')).toBe(false)
+      expect(result.quotas.some((q) => q.key === 'maxTeamMembers')).toBe(false)
+      expect(result.quotas.some((q) => q.key === 'maxFriendsFamily')).toBe(true)
+      expect(result.quotas.some((q) => q.key === 'maxActiveCampaigns')).toBe(false)
+      expect(result.featureFlags.some((f) => f.key === 'rewards' && f.type === 'boolean')).toBe(true)
+      expect(result.featureFlags.some((f) => f.key === 'campaigns')).toBe(true)
+      expect(result.featureFlags.some((f) => f.key === 'allowNfc')).toBe(false)
+      expect(result.featureFlags.some((f) => f.key === 'customDomains')).toBe(false)
+      expect(result.featureFlags.some((f) => f.key === 'customQrCodes')).toBe(true)
       expect(service.findAll).not.toHaveBeenCalled()
       expect(service.findOne).not.toHaveBeenCalled()
     })
@@ -103,7 +107,6 @@ describe('SystemPlansController', () => {
       expect((result as any).monthlyPrice).toBe(10)
       expect((result as any).quarterlyPrice).toBe(27)
       expect((result as any).annualPrice).toBe(100)
-      expect((result as any).trialDuration).toBe(14)
       expect(service.findOne).toHaveBeenCalledWith('plan-1')
     })
   })

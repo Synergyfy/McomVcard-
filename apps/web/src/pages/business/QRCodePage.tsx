@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import QRCode from 'qrcode'
 import { businessService, type Business, type BusinessPermissions, type QrCodeItem, type QrStats, type Season, type VCard } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 import { loadMembershipPricing } from '../../services/membershipPricingStore'
 import { getQrScanRules, type QrScanRule, type QrScanRuleOption } from '../../services/membershipEnforcement'
 
@@ -14,6 +15,7 @@ function limitText(o: QrScanRuleOption, seasonName: string): string {
 }
 
 export default function BusinessQRCodePage() {
+  const { can } = useCapabilities()
   const [business, setBusiness] = useState<Business | null>(null)
   const [cards, setCards] = useState<VCard[]>([])
   const [qrCodes, setQrCodes] = useState<QrCodeItem[]>([])
@@ -121,13 +123,13 @@ export default function BusinessQRCodePage() {
         <p className="text-xs text-gray-400">Device data is not collected yet.</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+      {can('qrScanRules') && <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
         <h2 className="text-base font-bold text-gray-900 dark:text-white">Scan rule</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 mb-3">Choose how often this QR can be scanned. The available options come from your {planLevel} {planTier} membership.</p>
         <div className="space-y-2">{scanOptions.map((o) => <button key={o.id} onClick={() => { setSelected(o.id); toast.success(`Scan rule set to ${o.id === 'Seasonal' ? 'Seasonal allowance' : o.id}`) }} className={`w-full px-4 py-3.5 min-h-[46px] rounded-xl text-sm font-semibold border text-left transition-colors ${selected === o.id ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'}`}><span className="block font-bold text-gray-900 dark:text-white">{o.id === 'Seasonal' ? 'Seasonal allowance' : o.id}</span><span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">{limitText(o, seasonName)}</span></button>)}</div>
         {selectedOption && <div className="mt-4 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3 flex items-center justify-between gap-3"><span className="text-xs text-gray-500 dark:text-gray-400">Scan limit on your plan</span><span className="text-xs font-bold text-gray-900 dark:text-white text-right">{selectedOption.id === 'Unlimited' ? 'Unlimited' : limitText(selectedOption, seasonName)}</span></div>}
         <p className="text-[11px] text-gray-400 mt-3">Scan rules are governed by your membership configuration. See what's included on the <Link to="/b/membership" className="text-orange-600 font-semibold">Membership</Link> page.</p>
-      </div>
+      </div>}
     </div>
   )
 }

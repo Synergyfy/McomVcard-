@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { businessService, type CashbackProgram, type GiftCard, type RewardBalance, type RewardTransaction, type Wallet, type WalletTransaction } from '../../services/businessApi'
+import { useCapabilities } from '../../hooks/useCapabilities'
 
 const SOLUTIONS = [
   { id: 'rewards', name: 'MCOM Rewards', platform: 'MCOM Rewards', description: 'Customers earn and redeem points, cashback and perks that return money and loyalty to your business.', status: 'active', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.085 10.1c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z' },
@@ -15,6 +16,7 @@ const sym = (currency?: string) => currency === 'USD' ? '$' : currency === 'EUR'
 const fmtDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'
 
 export default function WalletPage() {
+  const { can } = useCapabilities()
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [cashback, setCashback] = useState<CashbackProgram[]>([])
@@ -118,13 +120,13 @@ export default function WalletPage() {
         </div>
       </section>
 
-      <section>
+      {can('giftCards') && <section>
         <div className="flex items-center justify-between mb-2"><h2 className="text-sm font-bold text-gray-900 dark:text-white">Gift cards on sale</h2><Link to="/b/rewards/gift-cards" className="text-xs font-semibold text-orange-600">Manage</Link></div>
         <div className="space-y-3">
           {giftCards.length === 0 && <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-5 text-center text-xs text-gray-400 dark:border-gray-600 dark:bg-gray-800">No gift cards on sale yet.</div>}
           {giftCards.map((g) => <div key={g.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-bold text-gray-900 dark:text-white">{g.title}</p><p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{g.sold} sold · {symbol}{g.value} face value · MCOM Mall, Expo &amp; partner merchants</p></div><span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold ${statusCls[g.status]}`}>{g.status === 'active' ? 'Active' : 'Paused'}</span></div></div>)}
         </div>
-      </section>
+      </section>}
 
       <section>
         <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Recent activity</h2>

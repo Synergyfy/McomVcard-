@@ -14,6 +14,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -23,12 +25,13 @@ import { NotificationResponseDto, UnreadCountDto } from './dto/notification-resp
 
 @ApiTags('notifications')
 @ApiExtraModels(ApiResponse, NotificationResponseDto, UnreadCountDto)
+@RequireCapability('notifications')
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a notification', description: 'Creates an in-app notification for a user and dispatches it through the abstracted delivery provider (spec §44).' })
   @ApiBody({
@@ -43,7 +46,7 @@ export class NotificationsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List my notifications', description: 'Returns the authenticated user\'s notifications, newest first. Use ?unread=true to show only unread.' })
   @ApiQuery({ name: 'unread', required: false, type: Boolean, description: 'Only unread notifications' })
@@ -54,7 +57,7 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unread notification count', description: 'Returns how many of the authenticated user\'s notifications are unread.' })
   @ApiOkResponse({ description: 'Unread count', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { $ref: getSchemaPath(UnreadCountDto) } } }] } })
@@ -64,7 +67,7 @@ export class NotificationsController {
   }
 
   @Patch('mark-all-read')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark all notifications as read', description: 'Marks every unread notification of the authenticated user as read.' })
   @ApiOkResponse({ description: 'All marked read', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'null', nullable: true } } }] } })
@@ -74,7 +77,7 @@ export class NotificationsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark a notification read/unread', description: 'Marks one of the authenticated user\'s notifications as read (read: true) or unread (read: false).' })
   @ApiBody({ type: UpdateNotificationDto, examples: { read: { summary: 'Mark read', value: { read: true } } } })
@@ -86,7 +89,7 @@ export class NotificationsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CapabilityGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a notification', description: 'Deletes one of the authenticated user\'s notifications.' })
   @ApiOkResponse({ description: 'Notification deleted', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'null', nullable: true } } }] } })

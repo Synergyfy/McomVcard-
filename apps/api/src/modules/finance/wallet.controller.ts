@@ -14,6 +14,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { CapabilityGuard } from '../capabilities/capability.guard'
+import { RequireCapability } from '../capabilities/require-capability.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -25,7 +27,8 @@ import { AllocateToChildDto } from './dto/allocate-to-child.dto'
 
 @ApiTags('finance')
 @ApiExtraModels(ApiResponse, WalletResponseDto, WalletTransactionResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CapabilityGuard)
+@RequireCapability('wallet')
 @Controller()
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}

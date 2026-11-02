@@ -1,4 +1,4 @@
-import api from './api'
+import { adminApi as api } from './adminAuth'
 import type { RuleScope } from './membershipPricingStore'
 
 /* ------------------------------------------------------------------ */

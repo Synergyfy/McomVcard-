@@ -613,3 +613,25 @@ Frontend:
 **What:** The checkout now opens at `/plans` (not `/b/payment`) and presents plans the way they are actually compared: choose the access length tab (Standard 90d, Pro 180d, Pro+ 365d), then pick Bronze/Silver/Gold. MCOM Wallet pays instantly, Stripe uses the official Payment Element (with redirect fallback), and PayPal opens a secure approval window while the page polls MCOM Pay and activates the plan automatically. Amounts remain server-side from the selected plan variant.
 
 **Verified:** web `tsc` + production build clean; api `tsc` clean; 222 unit tests pass; browser smoke test at `http://localhost:9023/plans` (authenticated): tab switching, plan selection, order summary, wallet/card/PayPal method panels and mobile-stacked layout render correctly.
+
+---
+
+## 28. [BACKEND + FRONTEND] Membership + trial entitlement (Central protocol 2026-10-01)
+
+**Date:** 2026-11-02
+**Files changed:**
+- `apps/api/src/modules/mcom/access-decision.ts` (new) — full `PlatformEntitlement` contract, `decideAccess()` and `isMembershipAccess()` / `isTrialAccess()` helpers
+- `apps/api/src/modules/mcom/access-decision.spec.ts` (new) — membership, trial, no-tasks, non-included membership and expiry coverage
+- `apps/api/src/migrations/1712000000051-AddMcomAccessDecision.ts` (new, applied) — `users.mcom_access` jsonb decision snapshot
+- `apps/api/src/modules/users/entities/user.entity.ts` — `mcomAccess` column
+- `apps/api/src/modules/auth/auth.service.ts` — SSO sync now derives/stores the normalized decision; membership level/status come from `membershipContext`; expiry-aware local gate
+- `apps/api/src/lib/utils/dto/user-response.dto.ts` — exposes `access` (source, plan, expiry, quotas/limits/features, trial days/tasks, reason, upgrade URL)
+- `apps/api/src/modules/mcom/mcom.controller.ts` — `/v1/auth/sso/status` returns `access`; `active_plan` resolves the VCard plan inside a membership (`plan.planId`, name fallback) or a synthetic trial plan with countdown/tasks
+- `apps/api/src/modules/mcom/webhooks/*` — membership/entitlement lifecycle events re-introspect Central (e.g. `entitlement.trial_started`) and persist the decision
+- `apps/web/src/services/mcom.ts`, `apps/web/src/types/index.ts` — typed `McomAccessDecision`, trial tasks and plan source
+- `apps/web/src/components/business/MyPlanCard.tsx` — shows "Included in your Gold membership", programme trial countdown and `programmeTasks`
+- `apps/web/src/components/auth/RequireVcardAccess.tsx` — reason-specific denial copy
+
+**What:** VCard now consumes the unified Central entitlement as the single access source. A membership that bundles a VCard plan grants access and shows the included plan (ID, name, quotas, limits, features); a dashboard/trial window grants `TRIAL_PROGRAMME` access with the trial expiry, days remaining and programme tasks. Access passes are handled generically but VCard does not publish any yet. `access.hasAccess === false` always denies, and expired/cancelled plans are revoked locally even if the cached snapshot still says active. Denied users are routed to `access.upgradeUrl` with a reason-specific message (`PLATFORM_NOT_IN_MEMBERSHIP`, `TRIAL_NO_TASKS`, `TRIAL_EXPIRED`, `UNVERIFIED`, `MEMBERSHIP_EXPIRED`).
+
+**Verified:** live Central introspection returns the 2026-10-01 shape (`membershipContext`, `trialContext`, `PLATFORM_NOT_IN_MEMBERSHIP` for a Gold member without the VCard plan); migration 051 applied; api build clean; all 228 API tests pass (6 new); web `tsc` + production build clean.

@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { User } from '../../../modules/users/entities/user.entity'
+import {
+  decideAccess,
+  isDecisionExpired,
+  type McomAccessDecision,
+  type McomEntitlement,
+} from '../../../modules/mcom/access-decision'
 
 export class UserResponseDto {
   @ApiProperty({ example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e', description: 'UUID of the user' })
@@ -73,6 +79,13 @@ export class UserResponseDto {
   })
   upgrade_url!: string | null
 
+  @ApiProperty({
+    description:
+      'Normalized Central entitlement decision: access source, plan, expiry, quotas/limits/features and trial tasks.',
+    nullable: true,
+  })
+  access!: McomAccessDecision | null
+
   @ApiProperty({ example: 'BUSINESS', nullable: true, description: 'Central profile discriminator' })
   profile_type!: string | null
 
@@ -121,16 +134,39 @@ export class UserResponseDto {
     dto.theme_mode = user.themeMode
     dto.created_at = user.createdAt
     dto.updated_at = user.updatedAt
-    dto.permissions = { can_access_vcard: user.mcomCanAccessVcard === true }
+
+    const entitlement = (user.mcomEntitlement ?? null) as McomEntitlement | null
+    const storedAccess = (user.mcomAccess ?? null) as McomAccessDecision | null
+    const decision = storedAccess ?? (entitlement ? decideAccess(entitlement) : null)
+
+    // `mcomCanAccessVcard` is the local gate (updated by SSO syncs and signed
+    // lifecycle webhooks). Re-check the plan/trial window so a stale "active"
+    // snapshot cannot outlive an expired pass or trial.
+    const expired = decision ? isDecisionExpired(decision) : false
+    const accessAllowed = user.mcomCanAccessVcard === true && !expired
+
+    dto.permissions = { can_access_vcard: accessAllowed }
     dto.membership_level = user.mcomMembershipLevel ?? null
     dto.membership_status = user.mcomMembershipStatus ?? null
     dto.role = user.mcomRole ?? null
 
-    const entitlement = (user.mcomEntitlement ?? null) as {
-      access?: { reason?: string | null; upgradeUrl?: string | null; upgrade_url?: string | null }
-    } | null
-    dto.access_reason = entitlement?.access?.reason ?? null
-    dto.upgrade_url = entitlement?.access?.upgradeUrl ?? entitlement?.access?.upgrade_url ?? null
+    dto.access = decision
+      ? {
+          ...decision,
+          allowed: decision.allowed && accessAllowed,
+          reason: expired
+            ? decision.source === 'trial'
+              ? 'TRIAL_EXPIRED'
+              : 'NO_ACTIVE_ENTITLEMENT'
+            : decision.reason,
+        }
+      : null
+    dto.access_reason = dto.access?.reason ?? entitlement?.access?.reason ?? null
+    dto.upgrade_url =
+      dto.access?.upgradeUrl ??
+      entitlement?.access?.upgradeUrl ??
+      entitlement?.access?.upgrade_url ??
+      null
 
     dto.profile_type = user.mcomProfileType ?? null
     dto.is_affiliate = user.isAffiliate === true
