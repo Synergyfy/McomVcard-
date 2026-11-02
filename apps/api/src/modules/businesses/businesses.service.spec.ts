@@ -15,6 +15,7 @@ import { CreateBusinessDto } from './dto/create-business.dto'
 import { CreateLocationDto } from './dto/create-location.dto'
 import { CreateBusinessHourDto } from './dto/create-business-hour.dto'
 import { CreateBrandDto } from './dto/create-brand.dto'
+import { CacheService } from '../../lib/cache/cache.service'
 
 type MockRepo = Partial<Record<keyof Repository<any>, jest.Mock>>
 
@@ -127,6 +128,16 @@ describe('BusinessesService', () => {
         { provide: getRepositoryToken(Membership), useValue: membershipsRepo },
         { provide: getRepositoryToken(MembershipTier), useValue: membershipTiersRepo },
         { provide: getRepositoryToken(Card), useValue: cardsRepo },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+            getOrSet: jest.fn(async (_key: string, _ttl: number, factory: () => Promise<unknown>) => factory()),
+            invalidate: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile()
 
