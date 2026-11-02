@@ -146,7 +146,7 @@ export default function ConsumerFamilyPage() {
                 )}
             </section>
 
-            {/* FAB / upgrade bar */}
+            {/* FAB / allowance bar */}
             {!atLimit ? (
                 <div className="fixed bottom-24 lg:bottom-8 left-0 right-0 lg:left-64 z-40 pointer-events-none">
                     <div className="max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 flex justify-end pointer-events-auto">
@@ -169,7 +169,7 @@ export default function ConsumerFamilyPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
-                    Upgrade Membership to Add More Cards
+                    Ask Your Business for More Cards
                 </button>
             )}
 

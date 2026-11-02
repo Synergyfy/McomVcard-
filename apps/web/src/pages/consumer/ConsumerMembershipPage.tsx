@@ -3,12 +3,7 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
 import type { ConsumerProfile } from '../../services/consumer'
-import MembershipProgressionModal, {
-    LEVELS,
-    TIERS,
-    buildLadder,
-    parseMembership,
-} from '../../components/consumer/MembershipProgressionModal'
+import { parseMembership } from '../../services/consumerMembership'
 import ErrorState from '../../components/common/ErrorState'
 
 function getMembershipGradient(membership: string): string {
@@ -76,7 +71,6 @@ export default function ConsumerMembershipPage() {
     const [profile, setProfile] = useState<ConsumerProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
-    const [upgradeTarget, setUpgradeTarget] = useState<string | null>(null)
 
     const loadProfile = () => {
         setLoading(true)
@@ -109,14 +103,7 @@ export default function ConsumerMembershipPage() {
 
     if (!profile) return null
 
-    const ladder = buildLadder()
-    const { level, tier } = parseMembership(profile.membership)
-    const currentIdx = Math.max(0, ladder.indexOf(profile.membership))
-    const nextStep = currentIdx < ladder.length - 1 ? ladder[currentIdx + 1] : null
-    const levelIdx = Math.max(0, LEVELS.indexOf(level as (typeof LEVELS)[number]))
-    const tierIdx = Math.max(0, TIERS.indexOf(tier as (typeof TIERS)[number]))
-    const nextLevel = levelIdx < LEVELS.length - 1 ? LEVELS[levelIdx + 1] : null
-    const atMax = currentIdx >= ladder.length - 1
+    const { level } = parseMembership(profile.membership)
     const season = currentSeasonLabel()
 
     const features = LEVEL_FEATURES[level] || LEVEL_FEATURES.Bronze
@@ -132,7 +119,7 @@ export default function ConsumerMembershipPage() {
 
             <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">My Membership</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your membership status, benefits and progression</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your membership status, benefits and allowances</p>
             </div>
 
             {/* Current membership hero */}
@@ -164,79 +151,6 @@ export default function ConsumerMembershipPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Progression */}
-            <section className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-base font-bold text-gray-900 dark:text-white">Membership Progression</h2>
-                    <span className="text-xs font-bold text-accent-600 dark:text-accent-400">
-                        {currentIdx + 1} / {ladder.length}
-                    </span>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    {atMax
-                        ? 'You are at the highest membership level — Platinum Pro+.'
-                        : `Next: ${nextStep}${nextLevel ? ` · Next available level: ${nextLevel}` : ''}`}
-                </p>
-
-                {/* Ladder */}
-                <div className="space-y-2.5">
-                    {LEVELS.map((lv, li) => (
-                        <div key={lv} className="flex items-center gap-2">
-                            <span className={`w-[74px] shrink-0 text-center text-[10px] font-extrabold uppercase tracking-wide text-white py-1.5 rounded-lg ${LEVEL_BADGE[lv]}`}>
-                                {lv}
-                            </span>
-                            <div className="flex flex-1 gap-1.5">
-                                {TIERS.map((tr, ti) => {
-                                    const combo = `${lv} ${tr}`
-                                    const isCurrent = combo === profile.membership
-                                    const isNext = combo === nextStep
-                                    return (
-                                        <span
-                                            key={tr}
-                                            className={`flex-1 text-center text-[10px] font-bold py-1.5 rounded-lg border transition-colors ${
-                                                isCurrent
-                                                    ? 'bg-accent-500 text-white border-accent-500 shadow-md shadow-accent-500/25'
-                                                    : isNext
-                                                        ? 'bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400 border-accent-300 dark:border-accent-700'
-                                                        : li < levelIdx || (li === levelIdx && ti < tierIdx)
-                                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'
-                                                            : 'bg-transparent text-gray-400 dark:text-gray-600 border-gray-100 dark:border-gray-700'
-                                            }`}
-                                        >
-                                            {tr}
-                                            {isCurrent && <span className="hidden sm:inline"> ✓</span>}
-                                        </span>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mt-4">
-                    <div
-                        className="h-full rounded-full bg-gradient-to-r from-accent-400 to-accent-600 transition-all duration-500"
-                        style={{ width: `${Math.min(100, ((currentIdx + 1) / ladder.length) * 100)}%` }}
-                    />
-                </div>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">
-                    The ultimate goal is progressing to the highest level: <strong className="text-gray-600 dark:text-gray-300">Platinum Pro+</strong>.
-                </p>
-
-                {nextStep && (
-                    <button
-                        onClick={() => setUpgradeTarget(nextStep)}
-                        className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-accent-50 dark:bg-accent-500/10 text-accent-700 dark:text-accent-300 text-sm font-semibold hover:bg-accent-100 dark:hover:bg-accent-500/20 transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        What qualifies me for {nextStep}?
-                    </button>
-                )}
-            </section>
 
             {/* Benefits */}
             <section className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
@@ -386,71 +300,11 @@ export default function ConsumerMembershipPage() {
                 </section>
             )}
 
-            {/* Available upgrades */}
-            <section className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
-                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-1">Available Upgrades</h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Ways to progress your membership</p>
-
-                <div className="space-y-2.5">
-                    {!atMax && nextStep && (
-                        <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-accent-200 dark:border-accent-800/40 bg-accent-50/50 dark:bg-accent-500/5">
-                            <div className="w-10 h-10 rounded-xl bg-accent-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-accent-500/25">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white">{nextStep}</p>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Tier upgrade within {level}</p>
-                            </div>
-                            <button
-                                onClick={() => setUpgradeTarget(nextStep)}
-                                className="px-3 py-1.5 rounded-lg bg-accent-500 text-white text-[11px] font-semibold hover:bg-accent-600 shrink-0"
-                            >
-                                View
-                            </button>
-                        </div>
-                    )}
-                    {nextLevel && (
-                        <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700">
-                            <div className={`w-10 h-10 rounded-xl ${LEVEL_BADGE[nextLevel]} text-white flex items-center justify-center shrink-0 shadow-md shadow-black/10`}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white">{nextLevel} membership</p>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Cross-tier progression to the next level</p>
-                            </div>
-                            <button
-                                onClick={() => setUpgradeTarget(`${nextLevel} Standard`)}
-                                className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-[11px] font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 shrink-0"
-                            >
-                                View
-                            </button>
-                        </div>
-                    )}
-                    {atMax && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-3">
-                            You have reached the highest membership level — enjoy Platinum Pro+!
-                        </p>
-                    )}
-                </div>
-            </section>
-
             {/* Membership notes */}
             <p className="text-center text-xs text-gray-400 dark:text-gray-500 px-6">
-                Membership is received from businesses you connect with through MCOMVCard. There is nothing to buy.
+                Memberships are assigned by the businesses you connect with on MCOMVCard. Customers never buy a membership.
             </p>
 
-            <MembershipProgressionModal
-                open={!!upgradeTarget}
-                onClose={() => setUpgradeTarget(null)}
-                profile={profile}
-                current={profile.membership}
-                target={upgradeTarget || nextStep || profile.membership}
-                nextLevel={nextLevel || undefined}
-            />
         </div>
     )
 }
