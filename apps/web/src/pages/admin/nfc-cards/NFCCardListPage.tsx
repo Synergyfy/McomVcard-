@@ -3,17 +3,10 @@ import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 
-const MOCK = [
-  { id: 1, batch: 'NFC-Batch-001', assigned: 'GreenLeaf Coffee', type: 'Business', count: 50, activated: 42, status: 'active', created: 'Jan 2026' },
-  { id: 2, batch: 'NFC-Batch-002', assigned: 'TechVision Inc', type: 'Enterprise', count: 200, activated: 180, status: 'active', created: 'Feb 2026' },
-  { id: 3, batch: 'NFC-Batch-003', assigned: 'FitLife Studio', type: 'Business', count: 30, activated: 25, status: 'active', created: 'Apr 2026' },
-  { id: 4, batch: 'NFC-Batch-004', assigned: 'Pizza Roma', type: 'Starter', count: 20, activated: 15, status: 'active', created: 'May 2026' },
-  { id: 5, batch: 'NFC-Batch-005', assigned: 'Coastal Realty', type: 'Business', count: 100, activated: 0, status: 'pending', created: 'Jul 2026' },
-  { id: 6, batch: 'NFC-Batch-006', assigned: 'Bloom Beauty Salon', type: 'Starter', count: 15, activated: 0, status: 'pending', created: 'Jul 2026' },
-]
+
 
 export default function NFCCardListPage() {
-  const [data] = useState(MOCK)
+  const [data] = useState<any[]>([])
   return (
     <div className="space-y-6">
       <Helmet><title>NFC Cards - MCOM VCard Social Bio</title></Helmet>

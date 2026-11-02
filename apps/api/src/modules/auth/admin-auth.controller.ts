@@ -74,7 +74,7 @@ export class AdminAuthController {
     const refreshToken = getAdminRefreshTokenCookie(req)
 
     const result = await this.authService.refresh(
-      refreshToken || '',
+      refreshToken ?? undefined,
       { userAgent: req.get('user-agent'), ip: req.ip },
       'ADMIN',
     )

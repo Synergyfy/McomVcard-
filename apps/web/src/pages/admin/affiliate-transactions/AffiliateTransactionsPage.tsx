@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 
-const MOCK_TXNS: any[] = [
-  { id: '1', referred_user_name: 'Mike Chen', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-04-05' },
-  { id: '2', referred_user_name: 'Emily Williams', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-04-20' },
-  { id: '3', referred_user_name: 'David Smith', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-10' },
-  { id: '4', referred_user_name: 'James Brown', amount: 50.00, description: 'Commission from Pro plan purchase', status: 'pending', created_at: '2025-06-15' },
-  { id: '5', referred_user_name: 'Lisa Anderson', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'rejected', created_at: '2025-04-25' },
-  { id: '6', referred_user_name: 'Anna Garcia', amount: 125.00, description: 'Commission from Enterprise plan purchase', status: 'pending', created_at: '2025-06-01' },
-  { id: '7', referred_user_name: 'Robert Taylor', amount: 25.00, description: 'Commission from Basic plan purchase', status: 'approved', created_at: '2025-05-20' },
-]
 
 const statusStyles: Record<string, string> = {
   approved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20',
@@ -29,8 +21,8 @@ export default function AffiliateTransactionsPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getAffiliateTransactions()
-      .then((res) => setTxns(res.data && res.data.length ? res.data : MOCK_TXNS))
-      .catch(() => setTxns(MOCK_TXNS))
+      .then((res) => setTxns(rowsOf(res)))
+      .catch(() => setTxns([]))
       .finally(() => setLoading(false))
   }, [])
 

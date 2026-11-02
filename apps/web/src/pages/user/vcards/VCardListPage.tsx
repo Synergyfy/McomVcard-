@@ -9,7 +9,7 @@ import { loadMembershipPricing } from '../../../services/membershipPricingStore'
 import { getRuleValue, parseLimit, getPlanLevelFromName } from '../../../services/membershipEnforcement'
 import { mockBusinessProfile } from '../../../services/businessStore'
 import ScrollingVCard from '../../../components/common/ScrollingVCard'
-import { MOCK, toBizTemplate, type BizVCardTemplate } from '../../admin/card-management/BusinessVCardTemplatesPage'
+import { BIZ_VCARD_TEMPLATES, toBizTemplate, type BizVCardTemplate } from '../../admin/card-management/BusinessVCardTemplatesPage'
 import { buildPublishedSections } from '../../admin/card-management/BusinessVCardWorkspace'
 import { loadUserTemplatesByType, type StoredSection } from '../../../services/vcardTemplateStore'
 
@@ -38,7 +38,7 @@ export default function VCardListPage() {
      available to the business, and only for the plans Admin granted access to. */
   const stored = loadUserTemplatesByType('business')
   const allTemplates: BizVCardTemplate[] = [
-    ...MOCK.filter(m => !stored.some(s => s.templateId === m.templateId)),
+    ...BIZ_VCARD_TEMPLATES.filter(m => !stored.some(s => s.templateId === m.templateId)),
     ...stored.map(toBizTemplate),
   ]
 

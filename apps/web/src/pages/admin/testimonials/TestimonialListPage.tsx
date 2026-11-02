@@ -2,14 +2,8 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import ActionDropdown from '../../../components/common/ActionDropdown'
-const MOCK_TESTIMONIALS: any[] = [
-  { id: 1, name: 'Sarah Johnson', description: 'Mobile VCard Link has completely transformed how I share my contact information. The templates are beautiful and professional.', testimonial_url: '', created_at: '2025-03-01' },
-  { id: 2, name: 'Mike Chen', description: 'As a real estate agent, having a digital business card is essential. This platform made it incredibly easy to set up and share.', testimonial_url: '', created_at: '2025-04-01' },
-  { id: 3, name: 'Emily Williams', description: 'I love the analytics feature! Now I can see how many people are viewing my card and where they are coming from.', testimonial_url: '', created_at: '2025-04-15' },
-  { id: 4, name: 'David Smith', description: 'Excellent customer support and a fantastic product. Highly recommended for any professional.', testimonial_url: '', created_at: '2025-05-10' },
-  { id: 5, name: 'Anna Garcia', description: 'The QR code feature is a game-changer. I have it on my business cards and it drives traffic to my digital profile.', testimonial_url: '', created_at: '2025-06-01' },
-]
 
 export default function TestimonialListPage() {
   const { t } = useTranslation()
@@ -22,8 +16,8 @@ export default function TestimonialListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getTestimonials()
-      .then((res) => setItems(res.length ? res : MOCK_TESTIMONIALS))
-      .catch(() => setItems(MOCK_TESTIMONIALS))
+      .then((res) => setItems(rowsOf(res)))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
 
