@@ -13,6 +13,9 @@ export class ChildCardUserSummaryDto {
 
   @ApiProperty({ description: 'Email', example: 'charlie@example.com' })
   email!: string
+
+  @ApiPropertyOptional({ description: 'Phone', example: '+44 7700 900123', nullable: true })
+  phone!: string | null
 }
 
 export class ChildCardCardSummaryDto {
@@ -36,6 +39,9 @@ export class ChildCardResponseDto {
   @ApiProperty({ description: 'Child user with access', type: ChildCardUserSummaryDto })
   child!: ChildCardUserSummaryDto
 
+  @ApiProperty({ description: 'Relationship label', example: 'Family' })
+  relationship!: string
+
   @ApiProperty({ description: 'Child may view the card', example: true })
   can_view!: boolean
 
@@ -54,8 +60,8 @@ export class ChildCardResponseDto {
   @ApiProperty({ description: 'Updated at', example: '2026-08-20T09:00:00.000Z' })
   updated_at!: string
 
-  private static summarizeUser(user: { id: string; firstName: string | null; lastName: string | null; email: string }): ChildCardUserSummaryDto {
-    return { id: user.id, first_name: user.firstName, last_name: user.lastName, email: user.email }
+  private static summarizeUser(user: { id: string; firstName: string | null; lastName: string | null; email: string; phone?: string | null }): ChildCardUserSummaryDto {
+    return { id: user.id, first_name: user.firstName, last_name: user.lastName, email: user.email, phone: user.phone ?? null }
   }
 
   private static summarizeCard(card: { id: string; slug: string; type: string }): ChildCardCardSummaryDto {
@@ -68,6 +74,7 @@ export class ChildCardResponseDto {
     dto.id = entity.id
     dto.card = this.summarizeCard(entity.card)
     dto.child = this.summarizeUser(entity.child)
+    dto.relationship = entity.relationship ?? 'Family'
     dto.can_view = entity.canView
     dto.can_use_wallet = entity.canUseWallet
     dto.can_manage = entity.canManage

@@ -9,6 +9,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -19,13 +21,14 @@ import { ShareContentResponseDto } from './dto/share-content-response.dto'
 
 @ApiTags('users')
 @ApiExtraModels(ApiResponse, UserBasicResponseDto, FamilyCardResponseDto, ShareContentResponseDto)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('CUSTOMER')
 @Controller('users')
 export class UsersController {
   constructor(private readonly userActionsService: UserActionsService) {}
 
 
   @Get('by-email/:email')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Find a user by email',
@@ -47,7 +50,6 @@ export class UsersController {
 
 
   @Get(':id/family-cards')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get family/child cards for a user',
@@ -73,7 +75,6 @@ export class UsersController {
 
 
   @Get(':id/share-content')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get share content for a user',

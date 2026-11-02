@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { ConsumerNotification } from '../../services/mockData'
+import type { ConsumerNotification } from '../../services/consumer'
 
 type FilterKey = 'all' | 'unread' | 'read'
 
@@ -11,6 +11,17 @@ const filters: { key: FilterKey; label: string }[] = [
     { key: 'unread', label: 'Unread' },
     { key: 'read', label: 'Read' },
 ]
+
+function formatNotificationTime(value: string): string {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  const diffMinutes = Math.floor((Date.now() - parsed.getTime()) / 60000)
+  if (diffMinutes >= 0 && diffMinutes < 1) return 'Just now'
+  if (diffMinutes >= 1 && diffMinutes < 60) return `${diffMinutes} min ago`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours >= 1 && diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  return parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 const CATEGORY_LABELS: Record<ConsumerNotification['type'], string> = {
     cashback: 'Cashback',
@@ -30,30 +41,54 @@ export default function ConsumerNotificationsPage() {
         setLoading(true)
         setError(null)
         consumerService
-            .getNotifications()
-            .then(setNotifications)
+            .getNotifications(1, 100, filter)
+            .then(({ items }) => setNotifications(items))
             .catch(() => setError("We couldn't load your notifications. Please try again."))
             .finally(() => setLoading(false))
-    }, [])
+    }, [filter])
 
     useEffect(() => {
         loadNotifications()
     }, [loadNotifications])
 
-    const markAllRead = () => {
+    const markAllRead = async () => {
+        const previous = notifications
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+        try {
+            await consumerService.markAllNotificationsRead()
+        } catch {
+            setNotifications(previous)
+        }
     }
 
-    const markRead = (id: string) => {
+    const markRead = async (id: string) => {
+        const previous = notifications
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+        try {
+            await consumerService.markNotification(id, true)
+        } catch {
+            setNotifications(previous)
+        }
     }
 
-    const markUnread = (id: string) => {
+    const markUnread = async (id: string) => {
+        const previous = notifications
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: false } : n)))
+        try {
+            await consumerService.markNotification(id, false)
+        } catch {
+            setNotifications(previous)
+        }
     }
 
-    const dismiss = (id: string) => {
+    const dismiss = async (id: string) => {
+        const previous = notifications
         setNotifications((prev) => prev.filter((n) => n.id !== id))
+        try {
+            await consumerService.dismissNotification(id)
+        } catch {
+            setNotifications(previous)
+        }
     }
 
     const unread = notifications.filter((n) => !n.read).length
@@ -162,7 +197,7 @@ export default function ConsumerNotificationsPage() {
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-2">
                                     <p className="text-sm font-bold text-gray-900 dark:text-white">{n.title}</p>
-                                    <span className="text-[11px] text-gray-400 shrink-0">{n.time}</span>
+                                    <span className="text-[11px] text-gray-400 shrink-0">{formatNotificationTime(n.time)}</span>
                                 </div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{n.message}</p>
                                 <div className="flex items-center gap-2 mt-2.5 flex-wrap">

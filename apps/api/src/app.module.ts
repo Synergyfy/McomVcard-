@@ -32,6 +32,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module'
 import { ActivityModule } from './modules/activity/activity.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { CustomersModule } from './modules/customers/customers.module'
+import { ConsumerModule } from './modules/consumer/consumer.module'
 import { PlansModule } from './modules/plans/plans.module'
 import { GiftCardsModule } from './modules/gift-cards/gift-cards.module'
 import { CashbackProgramsModule } from './modules/cashback-programs/cashback-programs.module'
@@ -40,11 +41,13 @@ import { ContactModule } from './modules/contact/contact.module'
 import { SystemPlansModule } from './modules/system-plans/system-plans.module'
 import { McomModule } from './modules/mcom/mcom.module'
 import { PaymentsModule } from './modules/payments/payments.module'
+import { CacheModule } from './lib/cache/cache.module'
 import { APP_GUARD } from '@nestjs/core'
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration], validationSchema }),
+    CacheModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'localhost',
@@ -56,7 +59,12 @@ import { APP_GUARD } from '@nestjs/core'
       // Disable synchronize in production regardless of TYPEORM_SYNC
       synchronize: process.env.NODE_ENV === 'production' ? false : process.env.TYPEORM_SYNC === 'true',
     }),
-    ThrottlerModule.forRoot({ ttl: 60, limit: 20 }),
+    // The SPA makes several authenticated calls per navigation (session
+    // refresh, profile, cached dashboard). 20/min was low enough that normal
+    // dashboard use could self-throttle; 120/min still bounds abuse while
+    // leaving headroom for real customers. Auth endpoints keep their own
+    // credential checks and validation.
+    ThrottlerModule.forRoot({ ttl: 60, limit: 120 }),
     AuthModule,
     UsersModule,
     HealthModule,
@@ -85,6 +93,7 @@ import { APP_GUARD } from '@nestjs/core'
     ActivityModule,
     AnalyticsModule,
     CustomersModule,
+    ConsumerModule,
     PlansModule,
     GiftCardsModule,
     CashbackProgramsModule,

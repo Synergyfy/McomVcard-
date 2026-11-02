@@ -136,6 +136,50 @@ export class AuthService {
   }
 
 
+  /**
+   * Dedicated admin-dashboard login. It validates the same credentials as the
+   * standard login, then enforces the ADMIN role before any token is issued so
+   * a normal platform account can never obtain an admin session.
+   */
+  async adminLogin(email: string, password: string, meta?: TokenMeta) {
+    email = email.trim().toLowerCase()
+
+    const user = await this.usersService.findByEmail(email)
+
+    if (!user) {
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH)
+      throw new UnauthorizedException('Invalid email or password')
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash || '')
+    if (!ok) throw new UnauthorizedException('Invalid email or password')
+
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Account is deactivated')
+    }
+
+    const roles = await this.rolesService.getRoleNamesForUser(user.id)
+    if (!roles.includes('ADMIN')) {
+      // Deliberately identical to bad credentials so the endpoint cannot be
+      // used to discover which accounts hold admin privileges.
+      throw new UnauthorizedException('Invalid email or password')
+    }
+
+    const auth = await this.issueTokens(user.id, meta)
+
+    return ApiResponse.success(
+      {
+        token: auth.accessToken,
+        refresh_token: auth.refreshToken,
+        user: UserResponseDto.fromEntity(user),
+        roles,
+      },
+      'Admin login successful',
+      200,
+    )
+  }
+
+
   async impersonate(userId: string, meta?: TokenMeta) {
     const user = await this.usersService.findById(userId)
     if (!user) throw new UnauthorizedException('User not found')
@@ -154,7 +198,7 @@ export class AuthService {
   }
 
 
-  async refresh(refreshToken: string | undefined, meta?: TokenMeta) {
+  async refresh(refreshToken: string | undefined, meta?: TokenMeta, requiredRole?: string) {
     if (!refreshToken) throw new UnauthorizedException('Refresh token is required')
 
     const stored = await this.refreshTokensRepo.findOne({ where: { tokenHash: this.hashToken(refreshToken) } })
@@ -184,6 +228,12 @@ export class AuthService {
     }
 
     const roles = await this.rolesService.getRoleNamesForUser(user.id)
+
+    if (requiredRole && !roles.includes(requiredRole)) {
+      await this.revokeAllForUser(user.id)
+      throw new UnauthorizedException('Admin privileges are required')
+    }
+
     const accessToken = this.jwtService.sign({ user_id: user.id, roles })
     const newRefreshToken = await this.rotateRefreshToken(stored, meta)
 
@@ -343,6 +393,14 @@ async mcomProvisionAndIssue(
       user = saved
     }
 
+    // Central is the source of truth for the dashboard identity. Customers get
+    // the CUSTOMER role (and lose business/staff roles if they changed), which
+    // is what the customer API guards enforce.
+    const profileType = userInfo.profileType ?? userInfo.role
+    if (profileType) {
+      await this.rolesService.syncCanonicalRole(user.id, profileType)
+    }
+
     const auth = await this.issueTokens(user.id, meta)
 
     return {
@@ -378,6 +436,11 @@ async syncMcomSession(
     }
 
     const updated = (await this.usersService.update(userId, patch)) ?? user
+
+    const profileType = userInfo.profileType ?? userInfo.role
+    if (profileType) {
+      await this.rolesService.syncCanonicalRole(userId, profileType)
+    }
 
     return UserResponseDto.fromEntity(updated)
   }
@@ -551,6 +614,10 @@ async syncMcomSession(
       await this.rolesService.ensureDefaultRole()
       await this.rolesService.assignDefaultRole(saved.id)
       user = saved
+    }
+
+    if (identity.role) {
+      await this.rolesService.syncCanonicalRole(user.id, identity.role)
     }
 
     const auth = await this.issueTokens(user.id, meta)

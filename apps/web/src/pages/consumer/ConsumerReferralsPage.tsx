@@ -9,6 +9,8 @@ export default function ConsumerReferralsPage() {
   const [error, setError] = useState(false)
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [inviteError, setInviteError] = useState('')
+  const [inviting, setInviting] = useState(false)
   const [referralLink, setReferralLink] = useState('')
 
   const loadReferrals = () => {
@@ -20,7 +22,7 @@ export default function ConsumerReferralsPage() {
     ])
       .then(([refs, profile]) => {
         setReferrals(refs)
-        setReferralLink(`https://mcomvcard.link/ref/${(profile.cardId || 'mc-cns-000001').toLowerCase()}`)
+        setReferralLink(profile.cardId ? `${window.location.origin}/c/${profile.cardId}` : '')
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -30,12 +32,29 @@ export default function ConsumerReferralsPage() {
     loadReferrals()
   }, [])
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
-    setSent(true)
-    setEmail('')
-    setTimeout(() => setSent(false), 3000)
+    setInviteError('')
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setInviteError('Enter your friend’s email address.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setInviteError('Enter a valid email address.')
+      return
+    }
+    setInviting(true)
+    try {
+      await consumerService.inviteReferral(trimmed)
+      setEmail('')
+      setSent(true)
+      setTimeout(() => setSent(false), 3000)
+    } catch (err: any) {
+      setInviteError(err?.response?.data?.message || 'We could not send the invitation. Please try again.')
+    } finally {
+      setInviting(false)
+    }
   }
 
   if (loading) {
@@ -71,12 +90,19 @@ export default function ConsumerReferralsPage() {
           </div>
 
           <form onSubmit={handleInvite} className="flex gap-2 mt-4">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Friend's email address" required
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-900 bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50" />
-            <button type="submit" className="px-5 py-2.5 bg-white text-orange-600 text-sm font-semibold rounded-lg hover:bg-orange-50 transition-colors shrink-0">
-              Send Invite
+            <div className="flex-1">
+              <label htmlFor="referral-email" className="sr-only">Friend's email address</label>
+              <input id="referral-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Friend's email address" required
+                title="We will email this person an invitation to join MCOM VCard"
+                aria-describedby="referral-email-help"
+                className="w-full px-4 py-2.5 rounded-lg text-sm text-gray-900 bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/50" />
+              <p id="referral-email-help" className="mt-1 text-[11px] text-orange-100">We only use this address to send the invitation.</p>
+            </div>
+            <button type="submit" disabled={inviting} className="px-5 py-2.5 bg-white text-orange-600 text-sm font-semibold rounded-lg hover:bg-orange-50 transition-colors shrink-0 disabled:opacity-60">
+              {inviting ? 'Sending…' : 'Send Invite'}
             </button>
           </form>
+          {inviteError && <p className="text-sm text-red-100 mt-2">{inviteError}</p>}
           {sent && <p className="text-sm text-green-200 mt-2">Invitation sent successfully!</p>}
         </div>
       </div>

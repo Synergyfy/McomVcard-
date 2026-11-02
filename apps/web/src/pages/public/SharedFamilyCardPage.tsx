@@ -9,7 +9,7 @@ import SharedFamilyCardView from '../../components/public/SharedFamilyCardView'
 
 export default function SharedFamilyCardPage() {
     const { id } = useParams()
-    const memberId = Number(id)
+    const memberId = id ?? ''
     const [member, setMember] = useState<FamilyCardMember | null>(null)
     const [protection, setProtection] = useState<CardProtectionState | null>(null)
 

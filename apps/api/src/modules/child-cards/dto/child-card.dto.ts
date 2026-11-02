@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform } from 'class-transformer'
-import { IsBoolean, IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator'
+import { IsBoolean, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator'
 
 export class CreateChildCardDto {
   @ApiProperty({ description: 'Parent-owned card ID to grant access to', example: 'b9e0e8d4-6f1a-4c4e-9b1d-2c3d4e5f6a7b' })
@@ -10,6 +10,12 @@ export class CreateChildCardDto {
   @ApiProperty({ description: 'Child user ID receiving access', example: 'd36e1d51-2c53-4b8c-9e6c-4f1b2a3c4d5e' })
   @IsUUID('4', { message: 'child_id must be a valid UUID' })
   child_id!: string
+
+  @ApiPropertyOptional({ description: 'Relationship label (Family, Spouse, Friend, …)', example: 'Family' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  relationship?: string
 
   @ApiPropertyOptional({ description: 'Child may view the card', default: true, example: true })
   @IsOptional()
@@ -36,6 +42,24 @@ export class CreateChildCardDto {
 }
 
 export class UpdateChildCardDto {
+  @ApiPropertyOptional({ description: 'Display name for the family member', example: 'Sarah Anderson' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  name?: string
+
+  @ApiPropertyOptional({ description: 'Contact phone number', example: '+44 7700 900000' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phone?: string
+
+  @ApiPropertyOptional({ description: 'Relationship label (Family, Spouse, Friend, …)', example: 'Family' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  relationship?: string
+
   @ApiPropertyOptional({ description: 'Child may view the card', example: true })
   @IsOptional()
   @IsBoolean({ message: 'can_view must be a boolean' })

@@ -14,6 +14,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -566,6 +567,7 @@ export class CardsController {
 
   // ---- Business cards ----
 
+  @UseGuards(BusinessAccessGuard)
   @Get('businesses/:businessId/cards')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List cards for a business', description: 'Returns all cards linked to a business owned by the authenticated user.' })
@@ -590,6 +592,7 @@ export class CardsController {
 
   // ---- Template claiming ----
 
+  @UseGuards(BusinessAccessGuard)
   @Post('cards/claim')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Claim a template', description: 'Creates a new card from a published template, linking it to a business.' })
@@ -612,6 +615,7 @@ export class CardsController {
 
   // ---- Template applying (replace on an existing card) ----
 
+  @UseGuards(BusinessAccessGuard)
   @Post('cards/:id/apply-template')
   @ApiBearerAuth()
   @ApiOperation({
@@ -637,6 +641,7 @@ export class CardsController {
 
   // ---- Duplication ----
 
+  @UseGuards(BusinessAccessGuard)
   @Post('cards/:id/duplicate')
   @ApiBearerAuth()
   @ApiOperation({

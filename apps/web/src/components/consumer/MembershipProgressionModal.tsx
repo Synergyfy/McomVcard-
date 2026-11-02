@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 
 export const LEVELS = ['Bronze', 'Silver', 'Gold', 'Platinum'] as const
 export const TIERS = ['Standard', 'Pro', 'Pro+'] as const
@@ -22,7 +22,7 @@ export interface Requirement {
     hint?: string
 }
 
-export function qualificationRequirements(profile: MockConsumer, target: string): Requirement[] {
+export function qualificationRequirements(profile: ConsumerProfile, target: string): Requirement[] {
     const { level, tier } = parseMembership(target)
     const li = LEVELS.indexOf(level as (typeof LEVELS)[number])
     const ti = TIERS.indexOf(tier as (typeof TIERS)[number])
@@ -68,7 +68,7 @@ export function qualificationRequirements(profile: MockConsumer, target: string)
 interface MembershipProgressionModalProps {
     open: boolean
     onClose: () => void
-    profile: MockConsumer
+    profile: ConsumerProfile
     current: string
     target: string
     nextLevel?: string

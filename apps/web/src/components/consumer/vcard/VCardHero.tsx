@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import type { MockConsumer } from '../../../services/mockData'
+import type { ConsumerProfile } from '../../../services/consumer'
 import QRExpandOverlay from './QRExpandOverlay'
 
 interface VCardHeroProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
 }
 
 function getMembershipGradient(membership: string): string {
@@ -49,7 +49,7 @@ export default function VCardHero({ profile }: VCardHeroProps) {
                             {profile.membership}
                         </span>
                         <span className="px-3 py-1 rounded-full bg-white/15 text-white text-[11px] font-semibold border border-white/20">
-                            Season 2026
+                            Season {new Date().getFullYear()}
                         </span>
                     </div>
 

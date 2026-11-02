@@ -8,7 +8,7 @@ interface RemoveSheetProps {
     open: boolean
     onClose: () => void
     member: FamilyCardMember | null
-    onRemoved: (id: number) => void
+    onRemoved: (id: string) => void
 }
 
 export default function RemoveSheet({ open, onClose, member, onRemoved }: RemoveSheetProps) {

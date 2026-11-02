@@ -139,6 +139,7 @@ function DetailsStep({ name, phone, email, dob, avatar, onChange }: DetailsStepP
                         value={name}
                         onChange={(e) => onChange({ name: e.target.value })}
                         placeholder="e.g. Sarah Anderson"
+                        title="The family member’s full name as it will appear on their card"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
                 </label>
@@ -148,6 +149,7 @@ function DetailsStep({ name, phone, email, dob, avatar, onChange }: DetailsStepP
                         value={phone}
                         onChange={(e) => onChange({ phone: e.target.value })}
                         placeholder="+44 7700 900000"
+                        title="Their contact phone number"
                         inputMode="tel"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
@@ -158,6 +160,7 @@ function DetailsStep({ name, phone, email, dob, avatar, onChange }: DetailsStepP
                         value={email}
                         onChange={(e) => onChange({ email: e.target.value })}
                         placeholder="name@email.com"
+                        title="Their MCOM account email (they must sign in via Central Hub first)"
                         inputMode="email"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
@@ -168,6 +171,7 @@ function DetailsStep({ name, phone, email, dob, avatar, onChange }: DetailsStepP
                         value={dob}
                         onChange={(e) => onChange({ dob: e.target.value })}
                         placeholder="DD MMM YYYY"
+                        title="Optional date of birth, used for birthday reminders"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
                 </label>
@@ -179,7 +183,7 @@ function DetailsStep({ name, phone, email, dob, avatar, onChange }: DetailsStepP
 function PreviewStep({ name, phone, relationship, avatar }: { name: string; phone: string; relationship: string; avatar: { emoji: string; gradient: string } }) {
     const isFriend = kindFromRelationship(relationship) === 'Friend'
     const cardId = `CARD-${isFriend ? 'FRD' : 'FAM'}-${name.trim() ? name.trim().toUpperCase().slice(0, 4) : 'XXXX'}`
-    const shareLink = `https://mcomvcard.link/${isFriend ? 'f' : 'fam'}/${name.trim().toLowerCase().replace(/\s+/g, '-') || 'member'}`
+    const shareLink = window.location.origin
 
     return (
         <div>

@@ -10,6 +10,8 @@ import ConsumerLayout from './components/consumer/ConsumerLayout'
 import BusinessLayout from './components/business/layout/BusinessLayout'
 import RequireVcardAccess from './components/auth/RequireVcardAccess'
 import RequireAuth from './components/auth/RequireAuth'
+import RequireCustomer from './components/auth/RequireCustomer'
+import RequireBusinessAccess from './components/auth/RequireBusinessAccess'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const McomVCardLandingPage = lazy(() => import('./pages/landing/McomVCardLandingPage'))
@@ -242,7 +244,9 @@ export default function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route path="/c/setup" element={<ConsumerSetupPage />} />
+                <Route element={<RequireCustomer />}>
+                  <Route path="/c/setup" element={<ConsumerSetupPage />} />
+                </Route>
 
                 <Route element={<RequireVcardAccess />}>
                 <Route element={<UserLayout />}>
@@ -262,8 +266,8 @@ export default function App() {
                   </Route>
                 </Route>
 
-                {/* ── MCOMVCard Business Operations Dashboard ── */}
-                <Route element={<RequireVcardAccess />}>
+                {/* ── MCOMVCard Business Operations Dashboard (isolated) ── */}
+                <Route element={<RequireBusinessAccess />}>
                 <Route element={<BusinessLayout />}>
                   <Route path="/b/dashboard" element={<MyBusinessPage />} />
                   <Route path="/b/vcards" element={<BusinessVCardsPage />} />
@@ -300,6 +304,7 @@ export default function App() {
                 </Route>
                 </Route>
 
+                <Route element={<RequireCustomer />}>
                 <Route element={<RequireVcardAccess />}>
                 <Route element={<ConsumerLayout />}>
                   <Route path="/c/dashboard" element={<ConsumerHomePage />} />
@@ -321,6 +326,7 @@ export default function App() {
                   <Route path="/c/rewards" element={<ConsumerRewardsPage />} />
                   <Route path="/c/referrals" element={<ConsumerReferralsPage />} />
                   <Route path="/c/settings" element={<ConsumerSettingsPage />} />
+                </Route>
                 </Route>
                 </Route>
 

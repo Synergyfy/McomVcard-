@@ -42,9 +42,11 @@ export default function SsoLoginPage() {
         const redirect = searchParams.get('redirect')
         if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
           navigate(redirect, { replace: true })
-        } else if (role === 'CUSTOMER' || user.email) {
+        } else if (role === 'CUSTOMER' || user.role === 'CUSTOMER' || user.profile_type === 'CUSTOMER') {
           // Consumer identities land on the consumer dashboard.
           navigate('/c/dashboard', { replace: true })
+        } else if (role === 'ADMIN' || user.role === 'ADMIN') {
+          navigate('/admin', { replace: true })
         } else {
           navigate('/b/dashboard', { replace: true })
         }

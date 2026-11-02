@@ -53,6 +53,7 @@ export default function EditFamilyMemberSheet({ open, onClose, member, onUpdated
                     <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        title="The family member’s display name"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
                 </label>
@@ -61,6 +62,7 @@ export default function EditFamilyMemberSheet({ open, onClose, member, onUpdated
                     <input
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
+                        title="Their contact phone number"
                         inputMode="tel"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
@@ -70,6 +72,7 @@ export default function EditFamilyMemberSheet({ open, onClose, member, onUpdated
                     <input
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        title="Their MCOM account email"
                         inputMode="email"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
@@ -80,6 +83,7 @@ export default function EditFamilyMemberSheet({ open, onClose, member, onUpdated
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
                         placeholder="DD MMM YYYY"
+                        title="Optional date of birth, used for birthday reminders"
                         className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                     />
                 </label>

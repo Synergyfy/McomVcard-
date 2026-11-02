@@ -13,6 +13,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -43,7 +44,7 @@ export class CampaignsController {
   // --- Campaigns ---
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a campaign', description: 'Creates a campaign owned by one of the authenticated user\'s businesses (Business → Campaign). New campaigns start in draft.' })
   @ApiBody({
@@ -58,7 +59,7 @@ export class CampaignsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List my campaigns', description: 'Returns every campaign across the authenticated user\'s businesses, newest first.' })
   @ApiOkResponse({ description: 'Campaigns', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(CampaignResponseDto) } } } }] } })
@@ -68,7 +69,7 @@ export class CampaignsController {
   }
 
   @Get('businesses/:businessId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List campaigns for a business', description: 'Returns every campaign of one of the authenticated user\'s businesses, newest first.' })
   @ApiOkResponse({ description: 'Campaigns', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(CampaignResponseDto) } } } }] } })
@@ -81,7 +82,7 @@ export class CampaignsController {
   // --- Campaign Templates (must come before :id routes) ---
 
   @Get('templates')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List campaign templates', description: 'Returns all available campaign templates. Any authenticated user can read.' })
   @ApiOkResponse({ description: 'Campaign templates', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(CampaignTemplateResponseDto) } } } }] } })
@@ -91,7 +92,7 @@ export class CampaignsController {
   }
 
   @Get('templates/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a campaign template' })
   @ApiOkResponse({ description: 'Campaign template', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { $ref: getSchemaPath(CampaignTemplateResponseDto) } } }] } })
@@ -126,7 +127,7 @@ export class CampaignsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a campaign', description: 'Returns one campaign of the authenticated user, with its offers and coupons.' })
   @ApiOkResponse({ description: 'Campaign', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { $ref: getSchemaPath(CampaignResponseDto) } } }] } })
@@ -137,7 +138,7 @@ export class CampaignsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a campaign', description: 'Updates a campaign of the authenticated user (name, type, status, season, budget, dates).' })
   @ApiBody({ type: UpdateCampaignDto, examples: { activate: { summary: 'Activate a campaign', value: { status: 'active' } } } })
@@ -149,7 +150,7 @@ export class CampaignsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a campaign', description: 'Permanently deletes a campaign of the authenticated user (cascades to offers and coupons).' })
   @ApiOkResponse({ description: 'Campaign deleted', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'null', nullable: true } } }] } })
@@ -162,7 +163,7 @@ export class CampaignsController {
   // --- Offers ---
 
   @Post(':id/offers')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add an offer to a campaign', description: 'Creates an offer inside one of the authenticated user\'s campaigns (Campaign → Offer).' })
   @ApiBody({ type: CreateOfferDto, examples: { offer: { summary: '20% off treatments', value: { title: '20% off all treatments', description: 'Valid on all beauty treatments this month', discount_type: 'PERCENT', discount_value: 20 } } } })
@@ -174,7 +175,7 @@ export class CampaignsController {
   }
 
   @Get(':id/offers')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List offers in a campaign', description: 'Returns every offer inside one of the authenticated user\'s campaigns.' })
   @ApiOkResponse({ description: 'Offers', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(OfferResponseDto) } } } }] } })
@@ -185,7 +186,7 @@ export class CampaignsController {
   }
 
   @Patch('offers/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update an offer', description: 'Updates an offer of the authenticated user (title, description, discount, active state).' })
   @ApiBody({ type: UpdateOfferDto, examples: { pause: { summary: 'Pause an offer', value: { is_active: false } } } })
@@ -197,7 +198,7 @@ export class CampaignsController {
   }
 
   @Delete('offers/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an offer', description: 'Permanently deletes an offer of the authenticated user (cascades to its coupons).' })
   @ApiOkResponse({ description: 'Offer deleted', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'null', nullable: true } } }] } })
@@ -210,7 +211,7 @@ export class CampaignsController {
   // --- Coupons ---
 
   @Post('offers/:id/coupons')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a coupon to an offer', description: 'Creates a redeemable coupon inside one of the authenticated user\'s offers (Offer → Coupon). Coupon codes are unique.' })
   @ApiBody({ type: CreateCouponDto, examples: { coupon: { summary: 'BLOOM20 coupon', value: { code: 'BLOOM20', discount_type: 'PERCENT', discount_value: 20, max_uses: 100, expires_at: '2026-12-31T23:59:59.000Z' } } } })
@@ -223,7 +224,7 @@ export class CampaignsController {
   }
 
   @Get('offers/:id/coupons')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List coupons in an offer', description: 'Returns every coupon inside one of the authenticated user\'s offers.' })
   @ApiOkResponse({ description: 'Coupons', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'array', items: { $ref: getSchemaPath(CouponResponseDto) } } } }] } })
@@ -234,7 +235,7 @@ export class CampaignsController {
   }
 
   @Patch('coupons/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a coupon', description: 'Updates a coupon of the authenticated user (code, discount, usage cap, expiry, status).' })
   @ApiBody({ type: UpdateCouponDto, examples: { extend: { summary: 'Extend a coupon', value: { expires_at: '2027-01-31T23:59:59.000Z', max_uses: 200 } } } })
@@ -247,7 +248,7 @@ export class CampaignsController {
   }
 
   @Delete('coupons/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a coupon', description: 'Permanently deletes a coupon of the authenticated user.' })
   @ApiOkResponse({ description: 'Coupon deleted', schema: { allOf: [{ $ref: getSchemaPath(ApiResponse) }, { properties: { data: { type: 'null', nullable: true } } }] } })

@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { MockConsumer } from '../../../services/mockData'
+import type { ConsumerProfile } from '../../../services/consumer'
 
 interface WalletSummaryProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
 }
 
 export default function WalletSummary({ profile }: WalletSummaryProps) {

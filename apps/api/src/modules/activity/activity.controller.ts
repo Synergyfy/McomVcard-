@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiUnauthorizedResponse, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { ActivityService } from './activity.service'
 import { ActivityLog } from './entities/activity-log.entity'
@@ -10,7 +11,7 @@ import { Business } from '../businesses/entities/business.entity'
 
 @ApiTags('activity')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BusinessAccessGuard)
 @Controller('activity')
 export class ActivityController {
   constructor(

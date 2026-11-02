@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { MockConsumer, ExchangeItem } from '../../services/mockData'
+import type { ConsumerProfile, ExchangeItem } from '../../services/consumer'
 import ScrollingVCard from '../../components/common/ScrollingVCard'
 import VCardActions from '../../components/consumer/vcard/VCardActions'
 import VCardActionModal, { type VCardAction } from '../../components/consumer/vcard/VCardActionModal'
@@ -14,13 +14,12 @@ import {
   type CentreConfig,
   type CentreContentItem,
 } from '../admin/card-management/TemplateBuilderPage'
-import { SERVICES } from '../../components/public/sharedCardSections'
 import ErrorState from '../../components/common/ErrorState'
 
 /* Map a consumer's live data into the same section/centre model the
    customer-facing VCard uses, so the Share / Exchange / Redeem tabs and
    centre content are real — not separate sheets or pages. */
-function buildConsumerSections(p: MockConsumer, exchange: ExchangeItem[]): SectionState[] {
+function buildConsumerSections(p: ConsumerProfile, exchange: ExchangeItem[]): SectionState[] {
   const sections: SectionState[] = SECTIONS.map(s => {
     const values: Record<string, string> = {}
     const items: Record<string, Record<string, string>[]> = {}
@@ -36,29 +35,27 @@ function buildConsumerSections(p: MockConsumer, exchange: ExchangeItem[]): Secti
   const profile = byId('profile')
   profile.values.name = p.name
   profile.values.designation = p.membership
-  profile.values.description = `Member since ${p.joined} · ${p.primaryIssuingBusiness}`
+  const joined = new Date(p.joined)
+  profile.values.description = `Member since ${Number.isNaN(joined.getTime()) ? p.joined : joined.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}${p.primaryIssuingBusiness ? ` · ${p.primaryIssuingBusiness}` : ''}`
 
   const contacts = byId('contacts')
   contacts.items.cards = [
     { type: 'Email', label: 'Email', value: p.email },
     { type: 'Phone', label: 'Phone', value: p.phone },
     { type: 'Location', label: 'Location', value: p.location },
-    { type: 'Website', label: 'Website', value: `mcomvcard.link/${p.cardId}` },
+    { type: 'Website', label: 'Website', value: p.cardId ? `${window.location.origin}/c/${p.cardId}` : '' },
   ]
 
   const social = byId('social')
-  social.items.links = [
-    { platform: 'WhatsApp', url: 'https://wa.me/' },
-    { platform: 'Instagram', url: 'https://instagram.com/' },
-    { platform: 'LinkedIn', url: 'https://linkedin.com/' },
-  ]
+  social.items.links = []
+  social.enabled = false
 
   const share = byId('share')
   share.values.downloadLabel = 'Download VCard'
   share.values.shareLabel = 'Share Card'
 
   const services = byId('services')
-  services.items.items = SERVICES.map(s => ({ icon: '', title: s.name, description: s.desc }))
+  services.items.items = (p.plan?.features || []).map((feature) => ({ icon: '', title: feature, description: '' }))
 
   const products = byId('products')
   products.items.items = exchange.map(e => ({ image: '', title: e.title, description: e.business, price: e.value }))
@@ -75,15 +72,8 @@ function buildConsumerSections(p: MockConsumer, exchange: ExchangeItem[]): Secti
   qr.values.qrSize = 'Medium'
 
   const hours = byId('hours')
-  hours.items.days = [
-    { day: 'Monday', hours: '8:00 AM – 6:00 PM' },
-    { day: 'Tuesday', hours: '8:00 AM – 6:00 PM' },
-    { day: 'Wednesday', hours: '8:00 AM – 6:00 PM' },
-    { day: 'Thursday', hours: '8:00 AM – 6:00 PM' },
-    { day: 'Friday', hours: '8:00 AM – 5:00 PM' },
-    { day: 'Saturday', hours: '9:00 AM – 2:00 PM' },
-    { day: 'Sunday', hours: '', closed: 'true' },
-  ]
+  hours.items.days = []
+  hours.enabled = false
 
   ;['countdown', 'gallery', 'testimonials', 'blog', 'map', 'contactForm', 'buildGroup', 'password'].forEach(id => {
     byId(id).enabled = false
@@ -92,7 +82,7 @@ function buildConsumerSections(p: MockConsumer, exchange: ExchangeItem[]): Secti
   return sections
 }
 
-function buildConsumerCentres(exchange: ExchangeItem[], redeem: ExchangeItem[], profile: MockConsumer): Record<string, CentreConfig> {
+function buildConsumerCentres(exchange: ExchangeItem[], redeem: ExchangeItem[], profile: ConsumerProfile): Record<string, CentreConfig> {
   const centres = buildDefaultCentreConfigs()
 
   const toItems = (list: ExchangeItem[], linkLabel: string): CentreContentItem[] =>
@@ -120,7 +110,7 @@ function buildConsumerCentres(exchange: ExchangeItem[], redeem: ExchangeItem[], 
 }
 
 export default function ConsumerMyVCardPage() {
-  const [profile, setProfile] = useState<MockConsumer | null>(null)
+  const [profile, setProfile] = useState<ConsumerProfile | null>(null)
   const [exchange, setExchange] = useState<ExchangeItem[]>([])
   const [redeem, setRedeem] = useState<ExchangeItem[]>([])
   const [loading, setLoading] = useState(true)

@@ -15,9 +15,14 @@ export class MailService {
   private readonly logger = new Logger('Mail')
   private readonly transporter: Transporter | null
   private readonly from: string
+  private readonly resendApiKey: string | null
 
   constructor(private config: ConfigService) {
-    this.from = this.config.get('MAIL_FROM') || 'MCOM <no-reply@mcom.local>'
+    this.from =
+      this.config.get('RESEND_FROM') ||
+      this.config.get('MAIL_FROM') ||
+      'MCOM VCard <onboarding@resend.dev>'
+    this.resendApiKey = this.config.get('RESEND_API_KEY') || null
     this.transporter = this.buildTransporter()
   }
 
@@ -39,6 +44,18 @@ export class MailService {
   }
 
   async sendMail(payload: MailPayload): Promise<void> {
+    if (this.resendApiKey) {
+      try {
+        await this.sendWithResend(payload)
+        this.logger.log(`Sent email via Resend to ${payload.to}`)
+        return
+      } catch (error) {
+        this.logger.error(
+          `Resend delivery failed for ${payload.to}: ${error instanceof Error ? error.message : error}`,
+        )
+      }
+    }
+
     if (!this.transporter) {
       // Dev fallback: no SMTP configured — surface the email in the logs so flows are testable.
       this.logger.log(
@@ -49,6 +66,45 @@ export class MailService {
 
     await this.transporter.sendMail({ ...payload, from: this.from })
     this.logger.log(`Sent email to ${payload.to}`)
+  }
+
+  private async sendWithResend(payload: MailPayload): Promise<void> {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: this.from,
+        to: [payload.to],
+        subject: payload.subject,
+        text: payload.text,
+        html: payload.html ?? (payload.text ? this.textToHtml(payload.text) : undefined),
+      }),
+    })
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(`Resend responded ${response.status}: ${body.slice(0, 300)}`)
+    }
+  }
+
+  private textToHtml(text: string): string {
+    return text
+      .split('\n')
+      .map((line) => `<p>${line || '&nbsp;'}</p>`)
+      .join('')
+  }
+
+  async sendReferralInvite(to: string, inviterName: string): Promise<void> {
+    const appUrl = this.config.get('WEB_PUBLIC_URL') || 'http://localhost:9023'
+    await this.sendMail({
+      to,
+      subject: `${inviterName} invited you to MCOM VCard`,
+      text: `Hi,\n\n${inviterName} invited you to join MCOM VCard.\n\nCreate your free account here:\n${appUrl}/login\n\nIf you were not expecting this invitation, you can safely ignore this email.\n\nThanks,\nThe MCOM Team`,
+      html: `<p>Hi,</p><p><strong>${inviterName}</strong> invited you to join MCOM VCard.</p><p><a href="${appUrl}/login">Create your free account</a></p><p>If you were not expecting this invitation, you can safely ignore this email.</p>`,
+    })
   }
 
   async sendVerificationLink(to: string, firstName: string | null, link: string): Promise<void> {

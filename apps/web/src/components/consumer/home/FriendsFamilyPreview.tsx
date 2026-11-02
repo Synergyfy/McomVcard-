@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { consumerService } from '../../../services/consumer'
-import type { NearbyOffer } from '../../../services/mockData'
+import type { NearbyOffer } from '../../../services/consumer'
 
 export default function NearbyOffers() {
     const [offers, setOffers] = useState<NearbyOffer[]>([])

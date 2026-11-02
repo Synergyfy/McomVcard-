@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import type { MockConsumer, ExchangeItem } from '../../../services/mockData'
+import type { ConsumerProfile, ExchangeItem } from '../../../services/consumer'
 
 export type VCardAction = 'share' | 'exchange' | 'redeem'
 
@@ -8,7 +8,7 @@ interface VCardActionModalProps {
     open: boolean
     action: VCardAction | null
     onClose: () => void
-    profile: MockConsumer
+    profile: ConsumerProfile
     exchange: ExchangeItem[]
     redeem: ExchangeItem[]
 }
@@ -79,7 +79,7 @@ export default function VCardActionModal({ open, action, onClose, profile, excha
 
     useEffect(() => {
         if (!open || !selected || !qrRef.current) return
-        const value = `https://mcomvcard.link/r/${selected.item.id}?code=${selected.code}`
+        const value = `${window.location.origin}/c/${profile.cardId}?offer=${selected.item.id}&code=${encodeURIComponent(selected.code)}`
         QRCode.toCanvas(qrRef.current, value, { width: 160, margin: 1, errorCorrectionLevel: 'H' }).catch(() => { /* ignore */ })
     }, [open, selected])
 
@@ -128,7 +128,7 @@ export default function VCardActionModal({ open, action, onClose, profile, excha
         window.setTimeout(() => setCodeCopied(false), 2000)
     }
 
-    const vcardUrl = `https://mcomvcard.link/c/${profile.cardId || 'card'}`
+    const vcardUrl = profile.cardId ? `${window.location.origin}/c/${profile.cardId}` : window.location.origin
 
     const actionButton = (key: string, label: string, doneLabel: string, extra: () => void) => {
         const isDone = done[key]

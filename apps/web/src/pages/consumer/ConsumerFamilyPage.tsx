@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
 import { familyService } from '../../services/familyCards'
-import { getConsumerEntitlements } from '../../services/consumerMembership'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import type { FamilyCardMember } from '../../services/familyCards'
 import MembershipSummaryCard from '../../components/consumer/family/MembershipSummaryCard'
 import OwnerCard from '../../components/consumer/family/OwnerCard'
@@ -18,7 +17,7 @@ import ErrorState from '../../components/common/ErrorState'
 
 export default function ConsumerFamilyPage() {
     const navigate = useNavigate()
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
     const [members, setMembers] = useState<FamilyCardMember[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
@@ -64,12 +63,17 @@ export default function ConsumerFamilyPage() {
         )
     }
 
-    const entitlements = getConsumerEntitlements(profile.membership)
+    // Allowances come from the customer's actual plan quotas, never a static
+    // per-membership lookup table. A customer without a plan has no allowance.
+    const entitlements = {
+      familyCards: profile.familyCardLimit ?? 0,
+      friendCards: profile.friendCardLimit ?? 0,
+    }
     const familyUsed = members.filter((m) => m.kind === 'Family').length
     const friendUsed = members.filter((m) => m.kind === 'Friend').length
     const familyRemaining = Math.max(0, entitlements.familyCards - familyUsed)
     const friendRemaining = Math.max(0, entitlements.friendCards - friendUsed)
-    const atLimit = familyRemaining <= 0 && friendUsed >= entitlements.friendCards
+    const atLimit = familyRemaining <= 0 && friendRemaining <= 0
 
     const handleUpsert = (member: FamilyCardMember) => {
         setMembers((prev) => {
@@ -82,7 +86,7 @@ export default function ConsumerFamilyPage() {
         setShareTarget(member)
     }
 
-    const handleRemove = (id: number) => {
+    const handleRemove = (id: string) => {
         setMembers((prev) => prev.filter((m) => m.id !== id))
     }
 

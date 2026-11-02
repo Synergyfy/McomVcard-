@@ -79,6 +79,10 @@ export default function ConsumerCardEditPage() {
   const navigate = useNavigate()
   const [design, setDesign] = useState<CardDesignData | null>(null)
   const [loadingDesign, setLoadingDesign] = useState(true)
+  const [profileId, setProfileId] = useState<string | null>(null)
+  const [customizationId, setCustomizationId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const [name, setName] = useState('Your Name')
   const [title, setTitle] = useState('Nature Lover')
@@ -91,7 +95,7 @@ export default function ConsumerCardEditPage() {
   const [layout, setLayout] = useState<string>('split')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([
-    { id: 1, label: 'Website', value: 'mcomvcard.link' },
+    { id: 1, label: 'Website', value: '' },
   ])
   const [nextFieldId, setNextFieldId] = useState(2)
   const [flipped, setFlipped] = useState(false)
@@ -102,56 +106,62 @@ export default function ConsumerCardEditPage() {
   const toggleSection = (key: string) => setOpenSection((prev) => (prev === key ? null : key))
 
   // Card share link + QR
-  const [cardId, setCardId] = useState('CARD-CNS-000001')
+  const [cardId, setCardId] = useState('')
   const [cardUrl, setCardUrl] = useState('')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const fetchDesign = designId
-      ? api.get(`/cards/${designId}`).then((r) => {
-          const d = r.data as Record<string, unknown>
-          return {
-            id: String(d.id),
-            name: String(d.name || ''),
-            type: String(d.type || 'Consumer'),
-            style: String(d.style || ''),
-            primaryColor: String(d.primaryColor || d.primary_color || '#0F172A'),
-            secondaryColor: String(d.secondaryColor || d.secondary_color || '#D4AF37'),
-            accentColor: String(d.accentColor || d.accent_color || '#FFFFFF'),
-            layout: String(d.layout || 'split'),
-            status: String(d.status || 'active'),
-            usage: Number(d.usage || 0),
-          } as CardDesignData
-        }).catch(() => null)
-      : Promise.resolve(null)
+    if (!designId) {
+      setLoadingDesign(false)
+      return
+    }
 
-    Promise.all([
-      consumerService.getProfile(),
-      fetchDesign,
-    ])
-      .then(([p, d]) => {
-        setCardId(p.cardId || 'CARD-CNS-000001')
-        setName(p.name)
-        setPhone(p.phone)
-        setEmail(p.email)
-        setCustomFields((fields) => [
-          ...fields.map((f) => (f.label === 'Website' ? { ...f, value: p.cardId ? `mcomvcard.link/c/${p.cardId.toLowerCase()}` : f.value } : f)),
-        ])
-        if (d) {
-          setDesign(d)
-          setPrimaryColor(d.primaryColor)
-          setSecondaryColor(d.secondaryColor)
-          setAccentColor(d.accentColor)
-          setLayout(d.layout)
+    api.get(`/cards/${designId}`)
+      .then(async (r) => {
+        const d = r.data as Record<string, any>
+        const customization = d.customization as Record<string, any> | null
+        const cardProfile = d.profile as Record<string, any> | null
+        const customer = await consumerService.getProfile()
+
+        const mapped: CardDesignData = {
+          id: String(d.id),
+          name: String(d.name || 'My Card'),
+          type: String(d.type || 'Consumer'),
+          style: String(d.template?.name || d.category || ''),
+          primaryColor: String(customization?.primary_color || '#0F172A'),
+          secondaryColor: String(customization?.secondary_color || '#D4AF37'),
+          accentColor: String(customization?.configuration?.accentColor || '#FFFFFF'),
+          layout: String(customization?.layout || 'split'),
+          status: String(d.status || 'active'),
+          usage: Number(d.views || 0) + Number(d.scans || 0),
         }
+
+        setDesign(mapped)
+        setCardId(String(d.slug || customer.cardId || ''))
+        setName(cardProfile?.display_name || d.name || customer.name)
+        setTitle(cardProfile?.job_title || d.description || '')
+        setPhone(cardProfile?.phone || customer.phone)
+        setEmail(cardProfile?.email || customer.email)
+        setDescription(cardProfile?.bio || '')
+        setPrimaryColor(mapped.primaryColor)
+        setSecondaryColor(mapped.secondaryColor)
+        setAccentColor(mapped.accentColor)
+        setLayout(mapped.layout)
+        if (customization?.id) setCustomizationId(String(customization.id))
+        if (cardProfile?.id) setProfileId(String(cardProfile.id))
+
+        const website = cardProfile?.website || (d.slug ? `${window.location.origin}/c/${d.slug}` : '')
+        setCustomFields((fields) => [
+          ...fields.map((f) => (f.label === 'Website' ? { ...f, value: website } : f)),
+        ])
       })
-      .catch(() => { /* keep default */ })
+      .catch(() => setSaveError('We could not load this card. Please go back and try again.'))
       .finally(() => setLoadingDesign(false))
   }, [designId])
 
   useEffect(() => {
-    setCardUrl(`https://mcomvcard.link/c/${cardId}`)
+    setCardUrl(cardId ? `${window.location.origin}/c/${cardId}` : '')
   }, [cardId])
 
   useEffect(() => {
@@ -213,8 +223,62 @@ export default function ConsumerCardEditPage() {
     setCustomFields(customFields.map((f) => f.id === id ? { ...f, [key]: val } : f))
   }
 
-  const handleSave = () => {
-    navigate('/c/card-designs')
+  const handleSave = async () => {
+    if (!design) return
+    setSaveError('')
+    if (!name.trim()) {
+      setSaveError('Enter the name shown on the card.')
+      return
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setSaveError('Enter a valid email address.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await api.patch(`/cards/${design.id}`, {
+        name: name.trim(),
+        description: description.trim(),
+      })
+
+      const profilePayload: Record<string, string> = {
+        display_name: name.trim(),
+        bio: description.trim(),
+        job_title: title.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      }
+      if (profileId) {
+        await api.patch(`/card-profiles/${profileId}`, profilePayload)
+      } else {
+        const created = await api.post(`/cards/${design.id}/profile`, profilePayload)
+        if (created.data?.id) setProfileId(String(created.data.id))
+      }
+
+      const customizationPayload = {
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        font: 'Inter',
+        layout,
+        configuration: {
+          accentColor,
+          customFields: customFields.filter((f) => f.label.trim() || f.value.trim()),
+        },
+      }
+      if (customizationId) {
+        await api.patch(`/cards/${design.id}/customization`, customizationPayload)
+      } else {
+        const created = await api.post(`/cards/${design.id}/customization`, customizationPayload)
+        if (created.data?.id) setCustomizationId(String(created.data.id))
+      }
+
+      navigate('/c/card-designs')
+    } catch (err: any) {
+      setSaveError(err?.response?.data?.message || 'We could not save this card. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -234,11 +298,17 @@ export default function ConsumerCardEditPage() {
           <Link to="/c/card-designs" className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Cancel
           </Link>
-          <button onClick={handleSave} className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
-            Save Changes
+          <button onClick={handleSave} disabled={saving} title="Save the card content, colours and layout to your MCOM account" className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
+
+      {saveError && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+          {saveError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Controls */}
@@ -311,7 +381,7 @@ export default function ConsumerCardEditPage() {
                 )}
               </div>
               <label className="relative cursor-pointer">
-                <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                <input type="file" accept="image/*" title="Upload a logo or avatar (max 2MB)" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                 <div className="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">Upload Logo</div>
               </label>
               {logoPreview && (
@@ -334,8 +404,8 @@ export default function ConsumerCardEditPage() {
               <div className="space-y-2">
                 {customFields.map((f) => (
                   <div key={f.id} className="flex items-center gap-2">
-                    <input type="text" placeholder="Label (e.g. Instagram)" value={f.label} onChange={(e) => updateField(f.id, 'label', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder:text-gray-400" />
-                    <input type="text" placeholder="Value (e.g. @alex)" value={f.value} onChange={(e) => updateField(f.id, 'value', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder:text-gray-400" />
+                    <input type="text" title="Name of the extra field, e.g. Instagram or Website" placeholder="Label (e.g. Instagram)" value={f.label} onChange={(e) => updateField(f.id, 'label', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder:text-gray-400" />
+                    <input type="text" title="Value shown for this extra field" placeholder="Value (e.g. @alex)" value={f.value} onChange={(e) => updateField(f.id, 'value', e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder:text-gray-400" />
                     <button onClick={() => removeField(f.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
@@ -420,7 +490,7 @@ export default function ConsumerCardEditPage() {
 
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Card Link</label>
             <div className="flex items-center gap-2 mb-4">
-              <input readOnly value={cardUrl} onFocus={(e) => e.target.select()} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              <input readOnly title="Public link to this card" value={cardUrl} onFocus={(e) => e.target.select()} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               <button onClick={copyLink} className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${copied ? 'bg-green-500 text-white' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30'}`}>
                 {copied ? 'Copied!' : 'Copy'}
               </button>

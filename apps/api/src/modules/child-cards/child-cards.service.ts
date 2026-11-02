@@ -44,6 +44,7 @@ export class ChildCardsService {
       this.childCardsRepo.create({
         cardId: dto.card_id,
         childId: dto.child_id,
+        relationship: dto.relationship?.trim() || 'Family',
         canView: dto.can_view ?? true,
         canUseWallet: dto.can_use_wallet ?? false,
         canManage: dto.can_manage ?? false,
@@ -93,12 +94,24 @@ export class ChildCardsService {
     await this.childCardsRepo.update(
       { id },
       {
+        relationship: dto.relationship?.trim(),
         canView: dto.can_view,
         canUseWallet: dto.can_use_wallet,
         canManage: dto.can_manage,
         walletAllocation: dto.wallet_allocation,
       },
     )
+
+    if (dto.name !== undefined || dto.phone !== undefined) {
+      const childPatch: Record<string, unknown> = {}
+      if (dto.name !== undefined) {
+        const parts = dto.name.trim().split(/\s+/)
+        childPatch.firstName = parts[0] || null
+        childPatch.lastName = parts.slice(1).join(' ') || null
+      }
+      if (dto.phone !== undefined) childPatch.phone = dto.phone.trim() || null
+      await this.usersService.update(record.childId, childPatch as never)
+    }
 
     return ApiResponse.success(ChildCardResponseDto.fromEntity(await this.findOne(userId, id)), 'Child card updated', 200)
   }

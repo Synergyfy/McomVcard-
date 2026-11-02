@@ -23,6 +23,12 @@ export class CatalogService {
     if (b.ownerId !== user.id) throw new NotFoundException('Business not found')
   }
 
+  private async requireOwnedBusiness(user: UserResponseDto): Promise<Business> {
+    const business = await this.businesses.findOne({ where: { ownerId: user.id }, order: { createdAt: 'DESC' } })
+    if (!business) throw new NotFoundException('Business not found')
+    return business
+  }
+
   // ── Gift Cards ──
 
   async listGiftCards(user: UserResponseDto) {
@@ -34,9 +40,9 @@ export class CatalogService {
   }
 
   async createGiftCard(user: UserResponseDto, dto: CreateGiftCardDto) {
-    await this.assertBusinessOwnership(user, dto as any)
+    const business = await this.requireOwnedBusiness(user)
     const card = this.giftCards.create({
-      businessId: (dto as any).business_id,
+      businessId: business.id,
       title: dto.title,
       value: dto.value,
       price: dto.price,
@@ -80,8 +86,9 @@ export class CatalogService {
   }
 
   async createCashbackProgram(user: UserResponseDto, dto: CreateCashbackProgramDto) {
+    const business = await this.requireOwnedBusiness(user)
     const program = this.cashbackPrograms.create({
-      businessId: (dto as any).business_id,
+      businessId: business.id,
       title: dto.title,
       rate: dto.rate,
     })

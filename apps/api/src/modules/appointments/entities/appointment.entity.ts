@@ -45,6 +45,9 @@ export class Appointment {
   @Column({ type: 'text', nullable: true })
   notes!: string | null
 
+  @Column({ name: 'is_paid', type: 'boolean', default: false })
+  isPaid!: boolean
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date
 

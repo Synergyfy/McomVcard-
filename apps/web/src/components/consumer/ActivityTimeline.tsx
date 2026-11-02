@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 
 interface ActivityTimelineProps {
-    activity: MockConsumer['recentActivity']
+    activity: ConsumerProfile['recentActivity']
     limit?: number
     showHeader?: boolean
     showSeeAll?: boolean
@@ -55,7 +55,34 @@ const statusColors: Record<string, string> = {
     default: 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
 }
 
+function parseTime(time: string): Date | null {
+    if (!time) return null
+    const parsed = new Date(time)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function formatTime(time: string): string {
+    const parsed = parseTime(time)
+    if (!parsed) return time
+    const now = new Date()
+    const diffMinutes = Math.floor((now.getTime() - parsed.getTime()) / 60000)
+    if (diffMinutes >= 0 && diffMinutes < 1) return 'Just now'
+    if (diffMinutes >= 1 && diffMinutes < 60) return `${diffMinutes} min ago`
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours >= 1 && diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+    return parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 function groupLabel(time: string): 'Today' | 'Yesterday' | 'Earlier' {
+    const parsed = parseTime(time)
+    if (parsed) {
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+        const startOfItem = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime()
+        if (startOfItem === startOfToday) return 'Today'
+        if (startOfToday - startOfItem === 86400000) return 'Yesterday'
+        return 'Earlier'
+    }
     const t = time.toLowerCase()
     if (t.includes('min') || t.includes('hour') || t.includes('now')) return 'Today'
     if (t.includes('yesterday') || t.includes('1 day')) return 'Yesterday'
@@ -110,7 +137,7 @@ export default function ActivityTimeline({ activity, limit = 8, showHeader = tru
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug line-clamp-2">{a.action}</p>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-                                                    <p className="text-[11px] text-gray-400">{a.time}</p>
+                                                    <p className="text-[11px] text-gray-400">{formatTime(a.time)}</p>
                                                     {a.value && <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{a.value}</span>}
                                                     {statusC && <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${statusC}`}>{a.status}</span>}
                                                 </div>

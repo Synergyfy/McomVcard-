@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerActivityItem } from '../../services/consumer'
 import ActivityTimeline from '../../components/consumer/ActivityTimeline'
 
 type FilterKey = 'all' | 'reward' | 'earn' | 'share' | 'exchange' | 'nfc' | 'vcard' | 'wallet' | 'funding' | 'family' | 'membership' | 'campaign'
@@ -38,7 +38,7 @@ function matchesFilter(type: string, filter: FilterKey): boolean {
 }
 
 export default function ConsumerActivityPage() {
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [activity, setActivity] = useState<ConsumerActivityItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [filter, setFilter] = useState<FilterKey>('all')
@@ -47,11 +47,11 @@ export default function ConsumerActivityPage() {
         setLoading(true)
         setError(null)
         consumerService
-            .getProfile()
-            .then(setProfile)
+            .getRecentActivity(filter, 1, 100)
+            .then(setActivity)
             .catch(() => setError("We couldn't load your activity. Please try again."))
             .finally(() => setLoading(false))
-    }, [])
+    }, [filter])
 
     useEffect(() => {
         loadActivity()
@@ -84,9 +84,7 @@ export default function ConsumerActivityPage() {
         )
     }
 
-    if (!profile) return null
-
-    const filtered = profile.recentActivity.filter((a) => matchesFilter(a.type, filter))
+    const filtered = activity.filter((a) => matchesFilter(a.type, filter))
 
     return (
         <div className="space-y-4 pb-2">

@@ -1,6 +1,8 @@
 import { Controller, Get, Query, Param, Post, Patch, Delete, Body, UseGuards, NotFoundException } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiUnauthorizedResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiCreatedResponse, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
+import { CacheService } from '../../lib/cache/cache.service'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { CustomersService } from './customers.service'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -11,12 +13,13 @@ import { UpdateCustomerNoteDto } from './dto/update-customer-note.dto'
 
 @ApiTags('customers')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, BusinessAccessGuard)
 @Controller('customers')
 export class CustomersController {
   constructor(
     private readonly customersService: CustomersService,
     @InjectRepository(Business) private businesses: Repository<Business>,
+    private readonly cache: CacheService,
   ) {}
 
   @Get()
@@ -35,10 +38,10 @@ export class CustomersController {
     const business = await this.businesses.findOne({ where: { ownerId: user.id } })
     if (!business) return { items: [], total: 0, limit: 50, offset: 0 }
 
-    return this.customersService.getCustomers(
-      business.id,
-      limit ? Number(limit) : 50,
-      offset ? Number(offset) : 0,
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200)
+    const safeOffset = Math.max(Number(offset) || 0, 0)
+    return this.cache.getOrSet(`customers:list:${business.id}:${safeLimit}:${safeOffset}`, 30, () =>
+      this.customersService.getCustomers(business.id, safeLimit, safeOffset),
     )
   }
 
@@ -54,7 +57,10 @@ export class CustomersController {
     const business = await this.businesses.findOne({ where: { ownerId: user.id } })
     if (!business) throw new NotFoundException('Business not found')
 
-    return this.customersService.getCustomerDetail(business.id, decodeURIComponent(email))
+    const customerEmail = decodeURIComponent(email)
+    return this.cache.getOrSet(`customers:detail:${business.id}:${customerEmail.toLowerCase()}`, 30, () =>
+      this.customersService.getCustomerDetail(business.id, customerEmail),
+    )
   }
 
   // ---- Customer notes ----

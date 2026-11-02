@@ -7,6 +7,7 @@ import { RolesModule } from '../roles/roles.module'
 import { AffiliatesModule } from '../affiliates/affiliates.module'
 import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
+import { AdminAuthController } from './admin-auth.controller'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { ConfigModule, ConfigService } from '@nestjs/config'
@@ -35,7 +36,7 @@ import { SubscribedPlan } from '../subscriptions/entities/subscribed-plan.entity
     }),
   ],
   providers: [AuthService, JwtStrategy, JwtAuthGuard],
-  controllers: [AuthController],
+  controllers: [AuthController, AdminAuthController],
   exports: [AuthService, JwtAuthGuard, JwtStrategy, JwtModule],
 })
 export class AuthModule {}

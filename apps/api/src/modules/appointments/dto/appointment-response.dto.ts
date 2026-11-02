@@ -141,6 +141,9 @@ export class AppointmentResponseDto {
   @ApiPropertyOptional({ example: 'First visit' })
   notes!: string | null
 
+  @ApiProperty({ example: false })
+  is_paid!: boolean
+
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   created_at!: Date
 
@@ -162,6 +165,7 @@ export class AppointmentResponseDto {
     dto.end_time = toTime(appointment.endTime)
     dto.status = appointment.status
     dto.notes = appointment.notes ?? null
+    dto.is_paid = appointment.isPaid ?? false
     dto.created_at = appointment.createdAt
     dto.updated_at = appointment.updatedAt
 

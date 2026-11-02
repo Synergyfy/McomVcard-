@@ -19,6 +19,8 @@ export const validationSchema = Joi.object({
   MAIL_PASS: Joi.string().optional().empty(''),
   MAIL_FROM: Joi.string().optional().empty(''),
   MAIL_SECURE: Joi.string().valid('true', 'false').optional().empty(''),
+  RESEND_API_KEY: Joi.string().optional().empty(''),
+  RESEND_FROM: Joi.string().optional().empty(''),
   // Comma-separated list of allowed CORS origins in production (e.g. "https://app.example.com,https://www.example.com").
   CORS_ORIGINS: Joi.string().optional().empty(''),
   // MCOM Solutions Central Hub (SSO + billing). Secrets are server-only and
@@ -60,4 +62,5 @@ export const validationSchema = Joi.object({
   // created server-side with method "wallet" so customers pay from their
   // centralized MCOM Wallet balance.
   MCOM_PAY_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  REDIS_URL: Joi.string().optional().empty('').default('redis://localhost:6379'),
 })

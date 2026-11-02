@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import api from '../../services/api'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import { cardProtectionService } from '../../services/cardProtection'
 import type { CardProtectionState } from '../../services/cardProtection'
 import SharedCardView from '../../components/public/SharedCardView'
@@ -17,7 +17,7 @@ export default function SharedCardPage() {
     const navigate = useNavigate()
     const { isAuthenticated, user } = useAuth()
     const [protection, setProtection] = useState<CardProtectionState | null>(null)
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
 
     const isClaim = searchParams.get('claim') === '1'
     const business = searchParams.get('business') || undefined

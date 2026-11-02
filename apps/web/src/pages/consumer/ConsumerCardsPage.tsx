@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import ConsumerVCard from '../../components/consumer/ConsumerVCard'
 import ErrorState from '../../components/common/ErrorState'
 
@@ -44,7 +44,7 @@ function categorize(type: string): CardCategory {
 
 export default function ConsumerCardsPage() {
     const navigate = useNavigate()
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
 

@@ -113,6 +113,7 @@ export default function TransferMoneySheet({ open, onClose, member, onUpdated }:
                         value={custom}
                         onChange={(e) => { setCustom(e.target.value); setAmount(Number(e.target.value) || 0) }}
                         placeholder="Other amount"
+                        title="Amount to move from your card balance to this family member"
                         className="w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600"
                     />
                 </div>

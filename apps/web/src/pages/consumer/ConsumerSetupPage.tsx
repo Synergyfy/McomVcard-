@@ -216,6 +216,7 @@ export default function ConsumerSetupPage() {
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         placeholder="Jane Smith"
+                        title="Your full name as it will appear on your card"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                       />
                     </div>
@@ -226,6 +227,7 @@ export default function ConsumerSetupPage() {
                         value={form.phone}
                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         placeholder="+44 7700 900123"
+                        title="Optional contact phone number for businesses you connect with"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                       />
                     </div>
@@ -236,6 +238,7 @@ export default function ConsumerSetupPage() {
                         value={form.location}
                         onChange={(e) => setForm({ ...form, location: e.target.value })}
                         placeholder="London, UK"
+                        title="Your city or region — used for nearby offers"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                       />
                     </div>
@@ -262,6 +265,7 @@ export default function ConsumerSetupPage() {
                         value={business}
                         onChange={(e) => setBusiness(e.target.value)}
                         placeholder="GreenLeaf Coffee"
+                        title="The business that invited you or issued your card"
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                       />
                     </div>

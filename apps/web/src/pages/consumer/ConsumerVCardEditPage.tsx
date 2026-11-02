@@ -10,11 +10,45 @@ const FONT_OPTIONS = ['Inter', 'Roboto', 'Poppins', 'Montserrat', 'Playfair Disp
 const BG_STYLES = ['gradient', 'solid', 'pattern', 'minimal']
 const BUTTON_STYLES = ['rounded', 'pill', 'square']
 
+interface CardDto {
+  id: string
+  name?: string | null
+  description?: string | null
+  slug?: string
+  template?: { id: string; name?: string; category?: string } | null
+}
+
+interface CustomizationDto {
+  id: string
+  primary_color?: string | null
+  secondary_color?: string | null
+  font?: string | null
+  layout?: string | null
+  logo?: string | null
+  configuration?: Record<string, unknown> | null
+}
+
+interface CardProfileDto {
+  id: string
+  display_name?: string | null
+  bio?: string | null
+  job_title?: string | null
+  email?: string | null
+  phone?: string | null
+  location?: string | null
+  website?: string | null
+  avatar?: string | null
+}
+
 export default function ConsumerVCardEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [template, setTemplate] = useState<AdminTemplate | null>(null)
+  const [profileId, setProfileId] = useState<string | null>(null)
+  const [customizationId, setCustomizationId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const [primaryColor, setPrimaryColor] = useState('#FF5C00')
   const [secondaryColor, setSecondaryColor] = useState('#1F2937')
@@ -22,8 +56,8 @@ export default function ConsumerVCardEditPage() {
   const [bgStyle, setBgStyle] = useState('gradient')
   const [buttonStyle, setButtonStyle] = useState('rounded')
   const [logoPosition, setLogoPosition] = useState('center')
-  const [displayName, setDisplayName] = useState('Your Name')
-  const [tagline, setTagline] = useState('Digital Marketing Professional')
+  const [displayName, setDisplayName] = useState('')
+  const [tagline, setTagline] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
@@ -31,39 +65,130 @@ export default function ConsumerVCardEditPage() {
   const [tab, setTab] = useState<'style' | 'content' | 'sections'>('style')
 
   useEffect(() => {
-    const fetchTemplate = id
-      ? api.get(`/templates/${id}`).then((r) => r.data as AdminTemplate).catch(() => null)
-      : Promise.resolve(null)
+    if (!id) {
+      setLoading(false)
+      return
+    }
 
-    Promise.all([consumerService.getProfile(), fetchTemplate])
-      .then(([p, t]) => {
-        setDisplayName(p.name)
-        setPhone(p.phone)
-        setEmail(p.email)
-        setAddress(p.location)
-        if (p.cardId) setWebsite(`mcomvcard.link/c/${p.cardId.toLowerCase()}`)
-        if (t) {
-          setTemplate(t)
-          setPrimaryColor(t.primary_color)
-          setSecondaryColor(t.secondary_color)
-          setFontFamily(t.font_family)
-          setBgStyle(t.bg_style)
-          setButtonStyle(t.button_style)
-          setLogoPosition(t.logo_position)
+    Promise.all([
+      consumerService.getProfile(),
+      api.get(`/cards/${id}`).then((r) => r.data as CardDto),
+      api.get(`/cards/${id}/customization`).then((r) => r.data as CustomizationDto).catch(() => null),
+      api.get(`/cards/${id}/profile`).then((r) => r.data as CardProfileDto).catch(() => null),
+    ])
+      .then(([p, c, customization, cardProfile]) => {
+        setDisplayName(cardProfile?.display_name || c.name || p.name)
+        setTagline(cardProfile?.bio || cardProfile?.job_title || c.description || '')
+        setPhone(cardProfile?.phone || p.phone)
+        setEmail(cardProfile?.email || p.email)
+        setAddress(cardProfile?.location || p.location)
+        setWebsite(cardProfile?.website || (c.slug ? `${window.location.origin}/c/${c.slug}` : ''))
+
+        if (cardProfile?.id) setProfileId(cardProfile.id)
+        if (customization) {
+          setCustomizationId(customization.id)
+          if (customization.primary_color) setPrimaryColor(customization.primary_color)
+          if (customization.secondary_color) setSecondaryColor(customization.secondary_color)
+          if (customization.font) setFontFamily(customization.font)
+          if (typeof customization.configuration?.bgStyle === 'string') setBgStyle(customization.configuration.bgStyle)
+          if (typeof customization.configuration?.buttonStyle === 'string') setButtonStyle(customization.configuration.buttonStyle)
+          if (typeof customization.configuration?.logoPosition === 'string') setLogoPosition(customization.configuration.logoPosition)
         }
+
+        const t = c.template
+        setTemplate({
+          id: t?.id || c.id,
+          name: t?.name || c.name || 'My vCard',
+          category: t?.category || 'Personal',
+          path: '',
+          template_url: '',
+          status: 'published',
+          usage: 0,
+          created: '',
+          font_family: fontFamily,
+          primary_color: primaryColor,
+          secondary_color: secondaryColor,
+          button_style: buttonStyle,
+          logo_position: logoPosition,
+          bg_style: bgStyle,
+          sections: {},
+          is_business: false,
+          is_consumer: true,
+        })
       })
-      .catch(() => {})
+      .catch(() => setSaveError('We could not load this vCard. Please go back and try again.'))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const btnRadius = buttonStyle === 'pill' ? '9999px' : buttonStyle === 'square' ? '4px' : '8px'
 
-  const handleSave = () => {
-    navigate('/c/vcard-templates')
+  const handleSave = async () => {
+    if (!id) return
+    setSaveError('')
+
+    if (!displayName.trim()) {
+      setSaveError('Enter the name shown on your vCard.')
+      return
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setSaveError('Enter a valid contact email.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await api.patch(`/cards/${id}`, {
+        name: displayName.trim(),
+        description: tagline.trim(),
+      })
+
+      const profilePayload: Record<string, string> = {
+        display_name: displayName.trim(),
+        bio: tagline.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        location: address.trim(),
+      }
+      const websiteValue = website.trim()
+      if (websiteValue) {
+        profilePayload.website = /^https?:\/\//i.test(websiteValue) ? websiteValue : `https://${websiteValue}`
+      }
+
+      if (profileId) {
+        await api.patch(`/card-profiles/${profileId}`, profilePayload)
+      } else {
+        const created = await api.post(`/cards/${id}/profile`, profilePayload)
+        const createdProfile = created.data as CardProfileDto
+        if (createdProfile?.id) setProfileId(createdProfile.id)
+      }
+
+      const customizationPayload = {
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        font: fontFamily,
+        layout: logoPosition,
+        configuration: { bgStyle, buttonStyle, logoPosition },
+      }
+
+      if (customizationId) {
+        await api.patch(`/cards/${id}/customization`, customizationPayload)
+      } else {
+        const created = await api.post(`/cards/${id}/customization`, customizationPayload)
+        const createdCustomization = created.data as CustomizationDto
+        if (createdCustomization?.id) setCustomizationId(createdCustomization.id)
+      }
+
+      navigate('/c/vcard-templates')
+    } catch (err: any) {
+      setSaveError(err?.response?.data?.message || 'We could not save your vCard. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
-  if (!template) return <div className="text-center py-20 text-gray-500">Template not found.</div>
+  if (!template) return <div className="text-center py-20 text-gray-500">vCard not found.</div>
 
   return (
     <div>
@@ -82,11 +207,17 @@ export default function ConsumerVCardEditPage() {
           <Link to="/c/vcard-templates" className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Cancel
           </Link>
-          <button onClick={handleSave} className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none">
-            Save Changes
+          <button onClick={handleSave} disabled={saving} title="Save your vCard content, style and section settings" className="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors shadow-sm shadow-orange-200 dark:shadow-none disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
+
+      {saveError && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+          {saveError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* ── Controls ── */}
@@ -172,29 +303,29 @@ export default function ConsumerVCardEditPage() {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Personal Info</h3>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name</label>
-                <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="The name shown on your vCard" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tagline / Bio</label>
-                <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="A short headline or bio shown under your name" value={tagline} onChange={(e) => setTagline(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <hr className="border-gray-100 dark:border-gray-700" />
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Contact Details</h3>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone</label>
-                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="Contact phone number shown on your vCard" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
-                <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="Contact email shown on your vCard" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Website</label>
-                <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="Your public website or card link" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Address</label>
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <input type="text" title="Your city or region shown on your vCard" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
             </div>
           )}

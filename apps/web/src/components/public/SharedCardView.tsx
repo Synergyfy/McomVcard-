@@ -1,12 +1,12 @@
 import { useState, useMemo, type ReactNode } from 'react'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import type { CardProtectionState, ProtectedSectionKey } from '../../services/cardProtection'
 import ProtectedCardGate from './ProtectedCardGate'
 import ConsumerVCard from '../consumer/ConsumerVCard'
 import { SectionCard, Row, ProtectedDivider, SECTION_STYLES, SERVICES, APPOINTMENTS, EXCHANGES, REDEEMS, OFFERS } from './sharedCardSections'
 
 interface SharedCardViewProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
     protection: CardProtectionState
 }
 

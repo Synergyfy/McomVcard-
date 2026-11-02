@@ -31,6 +31,10 @@ export class ChildCard {
   @JoinColumn({ name: 'child_id' })
   child!: User
 
+  /** Relationship used by the customer Friends & Family dashboard. */
+  @Column({ type: 'varchar', length: 50, default: 'Family' })
+  relationship!: string
+
   @Column({ name: 'can_view', default: true })
   canView!: boolean
 

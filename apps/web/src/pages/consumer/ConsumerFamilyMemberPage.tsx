@@ -30,7 +30,7 @@ export default function ConsumerFamilyMemberPage() {
     const [removeOpen, setRemoveOpen] = useState(false)
     const [avatarOpen, setAvatarOpen] = useState(false)
 
-    const memberId = Number(id)
+    const memberId = String(id || '')
 
     const loadMember = () => {
         setLoading(true)

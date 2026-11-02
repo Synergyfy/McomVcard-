@@ -49,6 +49,7 @@ export class SeasonsController {
   }
 
   @Get('seasons')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List seasons', description: 'Returns all platform-wide seasons ordered by start date. Readable by any authenticated user.' })
   @ApiOkResponse({
@@ -70,6 +71,7 @@ export class SeasonsController {
   }
 
   @Get('seasons/:id')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a season', description: 'Returns a single season. Readable by any authenticated user.' })
   @ApiOkResponse({

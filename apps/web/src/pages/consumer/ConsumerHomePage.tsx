@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { MockConsumer, NearbyOffer } from '../../services/mockData'
+import type { ConsumerProfile, NearbyOffer } from '../../services/consumer'
 import { Link } from 'react-router-dom'
 import ConsumerVCard from '../../components/consumer/ConsumerVCard'
 import VCardSection from '../../components/consumer/home/VCardSection'
@@ -9,6 +9,11 @@ import WalletSummary from '../../components/consumer/WalletSummary'
 import FamilyPreview from '../../components/consumer/FamilyPreview'
 import ActivityTimeline from '../../components/consumer/ActivityTimeline'
 import NearbyOffers from '../../components/consumer/NearbyOffers'
+
+function formatDate(value: string): string {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 function getGreeting(): string {
     const h = new Date().getHours()
@@ -25,7 +30,7 @@ const statItems = [
 ]
 
 export default function ConsumerHomePage() {
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
 const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,date:string,status:string}[]>([])
     const [offers, setOffers] = useState<NearbyOffer[]>([])
     const [loading, setLoading] = useState(true)
@@ -34,10 +39,10 @@ const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,
     const loadDashboard = useCallback(() => {
         setLoading(true)
         setError(false)
-        Promise.all([consumerService.getProfile(), consumerService.getNearbyOffers()])
-            .then(([p, o]) => {
-                setProfile(p)
-                setOffers(o)
+        consumerService.getDashboard()
+            .then((dashboard) => {
+                setProfile(dashboard.profile)
+                setOffers(dashboard.nearby_offers || [])
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false))
@@ -86,7 +91,7 @@ const [rewardHistory, setRewardHistory] = useState<{reward:string,points:number,
                     <p className="text-xs text-accent-500 font-semibold mt-0.5">Your {profile.membership} Card</p>
                 </div>
                 <div className="hidden lg:block text-right text-xs text-gray-400 dark:text-gray-600">
-                    <p>Member since {profile.joined}</p>
+                    <p>Member since {formatDate(profile.joined)}</p>
                     <p className="mt-0.5">{profile.primaryIssuingBusiness}</p>
                 </div>
             </div>

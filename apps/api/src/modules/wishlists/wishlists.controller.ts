@@ -15,6 +15,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -25,7 +27,8 @@ import { ShareWishlistDto } from './dto/share-wishlist.dto'
 
 @ApiTags('wishlists')
 @ApiExtraModels(ApiResponse, WishlistResponseDto, WishlistItemResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('CUSTOMER')
 @Controller()
 export class WishlistsController {
   constructor(private readonly wishlistsService: WishlistsService) {}
