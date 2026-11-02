@@ -36,6 +36,20 @@ function confirmPending(pending: PendingPurchase, paymentIntentId?: string) {
   })
 }
 
+/** Stripe and the activation webhook can settle a few seconds apart. */
+async function confirmWithPolling(pending: PendingPurchase, paymentIntentId?: string) {
+  let result = await confirmPending(pending, paymentIntentId)
+  for (let attempt = 0; attempt < 10 && !result.canAccessVcard; attempt += 1) {
+    await new Promise((resolve) => window.setTimeout(resolve, 2000))
+    try {
+      result = await confirmPending(pending)
+    } catch {
+      // Keep polling — the webhook may still be in flight.
+    }
+  }
+  return result
+}
+
 function loadPendingPurchase(): PendingPurchase | null {
   try {
     const raw = localStorage.getItem(PENDING_KEY)
@@ -96,7 +110,7 @@ export default function PaymentSuccessPage() {
         // PayPal polling normally finishes on the checkout page. If the user
         // lands here without a Stripe intent, check the charge status anyway.
         try {
-          const result = await confirmPending(pending)
+          const result = await confirmWithPolling(pending)
           if (result.canAccessVcard) {
             clearPendingPurchase()
             await refreshMcomStatus().catch(() => undefined)
@@ -115,7 +129,7 @@ export default function PaymentSuccessPage() {
       }
 
       try {
-        const result = await confirmPending(pending, paymentIntentId)
+        const result = await confirmWithPolling(pending, paymentIntentId)
 
         clearPendingPurchase()
         await refreshMcomStatus().catch(() => undefined)

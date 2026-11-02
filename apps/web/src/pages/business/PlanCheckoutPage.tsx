@@ -129,6 +129,9 @@ function StripePaymentForm({
         await onPaid(paymentIntent.id)
       } catch (err: any) {
         setLocalError(err?.response?.data?.message || 'Payment succeeded but plan activation failed.')
+      } finally {
+        // Activation may finish asynchronously via the MCOM webhook. Never
+        // leave the form stuck on "Processing card payment…".
         setProcessing(false)
       }
       return
@@ -693,11 +696,30 @@ export default function PlanCheckoutPage() {
     const target = currentTarget
     if (!target || !stripeChargeId) return
     try {
-      const result = await confirmTarget(target, stripeChargeId, { paymentIntentId })
+      let result = await confirmTarget(target, stripeChargeId, { paymentIntentId })
+
+      // Stripe can mark the charge paid a moment before MCOM/our webhook
+      // activates the entitlement. Poll idempotently instead of showing a
+      // false failure while Central already shows the charge as successful.
+      if (!result.canAccessVcard) {
+        setError('Payment received. Activating your access…')
+        for (let attempt = 0; attempt < 10 && !result.canAccessVcard; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 2000))
+          try {
+            result = await confirmTarget(target, stripeChargeId)
+          } catch {
+            // Transient — keep polling until the webhook lands.
+          }
+        }
+      }
+
       if (result.canAccessVcard) {
+        setError('')
         await finish()
       } else {
-        setError('Card payment succeeded but access is not active yet. Please contact support.')
+        setError(
+          'Your card payment succeeded, but access activation is still pending. Refresh in a moment or contact support.',
+        )
       }
     } catch (err: any) {
       handlePaymentError(err)
