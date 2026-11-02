@@ -11,7 +11,11 @@ export default function LoginPage() {
   const { loginWithMcom } = useAuth()
 
   const [mcomLoading, setMcomLoading] = useState(false)
-  const [serverError, setServerError] = useState('')
+  const [serverError, setServerError] = useState(
+    searchParams.get('error') === 'role'
+      ? 'This Central Hub account is not a business account. Sign in with a business profile to use the business dashboard.'
+      : '',
+  )
 
   const handleMcomLogin = async () => {
     setMcomLoading(true)
@@ -20,6 +24,7 @@ export default function LoginPage() {
       await loginWithMcom({
         card: searchParams.get('card') || undefined,
         business: searchParams.get('business') || undefined,
+        redirect: searchParams.get('redirect') || undefined,
       })
     } catch (err: any) {
       const msg = err?.response?.data?.message || t('auth.errors.login_failed')
@@ -55,7 +60,7 @@ export default function LoginPage() {
       <p className="text-center text-sm text-gray-500 mt-6">
         {t('auth.no_account')}{' '}
         <button
-          onClick={() => loginWithMcom({ card: searchParams.get('card') || undefined, business: searchParams.get('business') || undefined })}
+          onClick={() => loginWithMcom({ card: searchParams.get('card') || undefined, business: searchParams.get('business') || undefined, redirect: searchParams.get('redirect') || undefined })}
           className="text-blue-600 hover:text-blue-700 font-medium"
         >
           {t('auth.sign_up')}

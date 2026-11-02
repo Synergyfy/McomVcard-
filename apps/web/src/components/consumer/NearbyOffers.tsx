@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { NearbyOffer } from '../../services/mockData'
+import type { NearbyOffer } from '../../services/consumer'
 
 interface NearbyOffersProps {
     offers: NearbyOffer[]

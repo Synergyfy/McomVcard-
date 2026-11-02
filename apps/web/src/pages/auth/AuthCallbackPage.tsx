@@ -60,8 +60,10 @@ export default function AuthCallbackPage() {
           }
         } else if (user.role === 'CUSTOMER' || user.profile_type === 'CUSTOMER') {
           navigate('/c/dashboard', { replace: true })
-        } else {
+        } else if (user.role === 'BUSINESS' || user.profile_type === 'BUSINESS') {
           navigate('/b/dashboard', { replace: true })
+        } else {
+          navigate('/login?error=role', { replace: true })
         }
       } catch (err: any) {
         const data = err?.response?.data

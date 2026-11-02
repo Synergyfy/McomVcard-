@@ -38,6 +38,55 @@ export class RolesService {
     await this.assignRoleByName(userId, DEFAULT_ROLE)
   }
 
+  /**
+   * Canonical Central Hub profile type → local role name.
+   *
+   * Central is the source of truth for who a user is. Customers must hold the
+   * CUSTOMER role for the customer dashboard APIs to accept them; business and
+   * admin identities keep their dedicated roles so the three dashboards never
+   * cross over. Unknown/agent identities fall back to USER and gain no
+   * dashboard-specific privileges.
+   */
+  canonicalRoleForProfile(profileType?: string | null): string {
+    const normalized = String(profileType || '').trim().toUpperCase()
+    const map: Record<string, string> = {
+      CUSTOMER: 'CUSTOMER',
+      BUSINESS: 'BUSINESS_OWNER',
+      BUSINESS_OWNER: 'BUSINESS_OWNER',
+      ADMIN: 'ADMIN',
+      STAFF: 'STAFF',
+    }
+    return map[normalized] ?? DEFAULT_ROLE
+  }
+
+  /**
+   * Ensure the canonical role exists, then grant it to the user. The default
+   * USER role is kept (it is the base authenticated identity); the canonical
+   * role is additive and is what the customer/business/admin guards check.
+   */
+  async syncCanonicalRole(userId: string, profileType?: string | null): Promise<string> {
+    const roleName = this.canonicalRoleForProfile(profileType)
+    await this.ensureRole(roleName)
+
+    // A Central profile has exactly one dashboard identity. Drop the other
+    // dashboard roles so an account that changed from CUSTOMER to BUSINESS (or
+    // vice versa) cannot keep access to the dashboard it left behind.
+    const dashboardRoles = ['CUSTOMER', 'BUSINESS_OWNER', 'STAFF']
+    for (const other of dashboardRoles) {
+      if (other === roleName) continue
+      const role = await this.rolesRepo.findOne({ where: { name: other } })
+      if (role) await this.userRolesRepo.delete({ userId, roleId: role.id })
+    }
+
+    await this.assignRoleByName(userId, roleName)
+    return roleName
+  }
+
+  /** Idempotently ensure a named role exists. */
+  async ensureRole(roleName: string, description?: string): Promise<Role> {
+    return this.ensureDefaultRole(roleName, description)
+  }
+
 
   async ensureDefaultRole(roleName: string = DEFAULT_ROLE, description?: string): Promise<Role> {
     const role = await this.rolesRepo.findOne({ where: { name: roleName } })

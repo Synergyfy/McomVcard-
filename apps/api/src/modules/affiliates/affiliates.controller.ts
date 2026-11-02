@@ -13,6 +13,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -32,7 +34,8 @@ export class AffiliatesController {
   constructor(private readonly affiliatesService: AffiliatesService) {}
 
   @Post('join')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Join the affiliate program', description: 'Accepts the affiliate terms and creates the authenticated user\'s affiliate profile immediately (active). Generates a unique affiliate/referral code. Per-user: one affiliate per user.' })
   @ApiBody({
@@ -55,7 +58,8 @@ export class AffiliatesController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my affiliate profile', description: 'Returns the authenticated user\'s affiliate profile with referral link, referred count, and earnings. Per-user scoped.' })
   @ApiOkResponse({
@@ -74,7 +78,8 @@ export class AffiliatesController {
   }
 
   @Get('me/referrals')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List my affiliate referrals', description: 'Returns every user attributed to the authenticated affiliate, newest first. Per-user scoped.' })
   @ApiOkResponse({
@@ -97,7 +102,8 @@ export class AffiliatesController {
   }
 
   @Get('me/transactions')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CUSTOMER')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List my affiliate transactions', description: 'Returns the authenticated user\'s affiliate commission ledger (newest first), including pending/approved/rejected statuses. Per-user scoped.' })
   @ApiOkResponse({

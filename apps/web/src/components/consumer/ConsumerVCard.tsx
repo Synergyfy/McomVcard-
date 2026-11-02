@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import QRExpandOverlay from './vcard/QRExpandOverlay'
 
 interface ConsumerVCardProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
     onTap?: () => void
 }
 
@@ -25,11 +25,13 @@ function getMembershipBadge(membership: string): string {
 }
 
 function getSeason(): string {
-    const m = new Date().getMonth() + 1
-    if (m >= 3 && m <= 5) return 'Spring 2026'
-    if (m >= 6 && m <= 8) return 'Summer 2026'
-    if (m >= 9 && m <= 11) return 'Autumn 2026'
-    return 'Winter 2026'
+    const now = new Date()
+    const m = now.getMonth() + 1
+    const year = now.getFullYear()
+    if (m >= 3 && m <= 5) return `Spring ${year}`
+    if (m >= 6 && m <= 8) return `Summer ${year}`
+    if (m >= 9 && m <= 11) return `Autumn ${year}`
+    return `Winter ${year}`
 }
 
 export default function ConsumerVCard({ profile, onTap }: ConsumerVCardProps) {
@@ -38,7 +40,9 @@ export default function ConsumerVCard({ profile, onTap }: ConsumerVCardProps) {
     const gradient = getMembershipGradient(profile.membership)
     const badge = getMembershipBadge(profile.membership)
 
-    const qrValue = `https://mcomvcard.link/c/${profile.cardId || 'card'}`
+    const qrValue = profile.cardId
+        ? `${window.location.origin}/c/${profile.cardId}`
+        : window.location.origin
 
     const connectedBusinesses = useMemo(() => {
         const list: { name: string; isPrimary: boolean }[] = []

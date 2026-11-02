@@ -1,16 +1,18 @@
-import type { MockConsumer } from '../../../services/mockData'
-import { getConsumerEntitlements } from '../../../services/consumerMembership'
+import type { ConsumerProfile } from '../../../services/consumer'
 
 interface MembershipSummaryCardProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
     familyUsed: number
     friendUsed: number
 }
 
 export default function MembershipSummaryCard({ profile, familyUsed, friendUsed }: MembershipSummaryCardProps) {
-    const entitlements = getConsumerEntitlements(profile.membership)
+    const entitlements = {
+        familyCards: profile.familyCardLimit ?? 0,
+        friendCards: profile.friendCardLimit ?? 0,
+    }
     const familyRemaining = Math.max(0, entitlements.familyCards - familyUsed)
-    const atLimit = familyUsed >= entitlements.familyCards
+    const atLimit = entitlements.familyCards > 0 && familyUsed >= entitlements.familyCards
 
     return (
         <section className="relative overflow-hidden bg-gradient-to-br from-accent-500 to-accent-600 rounded-3xl p-5 text-white shadow-lg shadow-accent-500/20">

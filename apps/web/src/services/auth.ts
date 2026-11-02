@@ -20,6 +20,16 @@ api.interceptors.request.use((config) => {
 // Auto-refresh on 401 (token expired) — swap HttpOnly cookie for fresh JWT.
 attach401Retry(api)
 
+/**
+ * Single-flight refresh.
+ *
+ * React StrictMode (and the 401 retry interceptor) can fire two /refresh calls
+ * concurrently on first load. Refresh tokens are single-use and reuse is
+ * treated as theft by the API, so dedupe the in-flight request instead of
+ * letting the second call replay the already-rotated token.
+ */
+let refreshPromise: Promise<AuthResponse> | null = null
+
 export const authService = {
   async logout(): Promise<{ message: string }> {
     const res = await api.post('/logout')
@@ -28,14 +38,24 @@ export const authService = {
   },
 
   async refresh(): Promise<AuthResponse> {
-    const res = await api.post('/refresh')
-    const body = res.data.data
-    tokenStore.set(body.token)
-    return {
-      token: body.token,
-      refresh_token: body.refresh_token,
-      user: mapApiUser(body.user as ApiUserResponse),
-    }
+    if (refreshPromise) return refreshPromise
+
+    refreshPromise = (async () => {
+      try {
+        const res = await api.post('/refresh')
+        const body = res.data.data
+        tokenStore.set(body.token)
+        return {
+          token: body.token,
+          refresh_token: body.refresh_token,
+          user: mapApiUser(body.user as ApiUserResponse),
+        }
+      } finally {
+        refreshPromise = null
+      }
+    })()
+
+    return refreshPromise
   },
 
   async forgotPassword(data: ForgotPasswordData): Promise<{ message: string }> {

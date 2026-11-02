@@ -1,11 +1,17 @@
 import { useId, useState, type ReactNode } from 'react'
 
 interface InfoTooltipProps {
+  /** Short explanation shown in the tooltip bubble. */
   text: ReactNode
+  /** Accessible label for the trigger. */
   label?: string
   className?: string
 }
 
+/**
+ * Small, keyboard-accessible information tooltip used next to form fields.
+ * It works on hover and focus so it is usable on touch and with a keyboard.
+ */
 export default function InfoTooltip({ text, label = 'More information', className = '' }: InfoTooltipProps) {
   const id = useId()
   const [open, setOpen] = useState(false)

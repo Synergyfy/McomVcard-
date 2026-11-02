@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from '../businesses/guards/business-access.guard'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
 import { AppointmentsService } from './appointments.service'
@@ -36,6 +37,7 @@ export class AppointmentsController {
 
   // --- Booking rules ---
 
+  @UseGuards(BusinessAccessGuard)
   @Get('businesses/:id/booking-rules')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get business booking rules', description: 'Returns the booking engine configuration for a business. Readable by any authenticated user.' })
@@ -54,6 +56,7 @@ export class AppointmentsController {
     return this.appointmentsService.getRules(id)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Post('businesses/:id/booking-rules')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Configure business booking rules', description: 'Creates the booking engine configuration for a business owned by the authenticated user. One set of rules per business.' })
@@ -75,6 +78,7 @@ export class AppointmentsController {
     return this.appointmentsService.createRules(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Patch('booking-rules/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update business booking rules', description: 'Updates the booking engine configuration for a business owned by the authenticated user.' })
@@ -98,6 +102,7 @@ export class AppointmentsController {
 
   // --- Availability ---
 
+  @UseGuards(BusinessAccessGuard)
   @Get('businesses/:id/availability')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List business availability', description: 'Returns the weekly availability slots for a business. Readable by any authenticated user.' })
@@ -120,6 +125,7 @@ export class AppointmentsController {
     return this.appointmentsService.listAvailability(id)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Post('businesses/:id/availability')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a weekly availability slot', description: 'Creates a weekly availability slot for a business owned by the authenticated user.' })
@@ -141,6 +147,7 @@ export class AppointmentsController {
     return this.appointmentsService.createAvailability(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Patch('businesses/:id/availability')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Bulk upsert weekly availability slots', description: 'Creates or updates multiple weekly availability slots for a business owned by the authenticated user. Slots are matched by day_of_week.' })
@@ -162,6 +169,7 @@ export class AppointmentsController {
     return this.appointmentsService.bulkUpsertAvailability(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Patch('availability/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a weekly availability slot', description: 'Updates an availability slot for a business owned by the authenticated user.' })
@@ -183,6 +191,7 @@ export class AppointmentsController {
     return this.appointmentsService.updateAvailability(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Delete('availability/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a weekly availability slot', description: 'Removes an availability slot for a business owned by the authenticated user.' })
@@ -224,6 +233,7 @@ export class AppointmentsController {
     return this.appointmentsService.book(id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Get('businesses/:id/appointments')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List business appointments', description: 'Returns all appointments for a business owned by the authenticated user.' })
@@ -247,6 +257,7 @@ export class AppointmentsController {
     return this.appointmentsService.listForBusiness(id, user.id)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Get('appointments/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an appointment', description: 'Returns a single appointment for a business owned by the authenticated user.' })
@@ -266,6 +277,7 @@ export class AppointmentsController {
     return this.appointmentsService.getForOwner(id, user.id)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Patch('appointments/:id/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update appointment status', description: 'Updates the status of an appointment (pending, confirmed, cancelled, completed) for a business owned by the authenticated user.' })
@@ -287,6 +299,7 @@ export class AppointmentsController {
     return this.appointmentsService.updateStatus(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Patch('appointments/:id/reschedule')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reschedule an appointment', description: 'Moves an appointment to a new date/time, re-validating availability and conflicts, for a business owned by the authenticated user.' })
@@ -308,6 +321,7 @@ export class AppointmentsController {
     return this.appointmentsService.reschedule(id, user.id, body)
   }
 
+  @UseGuards(BusinessAccessGuard)
   @Delete('appointments/:id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an appointment', description: 'Deletes an appointment for a business owned by the authenticated user.' })

@@ -14,6 +14,8 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { RolesGuard } from '../roles/guards/roles.guard'
+import { Roles } from '../roles/decorators/roles.decorator'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -23,7 +25,8 @@ import { CreateChildCardDto, UpdateChildCardDto } from './dto/child-card.dto'
 
 @ApiTags('child-cards')
 @ApiExtraModels(ApiResponse, ChildCardResponseDto)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('CUSTOMER')
 @Controller()
 export class ChildCardsController {
   constructor(private readonly childCardsService: ChildCardsService) {}

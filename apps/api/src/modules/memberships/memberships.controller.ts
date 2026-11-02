@@ -60,7 +60,7 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List membership tiers', description: 'Returns all platform-wide tiers ordered by sort_order, each with its linked benefits. Admin only.' })
   @ApiOkResponse({
@@ -82,7 +82,7 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers/:id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a membership tier', description: 'Returns a single membership tier with its linked benefits. Admin only.' })
   @ApiOkResponse({
@@ -163,7 +163,7 @@ export class MembershipsController {
   }
 
   @Get('benefits')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List benefits', description: 'Returns all platform-wide benefits. Admin only.' })
   @ApiOkResponse({
@@ -185,7 +185,7 @@ export class MembershipsController {
   }
 
   @Get('benefits/:id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a benefit', description: 'Returns a single benefit. Admin only.' })
   @ApiOkResponse({
@@ -267,7 +267,7 @@ export class MembershipsController {
   }
 
   @Get('membership-tiers/:id/benefits')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BUSINESS_OWNER', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List a tier benefits', description: 'Returns the benefits linked to a membership tier. Admin only.' })
   @ApiOkResponse({

@@ -393,6 +393,14 @@ async mcomProvisionAndIssue(
       user = saved
     }
 
+    // Central is the source of truth for the dashboard identity. Customers get
+    // the CUSTOMER role (and lose business/staff roles if they changed), which
+    // is what the customer API guards enforce.
+    const profileType = userInfo.profileType ?? userInfo.role
+    if (profileType) {
+      await this.rolesService.syncCanonicalRole(user.id, profileType)
+    }
+
     const auth = await this.issueTokens(user.id, meta)
 
     return {
@@ -428,6 +436,11 @@ async syncMcomSession(
     }
 
     const updated = (await this.usersService.update(userId, patch)) ?? user
+
+    const profileType = userInfo.profileType ?? userInfo.role
+    if (profileType) {
+      await this.rolesService.syncCanonicalRole(userId, profileType)
+    }
 
     return UserResponseDto.fromEntity(updated)
   }
@@ -601,6 +614,10 @@ async syncMcomSession(
       await this.rolesService.ensureDefaultRole()
       await this.rolesService.assignDefaultRole(saved.id)
       user = saved
+    }
+
+    if (identity.role) {
+      await this.rolesService.syncCanonicalRole(user.id, identity.role)
     }
 
     const auth = await this.issueTokens(user.id, meta)

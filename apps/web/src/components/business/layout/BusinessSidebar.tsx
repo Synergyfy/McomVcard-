@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import Logo from '../../common/Logo'
 import { businessService, type Business, type Membership } from '../../../services/businessApi'
-import { businessVCardLink } from '../../../services/businessStore'
+import { businessVCardLink } from '../../../services/businessLinks'
 
 interface NavItem {
     to: string

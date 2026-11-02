@@ -126,6 +126,7 @@ export default function SendGiftSheet({ open, onClose, member, onUpdated }: Send
                         value={custom}
                         onChange={(e) => { setCustom(e.target.value); setAmount(Number(e.target.value) || 0) }}
                         placeholder="Other amount"
+                        title="Gift amount to send from your card balance"
                         className="w-full bg-transparent text-sm font-bold text-gray-900 dark:text-white outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600"
                     />
                 </div>
@@ -137,6 +138,7 @@ export default function SendGiftSheet({ open, onClose, member, onUpdated }: Send
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Happy Birthday! Enjoy it 🎉"
+                    title="Optional message shown with the gift"
                     maxLength={120}
                     className="mt-1 w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none"
                 />

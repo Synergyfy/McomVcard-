@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { VCardPhoneContent, CENTRES, CENTRE_ORDER } from '../../admin/card-management/TemplateBuilderPage'
 import ScrollingVCard from '../../../components/common/ScrollingVCard'
 import Badge from '../../../components/business/primitives/Badge'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 import {
   getVCardEditorContent,
   saveVCardEditorContent,
@@ -99,7 +100,7 @@ export function ImageUploadField({ label, value, onChange, placeholder, disabled
 
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+      <label className="flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{label}<InfoTooltip text="Choose an image URL or upload a file. Uploaded images are stored with this card." /></label>
       {disabled ? (
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
@@ -170,7 +171,7 @@ function FieldEditor({ field, value, onChange }: {
   if (field.type === 'select') {
     return (
       <div>
-        <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}</label>
+        <label className="flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}<InfoTooltip text={field.placeholder ? `e.g. ${field.placeholder}` : "This value appears in the selected card section."} /></label>
         <select value={value} onChange={e => onChange(e.target.value)} className={inputCls}>
           {field.options?.map(o => <option key={o}>{o}</option>)}
         </select>
@@ -189,7 +190,7 @@ function FieldEditor({ field, value, onChange }: {
 
   return (
     <div>
-      <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}</label>
+      <label className="flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}<InfoTooltip text={field.placeholder ? `e.g. ${field.placeholder}` : "This value appears in the selected card section."} /></label>
       {field.type === 'textarea' ? (
         <textarea rows={2} value={value} onChange={e => onChange(e.target.value)} placeholder={field.placeholder} className={`${inputCls} resize-none`} />
       ) : (
@@ -232,14 +233,14 @@ export function ListItemEditor({ field, item, onUpdate }: {
               </div>
             ) : ifd.type === 'select' ? (
               <div>
-                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{ifd.label}</label>
+                <label className="flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{ifd.label}<InfoTooltip text={ifd.placeholder ? `e.g. ${ifd.placeholder}` : "This value appears inside the list item."} /></label>
                 <select value={val} onChange={e => onUpdate(ifd.key, e.target.value)} className={inputCls}>
                   {ifd.options?.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
             ) : (
               <div>
-                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{ifd.label}</label>
+                <label className="flex items-center text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1">{ifd.label}<InfoTooltip text={ifd.placeholder ? `e.g. ${ifd.placeholder}` : "This value appears inside the list item."} /></label>
                 {ifd.type === 'textarea' ? (
                   <textarea rows={2} value={val} onChange={e => onUpdate(ifd.key, e.target.value)} placeholder={ifd.placeholder} className={`${inputCls} resize-none`} />
                 ) : (

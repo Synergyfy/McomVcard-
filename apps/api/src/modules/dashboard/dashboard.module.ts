@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
+import { BusinessesModule } from '../businesses/businesses.module'
 import { DashboardController } from './dashboard.controller'
 import { DashboardService } from './dashboard.service'
 import { Business } from '../businesses/entities/business.entity'
@@ -12,20 +13,15 @@ import { Campaign } from '../campaigns/entities/campaign.entity'
 import { Review } from '../reviews/entities/review.entity'
 import { Card } from '../cards/entities/card.entity'
 import { Membership } from '../memberships/entities/membership.entity'
+import { AnalyticsEvent } from '../analytics/entities/analytics-event.entity'
 
 @Module({
   imports: [
     AuthModule,
+    BusinessesModule,
     TypeOrmModule.forFeature([
-      Business,
-      Share,
-      WalletTransaction,
-      RewardTransaction,
-      Appointment,
-      Campaign,
-      Review,
-      Card,
-      Membership,
+      Business, Share, WalletTransaction, RewardTransaction, Appointment,
+      Campaign, Review, Card, Membership, AnalyticsEvent,
     ]),
   ],
   controllers: [DashboardController],

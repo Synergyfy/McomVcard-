@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { businessService, type Campaign, type CampaignTemplate } from '../../../services/businessApi'
+import { businessService, type Business, type Campaign, type CampaignTemplate } from '../../../services/businessApi'
 
 function fmtDate(iso: string | null | undefined): string {
     if (!iso) return '—'
@@ -17,22 +17,17 @@ export default function CampaignsPage() {
     const navigate = useNavigate()
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [templates, setTemplates] = useState<CampaignTemplate[]>([])
+    const [business, setBusiness] = useState<Business | null>(null)
     const [loading, setLoading] = useState(true)
-    const [activated, setActivated] = useState<string[]>([])
+    const [activating, setActivating] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
         const load = async () => {
             setLoading(true)
             try {
-                const [c, t] = await Promise.all([
-                    businessService.getCampaigns(),
-                    businessService.getCampaignTemplates(),
-                ])
-                if (!cancelled) {
-                    setCampaigns(c)
-                    setTemplates(t)
-                }
+                const [c, t, businesses] = await Promise.all([businessService.getCampaigns(), businessService.getCampaignTemplates(), businessService.getMyBusinesses()])
+                if (!cancelled) { setCampaigns(c); setTemplates(t); setBusiness(businesses[0] ?? null) }
             } finally {
                 if (!cancelled) setLoading(false)
             }
@@ -117,7 +112,7 @@ export default function CampaignsPage() {
                 ) : (
                     <div className="space-y-3">
                         {templates.map((t) => {
-                            const isActive = activated.includes(t.id)
+                            const isActive = campaigns.some((c) => c.name === t.name)
                             return (
                                 <div key={t.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
                                     <div className="flex items-center justify-between gap-3">
@@ -127,19 +122,23 @@ export default function CampaignsPage() {
                                     {t.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.description}</p>}
                                     {t.suggested_reward && <p className="text-[11px] text-orange-500 mt-1">Reward: {t.suggested_reward}</p>}
                                     <button
-                                        onClick={() => {
-                                            if (isActive) return
-                                            setActivated([...activated, t.id])
-                                            toast.success(`${t.name} activated`)
+                                        onClick={async () => {
+                                            if (isActive || activating) return
+                                            if (!business) { toast.error('Create your business profile first.'); return }
+                                            setActivating(t.id)
+                                            const created = await businessService.createCampaign({ business_id: business.id, name: t.name, type: t.type, description: t.description ?? undefined, starts_at: new Date().toISOString() })
+                                            if (!created) toast.error('Could not activate this campaign template.')
+                                            else { setCampaigns((prev) => [created, ...prev]); toast.success(`${t.name} activated`) }
+                                            setActivating(null)
                                         }}
-                                        disabled={isActive}
+                                        disabled={isActive || activating === t.id}
                                         className={`mt-3 w-full py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-colors ${
                                             isActive
                                                 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
                                                 : 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-md hover:opacity-95'
                                         }`}
                                     >
-                                        {isActive ? 'Activated' : 'Activate'}
+                                        {isActive ? 'Activated' : activating === t.id ? 'Activating…' : 'Activate'}
                                     </button>
                                 </div>
                             )

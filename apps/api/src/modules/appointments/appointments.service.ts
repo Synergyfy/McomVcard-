@@ -272,6 +272,7 @@ export class AppointmentsService {
         endTime,
         status: 'pending',
         notes: dto.notes ?? null,
+        isPaid: dto.is_paid ?? false,
       }),
     )
 
@@ -316,7 +317,10 @@ export class AppointmentsService {
 
     await this.businessesService.findOwned(appointment.businessId, ownerId)
 
-    await this.appointmentsRepo.update({ id }, { status: dto.status })
+    await this.appointmentsRepo.update(
+      { id },
+      { status: dto.status, ...(typeof dto.is_paid === 'boolean' ? { isPaid: dto.is_paid } : {}) },
+    )
 
     const updated = await this.findOne(id)
 

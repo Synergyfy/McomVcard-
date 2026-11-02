@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import { businessService } from '../../../services/businessApi'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 const REWARD_TYPES = [
     { value: 'EARN', label: 'Loyalty Points', description: 'Give points to a customer' },
@@ -26,10 +27,10 @@ export default function IssueRewardPage() {
     const submit = async (e: React.FormEvent) => {
         e.preventDefault()
         const amount = Number(value)
-        if (!amount || amount <= 0) {
-            toast.error('Enter a valid amount')
-            return
-        }
+        if (!customer) { toast.error('Select the customer receiving this reward'); return }
+        if (!Number.isFinite(amount) || amount <= 0) { toast.error('Enter a valid amount greater than zero'); return }
+        if (type === 'EARN' && !Number.isInteger(amount)) { toast.error('Loyalty points must be a whole number'); return }
+        if (note.length > 500) { toast.error('Note must be 500 characters or fewer'); return }
         setSubmitting(true)
         try {
             // Ensure balance exists (idempotent)
@@ -69,7 +70,7 @@ export default function IssueRewardPage() {
 
             <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 space-y-4">
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Customer (reference)</label>
+                    <label className="mb-1.5 flex items-center text-xs font-semibold text-gray-700 dark:text-gray-300">Customer<InfoTooltip text="The customer this reward is issued for. It is written into the ledger description for reconciliation." /></label>
                     <select
                         value={customer}
                         onChange={(e) => setCustomer(e.target.value)}
@@ -82,7 +83,7 @@ export default function IssueRewardPage() {
                 </div>
 
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Reward type</label>
+                    <label className="mb-1.5 flex items-center text-xs font-semibold text-gray-700 dark:text-gray-300">Reward type<InfoTooltip text="Loyalty Points adds points to the balance. Adjustment corrects a previous entry." /></label>
                     <div className="grid grid-cols-2 gap-2">
                         {REWARD_TYPES.map((t) => (
                             <button
@@ -102,11 +103,11 @@ export default function IssueRewardPage() {
                 </div>
 
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Amount</label>
+                    <label className="mb-1.5 flex items-center text-xs font-semibold text-gray-700 dark:text-gray-300">Amount<InfoTooltip text={type === 'EARN' ? 'Whole number of loyalty points to issue.' : 'Adjustment amount. Use a negative value to reduce the balance.'} /></label>
                     <input
                         type="number"
                         min="1"
-                        step="any"
+                        step={type === 'EARN' ? 1 : 'any'}
                         value={value}
                         onChange={(e) => setValue(e.target.value)}
                         placeholder={type === 'EARN' ? 'Points to give' : 'Adjustment amount'}
@@ -115,12 +116,13 @@ export default function IssueRewardPage() {
                 </div>
 
                 <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Note (optional)</label>
+                    <label className="mb-1.5 flex items-center text-xs font-semibold text-gray-700 dark:text-gray-300">Note (optional)<InfoTooltip text="Why this reward was issued. Stored on the ledger entry (max 500 characters)." /></label>
                     <textarea
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         rows={3}
                         placeholder="Why are you rewarding this customer?"
+                        maxLength={500}
                         className="w-full px-3.5 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                     />
                 </div>

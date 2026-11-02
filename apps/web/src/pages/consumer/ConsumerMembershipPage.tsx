@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { consumerService } from '../../services/consumer'
-import type { MockConsumer } from '../../services/mockData'
+import type { ConsumerProfile } from '../../services/consumer'
 import MembershipProgressionModal, {
     LEVELS,
     TIERS,
@@ -58,6 +58,11 @@ const LEVEL_FEATURES: Record<string, FeatureItem[]> = {
     ],
 }
 
+function formatJoined(value: string): string {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 function currentSeasonLabel(): { name: string; end: string } {
     const now = new Date()
     const year = now.getFullYear()
@@ -68,7 +73,7 @@ function currentSeasonLabel(): { name: string; end: string } {
 }
 
 export default function ConsumerMembershipPage() {
-    const [profile, setProfile] = useState<MockConsumer | null>(null)
+    const [profile, setProfile] = useState<ConsumerProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
     const [upgradeTarget, setUpgradeTarget] = useState<string | null>(null)
@@ -146,7 +151,7 @@ export default function ConsumerMembershipPage() {
                     <div className="mt-4 grid grid-cols-3 gap-2">
                         <div className="rounded-2xl bg-white/10 border border-white/15 p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Start date</p>
-                            <p className="text-sm font-bold text-white mt-0.5">{profile.joined}</p>
+                            <p className="text-sm font-bold text-white mt-0.5">{formatJoined(profile.joined)}</p>
                         </div>
                         <div className="rounded-2xl bg-white/10 border border-white/15 p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Season</p>
@@ -376,7 +381,7 @@ export default function ConsumerMembershipPage() {
                         ))}
                     </div>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-3">
-                        Current membership: <strong className="text-gray-600 dark:text-gray-300">{profile.membership}</strong> · Status: {profile.membershipStatus} · Since {profile.joined}
+                        Current membership: <strong className="text-gray-600 dark:text-gray-300">{profile.membership}</strong> · Status: {profile.membershipStatus} · Since {formatJoined(profile.joined)}
                     </p>
                 </section>
             )}

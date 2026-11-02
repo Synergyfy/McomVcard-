@@ -14,6 +14,7 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { BusinessAccessGuard } from './guards/business-access.guard'
 import { CurrentUser } from '../auth/current-user.decorator'
 import { UserResponseDto } from '../../lib/utils/dto/user-response.dto'
 import { ApiResponse } from '../../lib/utils/api-response'
@@ -60,7 +61,7 @@ export class BusinessesController {
 
 
   @Post('businesses')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a business', description: 'Creates a business owned by the authenticated user.' })
   @ApiBody({ type: CreateBusinessDto, examples: { default: { summary: 'New business', value: { name: 'Acme Cafe', category_id: undefined, email: 'hello@acmecafe.com', phone: '+15551234567', website: 'https://acmecafe.com' } } } })
@@ -81,7 +82,7 @@ export class BusinessesController {
 
 
   @Get('businesses/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a business', description: 'Returns a business by ID with its category, locations, hours, and brands.' })
   @ApiOkResponse({
@@ -102,7 +103,7 @@ export class BusinessesController {
 
 
   @Get('businesses/by-slug/:slug')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a business by slug', description: 'Returns a business for a public storefront URL slug, with its category, locations, hours, and brands.' })
   @ApiOkResponse({
@@ -122,7 +123,7 @@ export class BusinessesController {
 
 
   @Get('business-categories')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List business categories', description: 'Returns the system-defined business categories, for populating the category dropdown. Read-only.' })
   @ApiOkResponse({
@@ -145,7 +146,7 @@ export class BusinessesController {
 
 
   @Get('users/me/businesses')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List the authenticated user businesses', description: 'Returns every business owned by the authenticated user.' })
   @ApiOkResponse({
@@ -168,7 +169,7 @@ export class BusinessesController {
 
 
   @Get('users/me/business-permissions')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get my business permissions',
@@ -177,12 +178,12 @@ export class BusinessesController {
   @ApiOkResponse({ description: 'Business permissions' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   async getMyPermissions(@CurrentUser() user: UserResponseDto) {
-    return this.businessesService.getPermissionsForUser(user.id)
+    return ApiResponse.success(await this.businessesService.getPermissionsForUser(user.id), 'Business permissions retrieved', 200)
   }
 
 
   @Patch('businesses/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a business', description: 'Updates a business owned by the authenticated user.' })
   @ApiBody({ type: UpdateBusinessDto, examples: { default: { summary: 'Update business', value: { name: 'Acme Cafe (Updated)', phone: '+15559876543' } } } })
@@ -204,7 +205,7 @@ export class BusinessesController {
 
 
   @Delete('businesses/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a business', description: 'Deletes a business owned by the authenticated user. Cascades to locations, hours, and brands.' })
   @ApiOkResponse({
@@ -228,7 +229,7 @@ export class BusinessesController {
 
 
   @Post('businesses/:id/locations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a location to a business', description: 'Creates a location for a business owned by the authenticated user.' })
   @ApiBody({ type: CreateLocationDto, examples: { default: { summary: 'New location', value: { address: '123 Main St', city: 'San Francisco', state: 'CA', country: 'USA', latitude: 37.7749, longitude: -122.4194 } } } })
@@ -250,7 +251,7 @@ export class BusinessesController {
 
 
   @Get('businesses/:id/locations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List a business locations', description: 'Returns all locations of a business owned by the authenticated user.' })
   @ApiOkResponse({
@@ -275,7 +276,7 @@ export class BusinessesController {
 
 
   @Patch('locations/:locationId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a business location', description: 'Updates a location. The location must belong to a business the authenticated user owns.' })
   @ApiBody({ type: UpdateLocationDto, examples: { default: { summary: 'Update location', value: { city: 'Oakland', latitude: 37.8044 } } } })
@@ -297,7 +298,7 @@ export class BusinessesController {
 
 
   @Delete('locations/:locationId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a business location', description: 'Deletes a location. The location must belong to a business the authenticated user owns.' })
   @ApiOkResponse({
@@ -321,7 +322,7 @@ export class BusinessesController {
 
 
   @Post('businesses/:id/hours')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add opening hours to a business', description: 'Creates an opening-hours row (one per day of the week) for a business owned by the authenticated user.' })
   @ApiBody({ type: CreateBusinessHourDto, examples: { default: { summary: 'New hours', value: { day_of_week: 1, opens_at: '09:00', closes_at: '17:00', is_closed: false } } } })
@@ -344,7 +345,7 @@ export class BusinessesController {
 
 
   @Get('businesses/:id/hours')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List a business opening hours', description: 'Returns the opening hours of a business owned by the authenticated user, ordered by day of the week.' })
   @ApiOkResponse({
@@ -369,7 +370,7 @@ export class BusinessesController {
 
 
   @Patch('business-hours/:hourId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a business opening-hours row', description: 'Updates opening hours. The row must belong to a business the authenticated user owns.' })
   @ApiBody({ type: UpdateBusinessHourDto, examples: { default: { summary: 'Update hours', value: { closes_at: '18:00' } } } })
@@ -391,7 +392,7 @@ export class BusinessesController {
 
 
   @Delete('business-hours/:hourId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a business opening-hours row', description: 'Deletes opening hours. The row must belong to a business the authenticated user owns.' })
   @ApiOkResponse({
@@ -415,7 +416,7 @@ export class BusinessesController {
 
 
   @Post('businesses/:id/brands')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a brand to a business', description: 'Creates a brand for a business owned by the authenticated user.' })
   @ApiBody({ type: CreateBrandDto, examples: { default: { summary: 'New brand', value: { name: 'Acme Signature', description: 'Premium line', logo_url: 'https://cdn.example.com/logo.png' } } } })
@@ -437,7 +438,7 @@ export class BusinessesController {
 
 
   @Get('businesses/:id/brands')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List a business brands', description: 'Returns all brands of a business owned by the authenticated user.' })
   @ApiOkResponse({
@@ -462,7 +463,7 @@ export class BusinessesController {
 
 
   @Patch('brands/:brandId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a business brand', description: 'Updates a brand. The brand must belong to a business the authenticated user owns.' })
   @ApiBody({ type: UpdateBrandDto, examples: { default: { summary: 'Update brand', value: { name: 'Acme Reserve' } } } })
@@ -484,7 +485,7 @@ export class BusinessesController {
 
 
   @Delete('brands/:brandId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, BusinessAccessGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a business brand', description: 'Deletes a brand. The brand must belong to a business the authenticated user owns.' })
   @ApiOkResponse({

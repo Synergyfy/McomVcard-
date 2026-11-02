@@ -34,7 +34,7 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
         setWorking(false)
     }
 
-    const handleRemove = async (wishId: number) => {
+    const handleRemove = async (wishId: string) => {
         if (working) return
         setWorking(true)
         const updated = await familyService.removeWish(member.id, wishId)
@@ -66,12 +66,14 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="What do they want? e.g. Nike Trainers"
+                            title="Describe the gift they would like"
                             className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                         />
                         <input
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                             placeholder="Price (optional)"
+                            title="Optional price so gift-givers know the budget"
                             className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-sm text-gray-900 dark:text-white focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none"
                         />
                         <div>
@@ -79,6 +81,7 @@ export default function WishListSection({ member, onUpdated }: WishListSectionPr
                                 ref={fileRef}
                                 type="file"
                                 accept="image/*"
+                                title="Optional photo of the gift"
                                 onChange={(e) => readFile(e.target.files?.[0] as File)}
                                 className="hidden"
                             />

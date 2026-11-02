@@ -8,6 +8,7 @@ import {
   type BizCardSectionState,
 } from '../../services/businessCardEditorStore'
 import { sectionsToFaces as localSectionsToFaces } from '../../services/businessCardEditorStore'
+import InfoTooltip from '../../components/common/InfoTooltip'
 import { businessService, type VCard, type VCardAccess, type VCardSection } from '../../services/businessApi'
 
 /* ------------------------------------------------------------------ */
@@ -157,15 +158,16 @@ function PasswordModal({ card, access, onClose, onSaved }: {
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <label className="mb-1 flex items-center text-[11px] font-medium text-gray-500 dark:text-gray-400">
               PIN {access && <span className="text-[9px] text-gray-400">(leave blank to keep the current one)</span>}
+              <InfoTooltip text="4–12 characters. Customers must enter this PIN before the card unlocks." />
             </label>
             <input type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder={access ? '••••' : 'e.g. 1234'}
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400" />
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Hint</label>
+            <label className="mb-1 flex items-center text-[11px] font-medium text-gray-500 dark:text-gray-400">Hint<InfoTooltip text="Shown on the lock screen to help customers remember the PIN. Do not include the PIN itself." /></label>
             <input type="text" value={hint} onChange={e => setHint(e.target.value)} placeholder="Ask staff for the PIN"
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400" />
           </div>
@@ -238,15 +240,15 @@ function EditDetailsModal({ card, onClose, onSaved }: {
 
         <div className="px-5 py-4 space-y-4">
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Card Name *</label>
+            <label className="mb-1 flex items-center text-[11px] font-medium text-gray-500 dark:text-gray-400">Card Name *<InfoTooltip text="The internal name for this card. Shown in your dashboard and on the public card." /></label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. My Store Card" className={inputCls} />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Category</label>
+            <label className="mb-1 flex items-center text-[11px] font-medium text-gray-500 dark:text-gray-400">Category<InfoTooltip text="A short grouping such as Identity, Loyalty or Events. Helps you filter cards later." /></label>
             <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Identity, Loyalty" className={inputCls} />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Description</label>
+            <label className="mb-1 flex items-center text-[11px] font-medium text-gray-500 dark:text-gray-400">Description<InfoTooltip text="Explain what this card is for so customers understand it at a glance." /></label>
             <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this card for?" className={`${inputCls} resize-none`} />
           </div>
 

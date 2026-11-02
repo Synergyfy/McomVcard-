@@ -4,6 +4,30 @@ import { Helmet } from 'react-helmet-async'
 import { consumerService, type ConsumerProfile } from '../../services/consumer'
 import CardProtectionPanel from '../../components/consumer/settings/CardProtectionPanel'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import api from '../../services/api'
+
+const NOTIFICATION_PREFS = [
+  { key: 'reward_reminders', label: 'Reward Reminders', desc: 'Get notified when rewards are about to expire' },
+  { key: 'new_rewards', label: 'New Rewards Available', desc: 'When new rewards or offers are added to your account' },
+  { key: 'booking_confirmations', label: 'Booking Confirmations', desc: 'When appointments are confirmed or rescheduled' },
+  { key: 'referral_updates', label: 'Referral Updates', desc: 'When your referrals join or earn rewards' },
+  { key: 'points_earned', label: 'Points Earned', desc: 'Daily summary of points earned from activities' },
+  { key: 'promotional_offers', label: 'Promotional Offers', desc: 'Special deals and offers from saved businesses' },
+] as const
+
+const PREF_KEY = 'mcom.consumer.notification-prefs'
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'tr', label: 'Turkish' },
+  { value: 'zh', label: 'Chinese' },
+]
 
 export default function ConsumerSettingsPage() {
   const [profile, setProfile] = useState<ConsumerProfile | null>(null)
@@ -16,47 +40,96 @@ export default function ConsumerSettingsPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', email: '', phone: '', location: '' })
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'security' | 'notifications' | 'preferences' | 'privacy'>('profile')
-
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
-  const [pwNotice, setPwNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [pwSaving, setPwSaving] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const { theme, toggleTheme } = useTheme()
+  const [language, setLanguage] = useState('en')
+  const [notificationPrefs, setNotificationPrefs] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(PREF_KEY)
+      if (raw) return JSON.parse(raw)
+    } catch {
+      /* ignore corrupt preferences */
+    }
+    return Object.fromEntries(NOTIFICATION_PREFS.map((pref) => [pref.key, true]))
+  })
 
   useEffect(() => {
     if (profile) setForm({ name: profile.name, email: profile.email, phone: profile.phone, location: profile.location })
   }, [profile])
 
+  useEffect(() => {
+    api.get('/users/me/settings')
+      .then((res) => {
+        const settings = res.data as { language?: string }
+        if (settings?.language) setLanguage(settings.language)
+      })
+      .catch(() => { /* keep default */ })
+  }, [])
+
+  const updateNotificationPref = (key: string, value: boolean) => {
+    const next = { ...notificationPrefs, [key]: value }
+    setNotificationPrefs(next)
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify(next))
+    } catch {
+      /* ignore quota errors */
+    }
+  }
+
+  const updateLanguage = async (value: string) => {
+    setLanguage(value)
+    try {
+      await api.patch('/users/me/settings', { language: value })
+    } catch {
+      /* keep the selected value; the server will be retried on next change */
+    }
+  }
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
   if (!profile) return <div className="text-center py-20 text-gray-500">Failed to load profile.</div>
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
+    setSaveError('')
+    setSaved(false)
 
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
-      setPwNotice({ type: 'error', text: 'Please fill in all password fields.' })
+    const trimmedName = form.name.trim()
+    if (!trimmedName) {
+      setSaveError('Enter your full name.')
       return
     }
-    if (pwForm.next.length < 8) {
-      setPwNotice({ type: 'error', text: 'New password must be at least 8 characters.' })
+    if (trimmedName.length > 100) {
+      setSaveError('Your name must be 100 characters or fewer.')
       return
     }
-    if (pwForm.next !== pwForm.confirm) {
-      setPwNotice({ type: 'error', text: 'New passwords do not match.' })
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setSaveError('Enter a valid email address.')
       return
     }
-    setPwSaving(true)
-    setPwNotice(null)
-    setTimeout(() => {
-      setPwSaving(false)
-      setPwForm({ current: '', next: '', confirm: '' })
-      setPwNotice({ type: 'success', text: 'Password updated. Your MCOM account is shared across MCOM Solutions.' })
-    }, 800)
+    if (form.phone.trim() && !/^[+()\d\s-]{6,30}$/.test(form.phone.trim())) {
+      setSaveError('Enter a valid phone number.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const updated = await consumerService.updateProfile({
+        name: trimmedName,
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        location: form.location.trim(),
+      })
+      setProfile(updated)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err: any) {
+      setSaveError(err?.response?.data?.message || 'We could not save your profile. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -68,7 +141,7 @@ export default function ConsumerSettingsPage() {
     { label: 'Consumer ID', value: profile.consumerId },
     { label: 'MCOM Account', value: profile.centralUserId },
     { label: 'Registration source', value: profile.registrationSource || 'MCOM Solutions' },
-    { label: 'Member since', value: profile.joined },
+    { label: 'Member since', value: new Date(profile.joined).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) },
     { label: 'Membership', value: profile.membership },
   ]
 
@@ -97,36 +170,51 @@ export default function ConsumerSettingsPage() {
             <div>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">{profile.name}</p>
               <p className="text-sm text-gray-500">{profile.email}</p>
-              <p className="text-xs text-gray-400">Member since {profile.joined}</p>
+              <p className="text-xs text-gray-400">Member since {new Date(profile.joined).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
             </div>
           </div>
 
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                <label htmlFor="settings-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                <input id="settings-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  title="Your full name as it appears on your customer card"
+                  placeholder="Jane Smith" maxLength={100} required
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <p className="text-[11px] text-gray-400">Shown on your card and activity.</p>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input id="settings-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  title="Contact email. Changing it requires re-verification."
+                  placeholder="jane@example.com" required
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <p className="text-[11px] text-gray-400">We use this for receipts and account notices.</p>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
-                <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                <label htmlFor="settings-phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                <input id="settings-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  title="Optional contact phone number"
+                  placeholder="+44 7700 900123" maxLength={40}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <p className="text-[11px] text-gray-400">Optional — used by businesses you book with.</p>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
-                <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
+                <label htmlFor="settings-location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+                <input id="settings-location" type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  title="Your city or region — shown on your shared card"
+                  placeholder="London, UK" maxLength={255}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                <p className="text-[11px] text-gray-400">Helps businesses show relevant nearby offers.</p>
               </div>
             </div>
 
-            <button type="submit" className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors">
-              {saved ? 'Saved!' : 'Save Changes'}
+            {saveError && (
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
+            )}
+            <button type="submit" disabled={saving} className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50">
+              {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
             </button>
           </form>
         </div>
@@ -168,34 +256,14 @@ export default function ConsumerSettingsPage() {
       {activeTab === 'security' && (
         <div className="max-w-2xl space-y-6">
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Password</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Managed centrally by MCOM Solutions and shared across your MCOM account.</p>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
-                <input type="password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
-                <input type="password" value={pwForm.next} onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm New Password</label>
-                <input type="password" value={pwForm.confirm} onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
-              </div>
-              {pwNotice && (
-                <p className={`text-sm font-medium ${pwNotice.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {pwNotice.text}
-                </p>
-              )}
-              <button type="submit" disabled={pwSaving}
-                className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50">
-                {pwSaving ? 'Updating...' : 'Update Password'}
-              </button>
-            </form>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Password &amp; Sign-in</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+              Your password, multi-factor settings and sessions are managed by the MCOM Central Hub Solution.
+              Change them from your Central Hub account; this dashboard never stores a separate customer password.
+            </p>
+            <p className="mt-3 text-xs text-gray-400">
+              Signed in as <span className="font-medium text-gray-700 dark:text-gray-300">{profile.email}</span>
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
@@ -229,20 +297,19 @@ export default function ConsumerSettingsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 max-w-2xl">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Notification Preferences</h2>
           <div className="space-y-4">
-            {[
-              { label: 'Reward Reminders', desc: 'Get notified when rewards are about to expire' },
-              { label: 'New Rewards Available', desc: 'When new rewards or offers are added to your account' },
-              { label: 'Booking Confirmations', desc: 'When appointments are confirmed or rescheduled' },
-              { label: 'Referral Updates', desc: 'When your referrals join or earn rewards' },
-              { label: 'Points Earned', desc: 'Daily summary of points earned from activities' },
-              { label: 'Promotional Offers', desc: 'Special deals and offers from saved businesses' },
-            ].map((n) => (
-              <label key={n.label} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+            {NOTIFICATION_PREFS.map((n) => (
+              <label key={n.key} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-700/50 last:border-0" title={n.desc}>
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{n.label}</p>
                   <p className="text-xs text-gray-500">{n.desc}</p>
                 </div>
-                <input type="checkbox" defaultChecked className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5" />
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs[n.key] !== false}
+                  onChange={(e) => updateNotificationPref(n.key, e.target.checked)}
+                  aria-label={n.label}
+                  className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5"
+                />
               </label>
             ))}
           </div>
@@ -258,11 +325,8 @@ export default function ConsumerSettingsPage() {
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Dark Mode</p>
                 <p className="text-xs text-gray-500">Toggle dark/light theme</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" onChange={() => {
-                  const el = document.documentElement
-                  el.classList.toggle('dark')
-                }} />
+              <label className="relative inline-flex items-center cursor-pointer" title="Switch between light and dark appearance">
+                <input type="checkbox" className="sr-only peer" checked={theme === 'dark'} onChange={toggleTheme} aria-label="Dark mode" />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-300 dark:peer-focus:ring-orange-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-orange-500" />
               </label>
             </div>
@@ -271,22 +335,27 @@ export default function ConsumerSettingsPage() {
                 <p className="text-sm font-medium text-gray-900 dark:text-white">NFC Tap Sound</p>
                 <p className="text-xs text-gray-500">Play sound on successful NFC scan</p>
               </div>
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5" />
+              <input type="checkbox" checked={notificationPrefs.nfc_tap_sound !== false} onChange={(e) => updateNotificationPref('nfc_tap_sound', e.target.checked)} aria-label="NFC tap sound" title="Play a short sound when your card is tapped" className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5" />
             </div>
             <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-700/50">
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Location Services</p>
                 <p className="text-xs text-gray-500">Allow businesses to see nearby check-ins</p>
               </div>
-              <input type="checkbox" defaultChecked className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5" />
+              <input type="checkbox" checked={notificationPrefs.location_services !== false} onChange={(e) => updateNotificationPref('location_services', e.target.checked)} aria-label="Location services" title="Allow nearby offers based on your approximate location" className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-5 h-5" />
             </div>
             <div className="py-3">
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Language</p>
-              <select className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
-                <option>English</option>
-                <option>Spanish</option>
-                <option>French</option>
-                <option>German</option>
+              <label htmlFor="settings-language" className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Language</label>
+              <select
+                id="settings-language"
+                value={language}
+                onChange={(e) => updateLanguage(e.target.value)}
+                title="Choose the language used across your account"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
               </select>
             </div>
           </div>

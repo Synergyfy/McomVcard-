@@ -43,7 +43,7 @@ function toEditorSections(t: BizVCardTemplate): BizSectionState[] {
 export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
   template: BizVCardTemplate
   onClose: () => void
-  onClaimed: (id: number) => void
+  onClaimed: (id: string) => void
 }) {
   const [sections, setSections] = useState<BizSectionState[]>(() => toEditorSections(template))
   const [expanded, setExpanded] = useState<string | null>(sections[0]?.uid ?? null)
@@ -164,7 +164,7 @@ export default function ClaimTemplateModal({ template, onClose, onClaimed }: {
       saveVCardEditorContent(parseInt(claimed.id.slice(0, 8), 16) || 0, sections)
 
       toast.success(`"${template.name}" claimed — added to your VCards`)
-      onClaimed(parseInt(claimed.id.slice(0, 8), 16) || 0)
+      onClaimed(claimed.id)
     } catch {
       toast.error('Failed to claim template')
     } finally {

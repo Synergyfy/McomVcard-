@@ -2,11 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ActivityLog } from './entities/activity-log.entity'
+import { CacheService } from '../../lib/cache/cache.service'
 
 @Injectable()
 export class ActivityService {
   constructor(
     @InjectRepository(ActivityLog) private activityRepo: Repository<ActivityLog>,
+    private readonly cache: CacheService,
   ) {}
 
   async log(businessId: string, type: string, title: string, description?: string, userId?: string, metadata?: Record<string, unknown>) {
@@ -22,14 +24,14 @@ export class ActivityService {
   }
 
   async getFeed(businessId: string, limit = 20, offset = 0) {
-    const [items, total] = await this.activityRepo.findAndCount({
-      where: { businessId },
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip: offset,
+    const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100)
+    const safeOffset = Math.max(Number(offset) || 0, 0)
+    return this.cache.getOrSet(`activity:feed:${businessId}:${safeLimit}:${safeOffset}`, 30, async () => {
+      const [items, total] = await this.activityRepo.findAndCount({
+        where: { businessId }, order: { createdAt: 'DESC' }, take: safeLimit, skip: safeOffset,
+      })
+      return { items, total, limit: safeLimit, offset: safeOffset }
     })
-
-    return { items, total, limit, offset }
   }
 
   async findAll(options: {

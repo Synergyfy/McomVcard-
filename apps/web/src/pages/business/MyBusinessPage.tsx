@@ -11,16 +11,10 @@ import {
     type DashboardStats,
     type ActivityItem,
     type AnalyticsOverview,
+    type Season,
+    type VCard,
 } from '../../services/businessApi'
-import { businessVCardLink } from '../../services/businessStore'
 import MyPlanCard from '../../components/business/MyPlanCard'
-import {
-    quickActions,
-    currentSeason,
-    mockMembership,
-    activeVCardTemplate,
-    activeCardTemplate,
-} from '../../services/businessDashboardStore'
 
 const greeting = () => {
     const h = new Date().getHours()
@@ -35,6 +29,9 @@ const cardIcon = 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3
 const customersIcon = 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
 const rewardsIcon = 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
 const membershipIcon = 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+const shareIcon = 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z'
+const qrIcon = 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h.01M5 20H4m0-4h.01M6 4h.01M8 4h.01M4 8h.01M20 8h.01M20 4h.01M20 12h.01'
+const bookIcon = 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
 
 function timeAgo(dateStr: string): string {
     const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
@@ -55,13 +52,15 @@ export default function BusinessHomePage() {
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [activity, setActivity] = useState<ActivityItem[]>([])
     const [analytics, setAnalytics] = useState<AnalyticsOverview>({})
+    const [season, setSeason] = useState<Season | null>(null)
+    const [cards, setCards] = useState<VCard[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         async function fetchDashboard() {
             try {
-                const [businesses, notifs, walletData, memberData, dashStats, activityData, analyticsData] = await Promise.all([
+                const [businesses, notifs, walletData, memberData, dashStats, activityData, analyticsData, seasons] = await Promise.all([
                     businessService.getMyBusinesses(),
                     businessService.getNotifications(),
                     businessService.getWallet(),
@@ -69,11 +68,14 @@ export default function BusinessHomePage() {
                     businessService.getDashboardStats(),
                     businessService.getActivity(10),
                     businessService.getAnalyticsOverview(),
+                    businessService.getSeasons(),
                 ])
 
                 if (businesses.length > 0) {
                     const detailed = await businessService.getBusiness(businesses[0].id)
                     setBusiness(detailed)
+                    const businessCards = await businessService.getVCardsByBusiness(businesses[0].id)
+                    setCards(businessCards)
                 }
 
                 setNotifications(notifs)
@@ -82,6 +84,7 @@ export default function BusinessHomePage() {
                 setStats(dashStats)
                 setActivity(activityData.items)
                 setAnalytics(analyticsData)
+                setSeason(seasons.find(s => s.status === 'active') ?? seasons[0] ?? null)
             } catch {
                 setError('Failed to load dashboard data')
             } finally {
@@ -94,7 +97,25 @@ export default function BusinessHomePage() {
     const activeCards = stats?.totalCards ?? 0
     const pendingAppointments = stats?.pendingAppointments ?? 0
     const activeCampaigns = stats?.activeCampaigns ?? 0
-    const membershipPct = Math.round((mockMembership.daysRemaining / mockMembership.totalDays) * 100)
+    const activeMembership = memberships.find(m => m.status === 'active')
+
+    const membershipPct = (() => {
+        const started = activeMembership?.started_at ? new Date(activeMembership.started_at).getTime() : null
+        const expires = activeMembership?.expires_at ? new Date(activeMembership.expires_at).getTime() : null
+        if (!started || !expires || expires <= started) return 0
+        return Math.min(100, Math.max(0, Math.round(((Date.now() - started) / (expires - started)) * 100)))
+    })()
+    const membershipDaysLeft = activeMembership?.expires_at
+        ? Math.max(0, Math.ceil((new Date(activeMembership.expires_at).getTime() - Date.now()) / 86400000))
+        : null
+    const membershipTotalDays = activeMembership?.started_at && activeMembership?.expires_at
+        ? Math.max(1, Math.ceil((new Date(activeMembership.expires_at).getTime() - new Date(activeMembership.started_at).getTime()) / 86400000))
+        : null
+    const activeCardName = cards[0]?.name || cards[0]?.template?.name || 'No active card'
+    const seasonName = season?.name || 'No active season'
+    const seasonDaysLeft = season?.ends_at
+        ? Math.max(0, Math.ceil((new Date(season.ends_at).getTime() - Date.now()) / 86400000))
+        : null
 
     const businessName = business?.name ?? 'Your Business'
     const categoryName = business?.category?.name ?? 'Business'
@@ -102,64 +123,18 @@ export default function BusinessHomePage() {
         ? [business.locations[0].city, business.locations[0].country].filter(Boolean).join(', ')
         : ''
 
-    const activeMembership = memberships.find(m => m.status === 'active')
-    const membershipName = activeMembership?.tier?.name ?? mockMembership.plan
+    const membershipName = activeMembership?.tier?.name ?? 'No active membership'
     const walletBalance = wallet?.balance ?? 0
     const walletCurrency = wallet?.currency ?? 'GBP'
-
     const symbol = walletCurrency === 'GBP' ? '\u00A3' : walletCurrency === 'USD' ? '$' : walletCurrency + ' '
 
     const mainCards = [
-        {
-            label: 'My VCard',
-            subtitle: 'Digital profile',
-            value: stats?.totalCards?.toString() ?? '--',
-            icon: vcardIcon,
-            gradient: 'from-orange-500 to-amber-500',
-            to: '/b/vcards',
-        },
-        {
-            label: 'My Business Card',
-            subtitle: `${activeCards} active . ${activeCardTemplate.name}`,
-            value: stats?.totalShares?.toString() ?? '--',
-            icon: cardIcon,
-            gradient: 'from-slate-600 to-slate-800',
-            to: '/b/cards',
-        },
-        {
-            label: 'Membership',
-            subtitle: activeMembership
-                ? `${membershipName} . ${activeMembership.status}`
-                : 'No active membership',
-            value: membershipName,
-            icon: membershipIcon,
-            gradient: 'from-amber-500 to-orange-600',
-            to: '/b/membership',
-        },
-        {
-            label: 'Customers',
-            subtitle: 'New & returning guests',
-            value: stats?.totalAppointments?.toString() ?? '--',
-            icon: customersIcon,
-            gradient: 'from-blue-500 to-indigo-600',
-            to: '/b/customers',
-        },
-        {
-            label: 'Rewards',
-            subtitle: 'Points, perks & campaigns',
-            value: stats?.totalRewardsRedeemed?.toString() ?? '--',
-            icon: rewardsIcon,
-            gradient: 'from-purple-500 to-violet-600',
-            to: '/b/rewards',
-        },
-        {
-            label: 'Wallet / Smart Money',
-            subtitle: wallet ? `${wallet.currency} balance` : 'No wallet yet',
-            value: wallet ? `${symbol}${walletBalance.toFixed(2)}` : '--',
-            icon: walletIcon,
-            gradient: 'from-emerald-500 to-teal-600',
-            to: '/b/rewards/cashback',
-        },
+        { label: 'My VCard', subtitle: 'Digital profile', value: stats?.totalCards?.toString() ?? '--', icon: vcardIcon, gradient: 'from-orange-500 to-amber-500', to: '/b/vcards' },
+        { label: 'My Business Card', subtitle: `${activeCards} active . ${activeCardName}`, value: stats?.totalShares?.toString() ?? '--', icon: cardIcon, gradient: 'from-slate-600 to-slate-800', to: '/b/cards' },
+        { label: 'Membership', subtitle: activeMembership ? `${membershipName} . ${activeMembership.status}` : 'No active membership', value: membershipName, icon: membershipIcon, gradient: 'from-amber-500 to-orange-600', to: '/b/membership' },
+        { label: 'Customers', subtitle: 'New & returning guests', value: stats?.totalAppointments?.toString() ?? '--', icon: customersIcon, gradient: 'from-blue-500 to-indigo-600', to: '/b/customers' },
+        { label: 'Rewards', subtitle: 'Points, perks & campaigns', value: stats?.totalRewardsRedeemed?.toString() ?? '--', icon: rewardsIcon, gradient: 'from-purple-500 to-violet-600', to: '/b/rewards' },
+        { label: 'Wallet / Smart Money', subtitle: wallet ? `${wallet.currency} balance` : 'No wallet yet', value: wallet ? `${symbol}${walletBalance.toFixed(2)}` : '--', icon: walletIcon, gradient: 'from-emerald-500 to-teal-600', to: '/b/wallet' },
     ]
 
     const performance = [
@@ -176,26 +151,20 @@ export default function BusinessHomePage() {
     const actionItems = [
         { label: 'View VCard', subtitle: 'Digital profile', icon: vcardIcon, color: 'from-orange-500 to-amber-500', to: '/b/vcards' },
         { label: 'View Business Card', subtitle: '85 x 55 mm identity', icon: cardIcon, color: 'from-slate-600 to-slate-800', to: '/b/cards' },
-        { label: 'Share', subtitle: 'Send to anyone', icon: quickActions[0].icon, color: 'from-blue-500 to-cyan-500', to: businessVCardLink('share') },
-        { label: 'Show QR', subtitle: 'Scan & connect', icon: quickActions[1].icon, color: 'from-purple-500 to-violet-600', to: '/b/qr' },
-        { label: 'Reward Customer', subtitle: 'Points & perks', icon: quickActions[2].icon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue' },
-        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: quickActions[4].icon, color: 'from-cyan-500 to-sky-600', to: '/b/appointments' },
+        { label: 'Share', subtitle: 'Send to anyone', icon: shareIcon, color: 'from-blue-500 to-cyan-500', to: '/b/vcards?centre=share' },
+        { label: 'Show QR', subtitle: 'Scan & connect', icon: qrIcon, color: 'from-purple-500 to-violet-600', to: '/b/qr' },
+        { label: 'Reward Customer', subtitle: 'Points & perks', icon: rewardsIcon, color: 'from-emerald-500 to-teal-600', to: '/b/rewards/issue' },
+        { label: 'Manage Appointment', subtitle: 'Manage bookings', icon: bookIcon, color: 'from-cyan-500 to-sky-600', to: '/b/appointments' },
         { label: 'View Membership', subtitle: 'Plan & benefits', icon: membershipIcon, color: 'from-amber-500 to-orange-600', to: '/b/membership' },
-        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/rewards/cashback' },
+        { label: 'View Wallet', subtitle: 'Smart Money balance', icon: walletIcon, color: 'from-rose-500 to-pink-600', to: '/b/wallet' },
     ]
 
     const alerts = [
-        { tone: 'warning' as const, title: 'Membership expiry', description: activeMembership?.expires_at
-            ? `Your ${membershipName} membership expires on ${new Date(activeMembership.expires_at).toLocaleDateString()}.`
-            : `Your membership is ${activeMembership?.status ?? 'not set'}.`, time: '2 hrs ago', to: '/b/membership' },
-        { tone: 'success' as const, title: 'Template activation', description: `Your ${activeVCardTemplate.name} VCard template and ${activeCardTemplate.name} card are active and live.`, time: 'Today' },
-        { tone: 'success' as const, title: 'Reward activity', description: stats?.totalRewardsRedeemed
-            ? `${stats.totalRewardsRedeemed} rewards redeemed so far. Great engagement.`
-            : 'No reward redemptions yet.', time: '5 hrs ago' },
+        { tone: 'warning' as const, title: 'Membership expiry', description: activeMembership?.expires_at ? `Your ${membershipName} membership expires on ${new Date(activeMembership.expires_at).toLocaleDateString()}.` : `Your membership is ${activeMembership?.status ?? 'not set'}.`, time: '2 hrs ago', to: '/b/membership' },
+        { tone: 'success' as const, title: 'Card status', description: `${activeCardName} is active and live.`, time: 'Today' },
+        { tone: 'success' as const, title: 'Reward activity', description: stats?.totalRewardsRedeemed ? `${stats.totalRewardsRedeemed} rewards redeemed so far. Great engagement.` : 'No reward redemptions yet.', time: '5 hrs ago' },
         { tone: 'info' as const, title: 'Appointment activity', description: `${pendingAppointments} appointment${pendingAppointments === 1 ? '' : 's'} awaiting confirmation for today.`, time: 'Today' },
-        { tone: 'info' as const, title: 'Campaign notifications', description: activeCampaigns
-            ? `${activeCampaigns} active campaign${activeCampaigns === 1 ? '' : 's'} running right now.`
-            : 'No campaigns running right now.', time: 'Today' },
+        { tone: 'info' as const, title: 'Campaign notifications', description: activeCampaigns ? `${activeCampaigns} active campaign${activeCampaigns === 1 ? '' : 's'} running right now.` : 'No campaigns running right now.', time: 'Today' },
     ]
 
     if (loading) {
@@ -224,7 +193,6 @@ export default function BusinessHomePage() {
         <div className="space-y-6 animate-fadeIn">
             <Helmet><title>Home - Business Dashboard - MCOMVCard</title></Helmet>
 
-            {/* Welcome + identity header */}
             <section>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{greeting()}</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Here's your business at a glance.</p>
@@ -244,7 +212,7 @@ export default function BusinessHomePage() {
                                 {membershipName}
                             </span>
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-semibold">
-                                {currentSeason.name}
+                                {seasonName}
                             </span>
                         </div>
                     </div>
@@ -253,15 +221,11 @@ export default function BusinessHomePage() {
                 <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/20">
                     <div>
                         <p className="text-[11px] text-white/70">Season ends in</p>
-                        <p className="text-lg font-bold">{currentSeason.endsInDays} days</p>
+                        <p className="text-lg font-bold">{seasonDaysLeft === null ? '—' : `${seasonDaysLeft} days`}</p>
                     </div>
                     <div>
                         <p className="text-[11px] text-white/70">Membership expires</p>
-                        <p className="text-lg font-bold">
-                            {activeMembership?.expires_at
-                                ? `${Math.max(0, Math.ceil((new Date(activeMembership.expires_at).getTime() - Date.now()) / 86400000))} days`
-                                : 'N/A'}
-                        </p>
+                        <p className="text-lg font-bold">{membershipDaysLeft === null ? 'N/A' : `${membershipDaysLeft} days`}</p>
                         {activeMembership?.expires_at && (
                             <p className="text-[10px] text-white/70">{new Date(activeMembership.expires_at).toLocaleDateString()}</p>
                         )}
@@ -272,36 +236,24 @@ export default function BusinessHomePage() {
                         <div className="h-full rounded-full bg-white transition-all duration-700" style={{ width: `${membershipPct}%` }} />
                     </div>
                     <div className="flex items-center justify-between mt-1.5 text-[10px] text-white/80">
-                        <span>{mockMembership.daysRemaining} of {mockMembership.totalDays} days left</span>
+                        <span>{membershipDaysLeft === null || membershipTotalDays === null ? 'Membership dates unavailable' : `${membershipDaysLeft} of ${membershipTotalDays} days left`}</span>
                         <Link to="/b/membership" className="underline font-semibold">View plan</Link>
                     </div>
                 </div>
             </section>
 
-            {/* Real MCOM plan (falls back to empty state when no purchased package) */}
-            <section>
-                <MyPlanCard />
-            </section>
+            <section><MyPlanCard /></section>
 
-            {/* Main cards */}
             <section>
                 <SectionTitle>Your Business</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
                     {mainCards.map((c) => (
-                        <Link
-                            key={c.label}
-                            to={c.to}
-                            className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all"
-                        >
+                        <Link key={c.label} to={c.to} className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 hover:shadow-md transition-all">
                             <div className="flex items-center justify-between mb-2">
                                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={c.icon} />
-                                    </svg>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={c.icon} /></svg>
                                 </div>
-                                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </div>
                             <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{c.value}</p>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{c.label}</p>
@@ -311,7 +263,6 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* Performance */}
             <section>
                 <div className="flex items-center justify-between mb-3">
                     <SectionTitle>Performance</SectionTitle>
@@ -327,20 +278,13 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* Quick Actions */}
             <section>
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
                     {actionItems.map((a) => (
-                        <Link
-                            key={a.label}
-                            to={a.to}
-                            className="group flex items-start gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-3.5 hover:shadow-md transition-all"
-                        >
+                        <Link key={a.label} to={a.to} className="group flex items-start gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-3.5 hover:shadow-md transition-all">
                             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform shrink-0`}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={a.icon} />
-                                </svg>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={a.icon} /></svg>
                             </div>
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{a.label}</p>
@@ -351,44 +295,18 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* Alerts */}
             <section>
                 <SectionTitle>Alerts</SectionTitle>
                 <div className="space-y-3">
                     {alerts.map((n, i) => (
-                        <div
-                            key={i}
-                            className={`flex items-start gap-3 p-4 rounded-2xl border shadow-sm ${
-                                n.tone === 'warning'
-                                    ? 'bg-amber-50/80 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/40'
-                                    : n.tone === 'success'
-                                        ? 'bg-emerald-50/80 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/40'
-                                        : 'bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40'
-                            }`}
-                        >
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                                n.tone === 'warning'
-                                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
-                                    : n.tone === 'success'
-                                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                                        : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                            }`}>
-                                {n.tone === 'warning'
-                                    ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.024-.833-2.732 0L4.354 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-                                    : n.tone === 'success'
-                                        ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                }
+                        <div key={i} className={`flex items-start gap-3 p-4 rounded-2xl border shadow-sm ${n.tone === 'warning' ? 'bg-amber-50/80 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/40' : n.tone === 'success' ? 'bg-emerald-50/80 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/40' : 'bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40'}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${n.tone === 'warning' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : n.tone === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'}`}>
+                                {n.tone === 'warning' ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.024-.833-2.732 0L4.354 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg> : n.tone === 'success' ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.description}</p>
-                                {n.to && (
-                                    <Link to={n.to} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                        View
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                    </Link>
-                                )}
+                                {n.to && <Link to={n.to} className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">View<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></Link>}
                             </div>
                             <span className="text-[10px] text-gray-400 shrink-0">{n.time}</span>
                         </div>
@@ -396,47 +314,27 @@ export default function BusinessHomePage() {
                 </div>
             </section>
 
-            {/* For You — real notifications from API */}
             <section>
                 <SectionTitle>For You</SectionTitle>
                 <div className="space-y-3">
                     {notifications.length === 0 && (
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p>
-                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4"><p className="text-sm text-gray-500 dark:text-gray-400">No notifications yet.</p></div>
                     )}
-                    {notifications.slice(0, 10).map((n) => {
-                        const tone = n.type === 'system' ? 'info' : n.read_at ? 'success' : 'info'
-                        return (
-                            <div
-                                key={n.id}
-                                className={`flex items-start gap-3 p-4 rounded-2xl border shadow-sm ${
-                                    tone === 'info'
-                                        ? 'bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40'
-                                        : 'bg-emerald-50/80 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/40'
-                                }`}
-                            >
-                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                                    tone === 'info'
-                                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                                        : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
-                                }`}>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
-                                    {n.message && (
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.message}</p>
-                                    )}
-                                </div>
-                                <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(n.created_at)}</span>
+                    {notifications.slice(0, 10).map((n) => (
+                        <div key={n.id} className="flex items-start gap-3 p-4 rounded-2xl border shadow-sm bg-blue-50/80 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/40">
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </div>
-                        )
-                    })}
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
+                                {n.message && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{n.message}</p>}
+                            </div>
+                            <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(n.created_at)}</span>
+                        </div>
+                    ))}
                 </div>
             </section>
 
-            {/* Recent activity + Business Info */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section>
                     <div className="flex items-center justify-between mb-3">
@@ -444,16 +342,10 @@ export default function BusinessHomePage() {
                         <Link to="/b/reports" className="text-xs font-semibold text-orange-600 dark:text-orange-400">View all</Link>
                     </div>
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
-                        {activity.length === 0 && (
-                            <div className="p-4 text-center">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity yet.</p>
-                            </div>
-                        )}
+                        {activity.length === 0 && <div className="p-4 text-center"><p className="text-sm text-gray-500 dark:text-gray-400">No recent activity yet.</p></div>}
                         {activity.slice(0, 5).map(a => (
                             <div key={a.id} className="flex items-start gap-3 p-3.5">
-                                <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                                    <ActivityIcon type={a.type} />
-                                </div>
+                                <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"><ActivityIcon type={a.type} /></div>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">{a.title}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.description}</p>
@@ -470,44 +362,14 @@ export default function BusinessHomePage() {
                         {!business && (
                             <div className="text-center py-4">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">No business profile yet.</p>
-                                <Link to="/b/settings" className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">
-                                    Create one
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                </Link>
+                                <Link to="/b/settings" className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-orange-600 dark:text-orange-400">Create one<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></Link>
                             </div>
                         )}
-                        {business?.email && (
-                            <div>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Email</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.email}</p>
-                            </div>
-                        )}
-                        {business?.phone && (
-                            <div>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Phone</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.phone}</p>
-                            </div>
-                        )}
-                        {business?.website && (
-                            <div>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Website</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.website}</p>
-                            </div>
-                        )}
-                        {business?.locations?.[0] && (
-                            <div>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Location</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                    {[business.locations[0].address, business.locations[0].city, business.locations[0].state, business.locations[0].country].filter(Boolean).join(', ')}
-                                </p>
-                            </div>
-                        )}
-                        {business?.brands?.[0] && (
-                            <div>
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">Brand</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{business.brands[0].name}</p>
-                            </div>
-                        )}
+                        {business?.email && <div><p className="text-[11px] text-gray-500 dark:text-gray-400">Email</p><p className="text-sm font-medium text-gray-900 dark:text-white">{business.email}</p></div>}
+                        {business?.phone && <div><p className="text-[11px] text-gray-500 dark:text-gray-400">Phone</p><p className="text-sm font-medium text-gray-900 dark:text-white">{business.phone}</p></div>}
+                        {business?.website && <div><p className="text-[11px] text-gray-500 dark:text-gray-400">Website</p><p className="text-sm font-medium text-gray-900 dark:text-white">{business.website}</p></div>}
+                        {business?.locations?.[0] && <div><p className="text-[11px] text-gray-500 dark:text-gray-400">Location</p><p className="text-sm font-medium text-gray-900 dark:text-white">{[business.locations[0].address, business.locations[0].city, business.locations[0].state, business.locations[0].country].filter(Boolean).join(', ')}</p></div>}
+                        {business?.brands?.[0] && <div><p className="text-[11px] text-gray-500 dark:text-gray-400">Brand</p><p className="text-sm font-medium text-gray-900 dark:text-white">{business.brands[0].name}</p></div>}
                         {business && business.hours.length > 0 && (
                             <div>
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">Opening Hours</p>

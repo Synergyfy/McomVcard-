@@ -506,6 +506,98 @@ export interface BusinessPermissions {
   }
 }
 
+// ── Seasons ──
+
+export interface Season { id: string; name: string; description: string | null; starts_at: string; ends_at: string; status: string; color: string | null }
+
+// ── Membership benefits ──
+
+export interface MembershipBenefit { id: string; name: string; description: string | null; status: string }
+
+// ── Business family / Friends & Family ──
+
+export type BusinessFamilyStatus = 'allocated' | 'active' | 'suspended' | 'removed'
+
+export interface BusinessFamilyMember {
+  id: string
+  business_id: string
+  name: string
+  email: string | null
+  phone: string | null
+  relationship: string
+  avatar: string | null
+  status: BusinessFamilyStatus
+  created_at: string
+  updated_at: string
+}
+
+// ── Services ──
+
+export interface BusinessService {
+  id: string
+  business_id: string
+  name: string
+  description: string | null
+  price: number
+  currency: string
+  duration: number | null
+  status: string
+}
+
+// ── Appointments ──
+
+export interface AppointmentItem {
+  id: string
+  business_id: string
+  service_id: string | null
+  service: { id: string; name: string; price: number; currency: string } | null
+  customer_name: string
+  customer_email: string
+  customer_phone: string | null
+  date: string
+  start_time: string
+  end_time: string
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  notes: string | null
+  is_paid: boolean
+  created_at: string
+  updated_at: string
+}
+
+// ── Reports ──
+
+export interface ReportChartPoint { label: string; value: number }
+
+export interface BusinessReport {
+  range: string
+  metrics: { label: string; value: string; change?: string; trend?: 'up' | 'down' | 'flat' }[]
+  dailyViews: ReportChartPoint[]
+  dailyScans: ReportChartPoint[]
+  topLocations: { country: string; count: number }[]
+  deviceBreakdown: { device: string; count: number }[]
+  customerActivity: { action: string; count: number }[]
+  membershipUsage: { resource: string; used: number; limit: string }[]
+}
+
+export interface QrStats {
+  totalScans: number
+  todayScans: number
+  uniqueScanners: number
+  series: ReportChartPoint[]
+  devices: { label: string; pct: number }[]
+}
+
+export interface QrCodeItem {
+  id: string
+  card_id: string
+  destination_type: string
+  destination: string
+  is_active: boolean
+  url: string
+  created_at: string
+  updated_at: string
+}
+
 // ── API Service ──
 
 export const businessService = {
@@ -547,7 +639,7 @@ export const businessService = {
   async getWallet(): Promise<Wallet | null> {
     try {
       const res = await api.get('/wallet')
-      return res.data
+      return res.data.data ?? res.data
     } catch {
       return null
     }
@@ -556,7 +648,7 @@ export const businessService = {
   async getWalletTransactions(): Promise<WalletTransaction[]> {
     try {
       const res = await api.get('/wallet/transactions')
-      return res.data
+      return res.data.data ?? res.data
     } catch {
       return []
     }
@@ -1048,4 +1140,109 @@ export const businessService = {
       return false
     }
   },
+
+  // ── Seasons / benefits ──
+
+  async getSeasons(): Promise<Season[]> {
+    try { const res = await api.get('/seasons'); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async getBenefits(): Promise<MembershipBenefit[]> {
+    try { const res = await api.get('/benefits'); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async getTierBenefits(tierId: string): Promise<MembershipBenefit[]> {
+    try { const res = await api.get(`/membership-tiers/${tierId}/benefits`); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  // ── Family / Friends & Family ──
+
+  async getFamilyMembers(businessId: string): Promise<BusinessFamilyMember[]> {
+    try { const res = await api.get(`/businesses/${businessId}/family-members`); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async createFamilyMember(businessId: string, dto: { name: string; email?: string; phone?: string; relationship?: string; avatar?: string }): Promise<BusinessFamilyMember | null> {
+    try { const res = await api.post(`/businesses/${businessId}/family-members`, dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async updateFamilyMemberStatus(memberId: string, status: BusinessFamilyStatus): Promise<BusinessFamilyMember | null> {
+    try { const res = await api.patch(`/family-members/${memberId}`, { status }); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async removeFamilyMember(memberId: string): Promise<boolean> {
+    try { await api.delete(`/family-members/${memberId}`); return true } catch { return false }
+  },
+
+  // ── Services / appointments ──
+
+  async getServices(businessId: string): Promise<BusinessService[]> {
+    try { const res = await api.get(`/businesses/${businessId}/services`); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async getAppointments(businessId: string): Promise<AppointmentItem[]> {
+    try { const res = await api.get(`/businesses/${businessId}/appointments`); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async createAppointment(businessId: string, dto: { customer_name: string; customer_email: string; customer_phone?: string; date: string; start_time: string; notes?: string; service_id?: string; is_paid?: boolean }): Promise<AppointmentItem | null> {
+    try { const res = await api.post(`/businesses/${businessId}/appointments`, dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async updateAppointmentStatus(id: string, dto: { status: AppointmentItem['status']; is_paid?: boolean }): Promise<AppointmentItem | null> {
+    try { const res = await api.patch(`/appointments/${id}/status`, dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  // ── Reports / analytics / QR ──
+
+  async getReports(range: '7d' | '30d' | '90d' = '7d'): Promise<BusinessReport | null> {
+    try { const res = await api.get('/dashboard/reports', { params: { range } }); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async getAnalyticsTimeseries(days = 30): Promise<{ date: string; eventType: string; count: number }[]> {
+    try { const res = await api.get('/analytics/timeseries', { params: { days } }); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async getQrStats(days = 7): Promise<QrStats | null> {
+    try { const res = await api.get('/dashboard/qr-stats', { params: { days } }); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async getQrCodes(): Promise<QrCodeItem[]> {
+    try { const res = await api.get('/qr-codes'); return res.data.data ?? res.data } catch { return [] }
+  },
+
+  async createQrCode(dto: { card_id: string; destination_type: 'VCARD' | 'BUSINESS_PROFILE' | 'OFFER' | 'CAMPAIGN'; destination: string }): Promise<QrCodeItem | null> {
+    try { const res = await api.post('/qr-codes', dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  // ── Support / business / profile ──
+
+  async sendSupportMessage(dto: { name: string; email: string; subject: string; message: string }): Promise<boolean> {
+    try { await api.post('/contact', dto); return true } catch { return false }
+  },
+
+  async updateProfile(dto: { first_name?: string; last_name?: string; phone?: string }): Promise<{ id: string } | null> {
+    try { const res = await api.patch('/users/me', dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async createBusiness(dto: { name: string; description?: string; email?: string; phone?: string; website?: string; category_id?: string }): Promise<Business | null> {
+    try { const res = await api.post('/businesses', dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async updateBusiness(id: string, dto: { name?: string; description?: string; email?: string; phone?: string; website?: string; category_id?: string; status?: string }): Promise<Business | null> {
+    try { const res = await api.patch(`/businesses/${id}`, dto); return res.data.data ?? res.data } catch { return null }
+  },
+
+  async upsertLocation(businessId: string, locationId: string | null, dto: { address?: string; city?: string; state?: string; country?: string; latitude?: number; longitude?: number }): Promise<BusinessLocation | null> {
+    try {
+      const res = locationId ? await api.patch(`/locations/${locationId}`, dto) : await api.post(`/businesses/${businessId}/locations`, dto)
+      return res.data.data ?? res.data
+    } catch { return null }
+  },
+
+  async upsertHour(businessId: string, hourId: string | null, dto: { day_of_week: number; opens_at?: string; closes_at?: string; is_closed?: boolean }): Promise<BusinessHour | null> {
+    try {
+      const res = hourId ? await api.patch(`/business-hours/${hourId}`, dto) : await api.post(`/businesses/${businessId}/hours`, dto)
+      return res.data.data ?? res.data
+    } catch { return null }
+  },
+
 }

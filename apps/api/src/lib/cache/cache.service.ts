@@ -7,6 +7,13 @@ interface MemoryEntry {
   expiresAt: number
 }
 
+/**
+ * Small Redis-backed cache with an in-process fallback.
+ *
+ * Redis is used whenever REDIS_URL is configured and reachable. If Redis is
+ * unavailable the service degrades to a bounded in-memory cache so requests
+ * keep succeeding instead of failing hard.
+ */
 @Injectable()
 export class CacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('Cache')

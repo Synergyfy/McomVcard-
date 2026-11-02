@@ -48,7 +48,7 @@ export default function ConsumerWishlistPage() {
         setWorking(false)
     }
 
-    const handleRemove = async (wishId: number) => {
+    const handleRemove = async (wishId: string) => {
         if (working) return
         setWorking(true)
         const updated = await consumerWishlistService.removeWish(wishId)
@@ -104,12 +104,14 @@ export default function ConsumerWishlistPage() {
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="What do you want? e.g. Nike Trainers"
+                            title="Describe the item you are saving for"
                             className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
                         />
                         <input
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                             placeholder="Price (optional)"
+                            title="Optional display price for this wish"
                             className="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 text-sm text-gray-900 dark:text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
                         />
                         <div>
@@ -117,6 +119,7 @@ export default function ConsumerWishlistPage() {
                                 ref={fileRef}
                                 type="file"
                                 accept="image/*"
+                                title="Optional photo of the item you want"
                                 onChange={(e) => readFile(e.target.files?.[0] as File)}
                                 className="hidden"
                             />

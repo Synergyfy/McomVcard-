@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { businessVCardLink } from '../../../services/businessStore'
+import { businessVCardLink } from '../../../services/businessLinks'
 
 interface BusinessMoreSheetProps {
     open: boolean

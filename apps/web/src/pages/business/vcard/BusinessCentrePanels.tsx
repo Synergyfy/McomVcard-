@@ -9,6 +9,7 @@ import {
   type RedemptionOffer,
   type RedemptionRecord,
 } from '../../../services/businessVCardEditorStore'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 const inputCls = 'w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 text-[10px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400'
 
@@ -100,7 +101,7 @@ function MembershipSelect({ value, onChange }: { value: MembershipEligibility; o
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <label className="block text-[9px] font-medium text-gray-500 dark:text-gray-400 mb-0.5">{children}</label>
+  return <label className="flex items-center text-[9px] font-medium text-gray-500 dark:text-gray-400 mb-0.5">{children}<InfoTooltip text="This value is saved with your card content and shown to customers where relevant." /></label>
 }
 
 const newId = () => Date.now() + Math.floor(Math.random() * 1000)

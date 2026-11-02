@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import type { MockConsumer } from '../../../services/mockData'
+import type { ConsumerProfile } from '../../../services/consumer'
 
 interface QRExpandOverlayProps {
     open: boolean
     onClose: () => void
-    profile: MockConsumer
+    profile: ConsumerProfile
 }
 
 export default function QRExpandOverlay({ open, onClose, profile }: QRExpandOverlayProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const [copied, setCopied] = useState(false)
 
-    const qrValue = `https://mcomvcard.link/c/${profile.cardId || 'card'}`
+    const qrValue = profile.cardId ? `${window.location.origin}/c/${profile.cardId}` : window.location.origin
 
     useEffect(() => {
         if (!open || !canvasRef.current) return

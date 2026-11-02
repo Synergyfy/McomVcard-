@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -43,4 +43,9 @@ export class CreateAppointmentDto {
   @IsString()
   @MaxLength(1000)
   notes?: string
+
+  @ApiPropertyOptional({ example: false, description: 'Whether the appointment has been paid for' })
+  @IsOptional()
+  @IsBoolean({ message: 'is_paid must be a boolean' })
+  is_paid?: boolean
 }

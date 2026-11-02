@@ -1,8 +1,9 @@
 import api from './api'
 import { newIdempotencyKey } from './payments'
+import { consumerService } from './consumer'
 
 export interface WishItem {
-  id: number
+  id: string
   title: string
   price?: string
   emoji: string
@@ -13,7 +14,7 @@ export interface WishItem {
 export type MemberKind = 'Family' | 'Friend'
 
 export interface FamilyCardMember {
-  id: number
+  id: string
   cardId: string
   name: string
   relationship: string
@@ -75,9 +76,9 @@ function mapChildCardToMember(card: any): FamilyCardMember {
     id: card.id,
     cardId: permissions.card_id || permissions.slug || `CARD-FAM-${String(card.id).padStart(6, '0')}`,
     name: child.name || `${child.first_name || ''} ${child.last_name || ''}`.trim() || 'Unknown',
-    relationship: permissions.relationship || card.relationship || 'Family',
-    kind: kindFromRelationship(permissions.relationship || card.relationship || 'Family'),
-    status: permissions.can_use_wallet !== false ? 'Active' : 'Suspended',
+    relationship: card.relationship || permissions.relationship || 'Family',
+    kind: kindFromRelationship(card.relationship || permissions.relationship || 'Family'),
+    status: card.can_use_wallet !== false ? 'Active' : 'Suspended',
     phone: child.phone || '',
     email: child.email || '',
     dob: child.dob || undefined,
@@ -109,22 +110,28 @@ function mapChildCardToMember(card: any): FamilyCardMember {
   }
 }
 
-async function findOrCreateUserByEmail(email: string, name?: string): Promise<string> {
-  const existing = await api.get(`/users/by-email/${encodeURIComponent(email)}`)
-  const user = existing.data?.data || existing.data
-  if (user?.id) return user.id
+async function findUserByEmail(email: string): Promise<string> {
+  if (!email.trim()) {
+    throw new Error('Enter the family member’s email so we can link their MCOM account.')
+  }
 
-  const [firstName, ...rest] = (name || email.split('@')[0]).split(' ')
-  const created = await api.post('/register', {
-    firstName,
-    lastName: rest.join(' ') || '',
-    email,
-  })
-  const newUser = created.data?.user || created.data
-  return newUser.id
+  // Customers only ever sign in through the Central Hub Solution. We must never
+  // create a local password account here — the person needs a Central identity
+  // before they can receive a card.
+  let existing: { data?: unknown }
+  try {
+    existing = await api.get(`/users/by-email/${encodeURIComponent(email.trim().toLowerCase())}`)
+  } catch {
+    throw new Error('No MCOM account was found for that email. Ask them to sign in through the Central Hub Solution first.')
+  }
+
+  const body = existing.data as { data?: { id?: string }; id?: string } | undefined
+  const user = body?.data || body
+  if (user?.id) return user.id
+  throw new Error('No MCOM account was found for that email. Ask them to sign in through the Central Hub Solution first.')
 }
 
-async function getWishlistForMember(memberId: number): Promise<{ id: number; items: any[] } | null> {
+async function getWishlistForMember(memberId: string): Promise<{ id: string; items: any[] } | null> {
   try {
     const res = await api.get('/wishlists', { params: { child_card_id: memberId } })
     const wishlists = res.data?.data || res.data
@@ -146,7 +153,7 @@ export const familyService = {
     return (Array.isArray(cards) ? cards : []).map(mapChildCardToMember)
   },
 
-  async getMember(id: number): Promise<FamilyCardMember | undefined> {
+  async getMember(id: string): Promise<FamilyCardMember | undefined> {
     try {
       const res = await api.get(`/child-cards/${id}`)
       const card = res.data?.data || res.data
@@ -157,10 +164,17 @@ export const familyService = {
   },
 
   async addMember(input: NewFamilyMemberInput): Promise<FamilyCardMember> {
-    const childUserId = await findOrCreateUserByEmail(input.email || '', input.name)
+    const childUserId = await findUserByEmail(input.email || '')
+
+    // A family card is shared from the customer's primary card.
+    const cards = await consumerService.getSavedCards(1, 1)
+    const primaryCard = cards[0]
+    if (!primaryCard) {
+      throw new Error('You need a card before you can add a family member. Open My Cards to get one first.')
+    }
 
     const res = await api.post('/child-cards', {
-      card_id: null,
+      card_id: primaryCard.id,
       child_id: childUserId,
       relationship: input.relationship,
       can_view: true,
@@ -185,7 +199,7 @@ export const familyService = {
     })
   },
 
-  async updateMember(id: number, patch: Partial<Pick<FamilyCardMember, 'name' | 'relationship' | 'phone' | 'email' | 'dob' | 'avatar'>>): Promise<FamilyCardMember | undefined> {
+  async updateMember(id: string, patch: Partial<Pick<FamilyCardMember, 'name' | 'relationship' | 'phone' | 'email' | 'dob' | 'avatar'>>): Promise<FamilyCardMember | undefined> {
     try {
       const payload: Record<string, any> = {}
       if (patch.relationship !== undefined) payload.relationship = patch.relationship
@@ -199,7 +213,7 @@ export const familyService = {
     }
   },
 
-  async removeMember(id: number): Promise<boolean> {
+  async removeMember(id: string): Promise<boolean> {
     try {
       await api.delete(`/child-cards/${id}`)
       return true
@@ -208,7 +222,7 @@ export const familyService = {
     }
   },
 
-  async fundMember(id: number, amount: number): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
+  async fundMember(id: string, amount: number): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
     try {
       const res = await api.post('/wallet/allocate-to-child', {
         child_card_id: id,
@@ -233,10 +247,10 @@ export const familyService = {
   },
 
   /** Send a gift/e-card to a friend — the friend keeps control of their own wallet. */
-  async sendGiftCard(id: number, amount: number, _provider?: string): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
+  async sendGiftCard(id: string, amount: number, _provider?: string): Promise<{ member: FamilyCardMember; ownerBalance: number } | undefined> {
     try {
       const member = await this.getMember(id)
-      const recipientUserId = member?.email ? await findOrCreateUserByEmail(member.email) : undefined
+      const recipientUserId = member?.email ? await findUserByEmail(member.email).catch(() => undefined) : undefined
 
       const res = await api.post('/wallet/transfer', {
         recipient_id: recipientUserId,
@@ -261,7 +275,7 @@ export const familyService = {
     }
   },
 
-  async setStatus(id: number, status: 'Active' | 'Suspended'): Promise<FamilyCardMember | undefined> {
+  async setStatus(id: string, status: 'Active' | 'Suspended'): Promise<FamilyCardMember | undefined> {
     try {
       const res = await api.patch(`/child-cards/${id}`, {
         can_use_wallet: status === 'Active',
@@ -273,7 +287,7 @@ export const familyService = {
     }
   },
 
-  async addWish(memberId: number, title: string, price?: string, _image?: string): Promise<FamilyCardMember | undefined> {
+  async addWish(memberId: string, title: string, price?: string, _image?: string): Promise<FamilyCardMember | undefined> {
     try {
       let wishlist = await getWishlistForMember(memberId)
       if (!wishlist) {
@@ -301,12 +315,12 @@ export const familyService = {
     }
   },
 
-  async updateWish(memberId: number, _wishId: number, _patch: Partial<Pick<WishItem, 'title' | 'price' | 'image'>>): Promise<FamilyCardMember | undefined> {
+  async updateWish(memberId: string, _wishId: string, _patch: Partial<Pick<WishItem, 'title' | 'price' | 'image'>>): Promise<FamilyCardMember | undefined> {
     // API does not support updating wishlist items — return member as-is
     return this.getMember(memberId)
   },
 
-  async removeWish(memberId: number, wishId: number): Promise<FamilyCardMember | undefined> {
+  async removeWish(memberId: string, wishId: string): Promise<FamilyCardMember | undefined> {
     try {
       const wishlist = await getWishlistForMember(memberId)
       if (wishlist) {

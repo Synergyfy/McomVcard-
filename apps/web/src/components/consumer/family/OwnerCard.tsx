@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import type { MockConsumer } from '../../../services/mockData'
+import type { ConsumerProfile } from '../../../services/consumer'
 
 interface OwnerCardProps {
-    profile: MockConsumer
+    profile: ConsumerProfile
 }
 
 export default function OwnerCard({ profile }: OwnerCardProps) {

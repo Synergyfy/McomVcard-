@@ -20,6 +20,7 @@ import { BusinessResponseDto, BusinessLocationResponseDto, BusinessHourResponseD
 import { Membership } from '../memberships/entities/membership.entity'
 import { MembershipTier } from '../memberships/entities/membership-tier.entity'
 import { Card, CardType } from '../cards/entities/card.entity'
+import { CacheService } from '../../lib/cache/cache.service'
 
 /* Plan levels + per-tier limits, mirroring the default pricing catalogue
    (membershipPricingStore defaults on the frontend). null = Unlimited. */
@@ -61,6 +62,7 @@ export class BusinessesService {
     @InjectRepository(Membership) private membershipsRepo: Repository<Membership>,
     @InjectRepository(MembershipTier) private membershipTiersRepo: Repository<MembershipTier>,
     @InjectRepository(Card) private cardsRepo: Repository<Card>,
+    private readonly cache: CacheService,
   ) {}
 
   // --- Businesses ---
@@ -118,6 +120,10 @@ export class BusinessesService {
    * limit matrix mirrors the default pricing catalogue. null = Unlimited.
    */
   async getPermissionsForUser(userId: string) {
+    return this.cache.getOrSet(`business:permissions:${userId}`, 60, () => this.computePermissionsForUser(userId))
+  }
+
+  private async computePermissionsForUser(userId: string) {
     const business = await this.businessesRepo.findOne({
       where: { ownerId: userId },
       order: { createdAt: 'DESC' },
@@ -148,7 +154,7 @@ export class BusinessesService {
 
     const remaining = (limit: number | null, used: number) => (limit === null ? null : Math.max(0, limit - used))
 
-    return ApiResponse.success({
+    return {
       business: business ? { id: business.id, name: business.name } : null,
       has_membership: !!membership,
       tier_name: tierName || null,
@@ -163,7 +169,7 @@ export class BusinessesService {
         vcards: remaining(limits.vcards, allocatedVcards),
         business_cards: remaining(limits.business_cards, allocatedBusinessCards),
       },
-    }, 'Business permissions retrieved', 200)
+    }
   }
 
   async findBySlug(slug: string) {
