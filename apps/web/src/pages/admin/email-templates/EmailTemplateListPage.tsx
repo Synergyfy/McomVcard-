@@ -2,18 +2,9 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_TEMPLATES: any[] = [
-  { id: 1, name: 'Welcome Email', subject: 'Welcome to Mobile VCard Link!', variables: '{user_name},{email}' },
-  { id: 2, name: 'Password Reset', subject: 'Reset Your Password', variables: '{user_name},{reset_link}' },
-  { id: 3, name: 'Subscription Confirmation', subject: 'Subscription Confirmed - {plan_name}', variables: '{user_name},{plan_name},{start_date},{end_date}' },
-  { id: 4, name: 'Payment Receipt', subject: 'Payment Receipt - {transaction_id}', variables: '{user_name},{amount},{transaction_id},{plan_name}' },
-  { id: 5, name: 'Account Verification', subject: 'Verify Your Email Address', variables: '{user_name},{verification_link}' },
-  { id: 6, name: 'Subscription Expiring', subject: 'Your Subscription is Expiring Soon', variables: '{user_name},{plan_name},{end_date}' },
-  { id: 7, name: 'Withdrawal Processed', subject: 'Withdrawal Request Processed', variables: '{user_name},{amount},{status}' },
-  { id: 8, name: 'Affiliate Commission', subject: 'You Earned a Commission!', variables: '{user_name},{amount},{referred_user}' },
-]
 
 export default function EmailTemplateListPage() {
   const { t } = useTranslation()
@@ -25,8 +16,8 @@ export default function EmailTemplateListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getEmailTemplates()
-      .then((res) => setTemplates(res.data && res.data.length ? res.data : MOCK_TEMPLATES))
-      .catch(() => setTemplates(MOCK_TEMPLATES))
+      .then((res) => setTemplates(rowsOf(res)))
+      .catch(() => setTemplates([]))
       .finally(() => setLoading(false))
   }, [])
 

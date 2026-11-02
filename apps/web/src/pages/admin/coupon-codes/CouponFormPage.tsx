@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
 import type { Plan } from '../../../types'
 import toast from 'react-hot-toast'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 export default function CouponFormPage() {
   const { t } = useTranslation()
@@ -59,47 +60,47 @@ export default function CouponFormPage() {
       </div>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.coupon_code')}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.coupon_code')}<InfoTooltip text="Unique code customers enter at checkout." /></span></label>
           <input type="text" value={form.code} onChange={(e) => update('code', e.target.value.toUpperCase())} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.discount_type')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.discount_type')}<InfoTooltip text="Whether the discount is a fixed amount or a percentage." /></span></label>
             <select value={form.discount_type} onChange={(e) => update('discount_type', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
               <option value="percentage">%</option>
               <option value="fixed">{t('admin.fixed')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.discount_value')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.discount_value')}<InfoTooltip text="Amount or percentage deducted from the order total." /></span></label>
             <input type="number" value={form.discount_value} onChange={(e) => update('discount_value', Number(e.target.value))} required min={0} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.max_uses')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.max_uses')}<InfoTooltip text="Maximum redemptions. Use 0 for unlimited." /></span></label>
             <input type="number" value={form.max_uses} onChange={(e) => update('max_uses', Number(e.target.value))} min={0} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.min_amount')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.min_amount')}<InfoTooltip text="Minimum order subtotal required before the coupon applies." /></span></label>
             <input type="number" value={form.min_amount} onChange={(e) => update('min_amount', Number(e.target.value))} min={0} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.plan')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.plan')}<InfoTooltip text="Restrict the coupon to a specific membership plan." /></span></label>
             <select value={form.plan_id} onChange={(e) => update('plan_id', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
               <option value={0}>{t('admin.all_plans')}</option>
               {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.expires_at')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.expires_at')}<InfoTooltip text="Date after which the coupon can no longer be redeemed." /></span></label>
             <input type="date" value={form.expires_at} onChange={(e) => update('expires_at', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.status')}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('common.status')}<InfoTooltip text="Inactive coupons cannot be redeemed." /></span></label>
           <select value={form.status} onChange={(e) => update('status', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
             <option value={1}>{t('common.active')}</option>
             <option value={0}>{t('common.inactive')}</option>
