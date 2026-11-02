@@ -203,6 +203,8 @@ export interface ConsumerProfile {
   membershipHistory?: { state: string; date: string }[]
   plan?: ConsumerPlan | null
   expiresAt?: string | null
+  /** Live card sections shown on the public shared card. */
+  sharedSections?: { id: string; name: string; schema_id: string; enabled: boolean; sort_order?: number; content: Record<string, unknown> }[]
 }
 
 export interface Paginated<T> {

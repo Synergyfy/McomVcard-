@@ -48,6 +48,8 @@ export class CreateCardProfileDto {
 
   @ApiPropertyOptional({ example: 'https://janedoe.com' })
   @IsOptional()
-  @IsUrl()
+  // Customer cards use the platform's own origin (localhost in dev) as their
+  // default website, so TLD-less/localhost URLs must be accepted.
+  @IsUrl({ require_tld: false })
   website?: string
 }

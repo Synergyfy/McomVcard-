@@ -11,6 +11,69 @@ import { useAuth } from '../../contexts/AuthContext'
 import { consumerService } from '../../services/consumer'
 import { businessService } from '../../services/businessApi'
 
+function mapCardToProfile(card: Record<string, any>): ConsumerProfile {
+    const profile = card.profile || {}
+    const business = card.business || {}
+    return {
+        id: String(card.ownerId || card.id || ''),
+        name: profile.display_name || card.name || 'MCOM member',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        location: profile.location || '',
+        status: 'active',
+        joined: card.created_at || '',
+        consumerId: '',
+        centralUserId: '',
+        membership: card.template?.name || card.category || 'MCOM Member',
+        membershipStatus: card.status || 'Active',
+        vcardStatus: card.status || 'Active',
+        cardStatus: card.status || 'Active',
+        additionalEntitlements: 0,
+        familyCardLimit: 0,
+        friendCardLimit: 0,
+        allocatedAdditionalCards: 0,
+        familyAllocations: 0,
+        friendAllocations: 0,
+        unallocatedEntitlements: 0,
+        primaryIssuingBusiness: business.name || '',
+        primaryIssuingBusinessId: card.business_id || '',
+        businessCount: business.name ? 1 : 0,
+        registrationSource: 'MCOMVCard',
+        lastActivityAt: card.updated_at || '',
+        allocationType: 'None',
+        wallet: { balance: 0, available: 0, currency: 'GBP', points: 0, cashback: 0, giftCards: 0, coupons: 0, vouchers: 0, pending: 0, locked: 0, cardBalance: 0 },
+        cardBalance: 0,
+        stats: { cards: 1, rewards: 0, referrals: 0, scans: Number(card.scans || 0) },
+        savedCards: [],
+        rewardHistory: [],
+        referrals: [],
+        recentActivity: [],
+        cardId: card.slug || '',
+        cardTemplate: card.template?.name || '',
+        cardCreated: card.created_at || '',
+        cardUpdated: card.updated_at || '',
+        cardSource: business.name ? 'Business' : 'MCOMVCard',
+        cardAcquisitionMethod: business.name ? 'Issued' : 'Self-created',
+        cardSourcePlatform: business.name || '',
+        qrStatus: 'Active',
+        qrId: '',
+        qrLastScanned: '',
+        qrUpdateFrequency: 'On change',
+        qrLastContentUpdate: card.updated_at || '',
+        eCardStatus: 'None',
+        eCardFaceValue: '',
+        eCardSource: '',
+        eCardId: '',
+        eCardIssueDate: '',
+        eCardExpiryDate: '',
+        additionalCards: [],
+        shareContent: [],
+        cardActivity: [],
+        membershipHistory: [],
+        sharedSections: Array.isArray(card.sections) ? card.sections : [],
+    }
+}
+
 export default function SharedCardPage() {
     const { cardId } = useParams()
     const [searchParams] = useSearchParams()
@@ -25,7 +88,10 @@ export default function SharedCardPage() {
     useEffect(() => {
         if (!cardId) return
         api.get(`/cards/by-slug/${cardId}`)
-            .then((res) => setProfile(res.data.data || res.data))
+            .then((res) => {
+                const card = (res.data.data || res.data) as Record<string, any>
+                setProfile(card ? mapCardToProfile(card) : null)
+            })
             .catch(() => setProfile(null))
     }, [cardId])
 
