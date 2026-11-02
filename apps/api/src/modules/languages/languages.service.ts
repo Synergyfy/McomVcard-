@@ -16,6 +16,29 @@ export class LanguagesService {
     return this.languagesRepo.find({ order: { name: 'ASC' } })
   }
 
+
+  async create(input: { code: string; name: string; isActive?: boolean }) {
+    const language = this.languagesRepo.create({
+      code: input.code.trim().toLowerCase(),
+      name: input.name.trim(),
+      isActive: input.isActive ?? true,
+    })
+    return this.languagesRepo.save(language)
+  }
+
+  async update(id: string, input: { code?: string; name?: string; isActive?: boolean }) {
+    const language = await this.findOne(id)
+    if (input.code !== undefined) language.code = input.code.trim().toLowerCase()
+    if (input.name !== undefined) language.name = input.name.trim()
+    if (input.isActive !== undefined) language.isActive = input.isActive
+    return this.languagesRepo.save(language)
+  }
+
+  async remove(id: string) {
+    const language = await this.findOne(id)
+    await this.languagesRepo.remove(language)
+  }
+
   async findOne(id: string) {
     const language = await this.languagesRepo.findOne({ where: { id }, relations: { translations: true } })
 

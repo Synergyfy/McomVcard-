@@ -7,7 +7,7 @@ import { getRuleValue, parseLimit, getPlanLevelFromName } from '../../../service
 import { mockBusinessProfile } from '../../../services/businessStore'
 import { userService } from '../../../services/user'
 import { CardPreviewModal, buildMockFaces } from '../../../components/admin/CardPreview'
-import { MOCK, toRow, type CardRow } from '../../admin/card-management/BusinessCardTemplatesPage'
+import { toRow, type CardRow } from '../../admin/card-management/BusinessCardTemplatesPage'
 import { loadCardTemplatesByType } from '../../../services/cardTemplateStore'
 
 const BUSINESS_ID = '1'
@@ -38,7 +38,7 @@ export default function BusinessCardsPage() {
      platform rows + user-created stored rows, exactly as the admin page
      assembles them. Only published templates are available. */
   const storedCards = loadCardTemplatesByType('business')
-  const allRows: CardRow[] = [...MOCK, ...storedCards.map(toRow)]
+  const allRows: CardRow[] = storedCards.map(toRow)
   const availableRows = allRows.filter((r) => r.status === 'Published')
   const availableCategories = [...new Set(availableRows.map((r) => r.category))]
 

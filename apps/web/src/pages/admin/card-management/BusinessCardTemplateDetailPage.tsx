@@ -9,11 +9,9 @@ import {
 } from '../../../services/cardTemplateStore'
 import { TemplateActivityModal, TemplateVersionsModal } from '../../../components/admin/TemplateAuditModals'
 import { CardPreviewModal, buildMockFaces, LayoutFaceContent } from '../../../components/admin/CardPreview'
-import { MOCK, toRow, DetailRow, EditCardWarningModal, type CardRow } from './BusinessCardTemplatesPage'
+import { toRow, DetailRow, EditCardWarningModal, type CardRow } from './BusinessCardTemplatesPage'
 
 function useCardRow(id: string): CardRow | null {
-  const mock = MOCK.find(m => m.id === id) ?? null
-  if (mock) return mock
   const stored = getCardTemplate(Number(id))
   return stored ? toRow(stored) : null
 }

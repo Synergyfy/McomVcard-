@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 
-const MOCK_TXNS: any[] = [
-  { id: 1, user_name: 'Sarah Johnson', amount: 45.00, payment_method: 'bank', payment_details: 'Bank: Chase ••••4321', status: 'approved', created_at: '2025-06-15' },
-  { id: 2, user_name: 'Mike Chen', amount: 25.00, payment_method: 'paypal', payment_details: 'mike@example.com', status: 'approved', created_at: '2025-06-20' },
-  { id: 3, user_name: 'Emily Williams', amount: 60.00, payment_method: 'bank', payment_details: 'Bank: Wells Fargo ••••8765', status: 'pending', created_at: '2025-07-01' },
-  { id: 4, user_name: 'Anna Garcia', amount: 50.00, payment_method: 'paypal', payment_details: 'anna@example.com', status: 'pending', created_at: '2025-07-05' },
-  { id: 5, user_name: 'James Brown', amount: 0, payment_method: 'bank', payment_details: 'Bank: BofA ••••1111', status: 'rejected', created_at: '2025-06-10' },
-  { id: 6, user_name: 'David Smith', amount: 25.00, payment_method: 'paypal', payment_details: 'david@example.com', status: 'approved', created_at: '2025-05-25' },
-  { id: 7, user_name: 'Lisa Anderson', amount: 0, payment_method: 'bank', payment_details: 'Bank: Citibank ••••3333', status: 'pending', created_at: '2025-07-10' },
-]
 
 const statusStyles: Record<string, string> = {
   approved: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20',
@@ -29,8 +21,8 @@ export default function WithdrawTransactionsPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getWithdrawTransactions()
-      .then((res) => setTxns(res.data && res.data.length ? res.data : MOCK_TXNS))
-      .catch(() => setTxns(MOCK_TXNS))
+      .then((res) => setTxns(rowsOf(res)))
+      .catch(() => setTxns([]))
       .finally(() => setLoading(false))
   }, [])
 

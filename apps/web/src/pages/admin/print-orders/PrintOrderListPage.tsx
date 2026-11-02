@@ -3,18 +3,10 @@ import { Helmet } from 'react-helmet-async'
 import toast from 'react-hot-toast'
 import StatsCard from '../../../components/admin/StatsCard'
 
-const MOCK = [
-  { id: 1, order: 'ORD-001', business: 'GreenLeaf Coffee', type: 'Business Cards', qty: 500, total: 149.99, status: 'shipped', date: 'Jul 10, 2026' },
-  { id: 2, order: 'ORD-002', business: 'TechVision Inc', type: 'Loyalty Cards', qty: 1000, total: 299.99, status: 'printing', date: 'Jul 12, 2026' },
-  { id: 3, order: 'ORD-003', business: 'FitLife Studio', type: 'Membership Cards', qty: 300, total: 89.99, status: 'pending', date: 'Jul 14, 2026' },
-  { id: 4, order: 'ORD-004', business: 'Pizza Roma', type: 'Business Cards', qty: 200, total: 59.99, status: 'pending', date: 'Jul 15, 2026' },
-  { id: 5, order: 'ORD-005', business: 'Coastal Realty', type: 'Event Cards', qty: 750, total: 199.99, status: 'printing', date: 'Jul 13, 2026' },
-  { id: 6, order: 'ORD-006', business: 'Bloom Beauty Salon', type: 'Loyalty Cards', qty: 250, total: 74.99, status: 'delivered', date: 'Jul 8, 2026' },
-  { id: 7, order: 'ORD-007', business: 'Swift Legal LLP', type: 'Business Cards', qty: 100, total: 34.99, status: 'delivered', date: 'Jul 5, 2026' },
-]
+
 
 export default function PrintOrderListPage() {
-  const [data] = useState(MOCK)
+  const [data] = useState<any[]>([])
   return (
     <div className="space-y-6">
       <Helmet><title>Print Orders - MCOM VCard Social Bio</title></Helmet>

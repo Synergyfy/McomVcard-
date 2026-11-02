@@ -60,20 +60,11 @@ interface DrawerData {
   timeline: TimelineItem[]
 }
 
-const MOCK: DistributionRecord[] = [
-  { id: '1', cardId: 'CRD-000001', cardType: 'Business Card', template: 'Standard Business Card', business: 'TechCorp Solutions', consumer: '—', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '15 Jan 2026', expiryDate: '15 Jan 2027', lastActivity: '2 hours ago' },
-  { id: '2', cardId: 'CRD-000002', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Activated', activationDate: '10 Jan 2026', expiryDate: '10 Jan 2027', lastActivity: '1 day ago' },
-  { id: '3', cardId: 'CRD-000003', cardType: 'Consumer Card', template: 'Gold Premium Card', business: 'TechCorp Solutions', consumer: 'John Smith', membership: 'Gold Pro', allocationSource: 'Membership', friendsFamily: { total: 3, used: 2, remaining: 1 }, eCardValue: '£50.00', status: 'Activated', activationDate: '20 Jan 2026', expiryDate: '20 Jan 2027', lastActivity: '5 mins ago' },
-  { id: '4', cardId: 'CRD-000004', cardType: 'Consumer VCard', template: 'Platinum Elite VCard', business: 'Luxury Hotels Ltd', consumer: 'Sarah Johnson', membership: 'Platinum', allocationSource: 'Campaign', friendsFamily: { total: 5, used: 3, remaining: 2 }, eCardValue: '£200.00', status: 'Activated', activationDate: '5 Feb 2026', expiryDate: '5 Feb 2027', lastActivity: '1 hour ago' },
-  { id: '5', cardId: 'CRD-000005', cardType: 'Business Card', template: 'Enterprise Business Card', business: 'Global Retail Inc', consumer: '—', membership: 'Platinum Pro+', allocationSource: 'Admin', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '3 days ago' },
-  { id: '6', cardId: 'CRD-000006', cardType: 'Consumer Card', template: 'Silver Rewards Card', business: 'Café Mocha', consumer: 'Emily Davis', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 1, used: 1, remaining: 0 }, eCardValue: '£25.00', status: 'Activated', activationDate: '12 Feb 2026', expiryDate: '12 Feb 2027', lastActivity: '3 hours ago' },
-  { id: '7', cardId: 'CRD-000007', cardType: 'Consumer VCard', template: 'Bronze Consumer VCard', business: 'TechCorp Solutions', consumer: 'Michael Brown', membership: 'Bronze', allocationSource: 'Manual', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Suspended', activationDate: '8 Jan 2026', expiryDate: '8 Jan 2027', lastActivity: '1 week ago' },
-  { id: '8', cardId: 'CRD-000008', cardType: 'Business VCard', template: 'Modern Café VCard', business: 'Café Mocha', consumer: '—', membership: 'Silver', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Expired', activationDate: '10 Jan 2025', expiryDate: '10 Jan 2026', lastActivity: '6 months ago' },
-  { id: '9', cardId: 'CRD-000009', cardType: 'Consumer Card', template: 'Platinum Elite Card', business: 'Luxury Hotels Ltd', consumer: 'James Wilson', membership: 'Platinum', allocationSource: 'Promotion', friendsFamily: { total: 5, used: 1, remaining: 4 }, eCardValue: '£500.00', status: 'Activated', activationDate: '1 Mar 2026', expiryDate: '1 Mar 2027', lastActivity: '30 mins ago' },
-  { id: '10', cardId: 'CRD-000010', cardType: 'Business Card', template: 'Standard Business Card', business: 'Green Energy Co', consumer: '—', membership: 'Gold', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£0.00', status: 'Not Allocated', activationDate: '—', expiryDate: '—', lastActivity: '—' },
-  { id: '11', cardId: 'CRD-000011', cardType: 'Consumer VCard', template: 'Silver Pro VCard', business: 'Global Retail Inc', consumer: 'Olivia Taylor', membership: 'Silver Pro', allocationSource: 'Reward', friendsFamily: { total: 2, used: 0, remaining: 2 }, eCardValue: '£75.00', status: 'Allocated', activationDate: '—', expiryDate: '—', lastActivity: '5 days ago' },
-  { id: '12', cardId: 'CRD-000012', cardType: 'Consumer Card', template: 'Bronze Consumer Card', business: 'TechCorp Solutions', consumer: 'Daniel Anderson', membership: 'Bronze', allocationSource: 'Membership', friendsFamily: { total: 0, used: 0, remaining: 0 }, eCardValue: '£10.00', status: 'Redeemed', activationDate: '20 Dec 2025', expiryDate: '20 Dec 2026', lastActivity: '2 months ago' },
-]
+
+
+const records: DistributionRecord[] = []
+const friendsFamilyRows: FriendsFamilyAllocation[] = []
+const eCardRows: ECardEntitlement[] = []
 
 const CARD_TYPES = ['All', 'Business Card', 'Business VCard', 'Consumer Card', 'Consumer VCard']
 const MEMBERSHIPS = ['All', 'Bronze', 'Bronze Pro', 'Bronze Pro+', 'Silver', 'Silver Pro', 'Silver Pro+', 'Gold', 'Gold Pro', 'Gold Pro+', 'Platinum', 'Platinum Pro', 'Platinum Pro+']
@@ -81,22 +72,7 @@ const STATUSES = ['All', 'Not Allocated', 'Allocated', 'Activated', 'Shared', 'E
 const ALLOCATION_SOURCES = ['All', 'Membership', 'Campaign', 'Admin', 'Promotion', 'Reward', 'Manual']
 const BUSINESSES = ['All', 'TechCorp Solutions', 'Café Mocha', 'Luxury Hotels Ltd', 'Global Retail Inc', 'Green Energy Co']
 
-const MOCK_FF: FriendsFamilyAllocation[] = [
-  { consumer: 'John Smith', membership: 'Gold Pro', total: 3, used: 2, remaining: 1, allocations: [{ name: 'Jane Smith', relation: 'Wife', status: 'Activated' }, { name: 'Lily Smith', relation: 'Daughter', status: 'Activated' }] },
-  { consumer: 'Sarah Johnson', membership: 'Platinum', total: 5, used: 3, remaining: 2, allocations: [{ name: 'Mark Johnson', relation: 'Husband', status: 'Activated' }, { name: 'Emma Johnson', relation: 'Daughter', status: 'Activated' }, { name: 'Noah Johnson', relation: 'Son', status: 'Pending' }] },
-  { consumer: 'James Wilson', membership: 'Platinum', total: 5, used: 1, remaining: 4, allocations: [{ name: 'Lisa Wilson', relation: 'Wife', status: 'Activated' }] },
-  { consumer: 'Emily Davis', membership: 'Silver', total: 1, used: 1, remaining: 0, allocations: [{ name: 'Tom Davis', relation: 'Brother', status: 'Activated' }] },
-  { consumer: 'Olivia Taylor', membership: 'Silver Pro', total: 2, used: 0, remaining: 2, allocations: [] },
-]
 
-const MOCK_ECARDS: ECardEntitlement[] = [
-  { id: 'EC-0001', faceValue: '£50.00', availableBalance: '£50.00', redeemedAmount: '£0.00', remainingBalance: '£50.00', expiry: '20 Jan 2027', status: 'Active' },
-  { id: 'EC-0002', faceValue: '£200.00', availableBalance: '£150.00', redeemedAmount: '£50.00', remainingBalance: '£150.00', expiry: '5 Feb 2027', status: 'Active' },
-  { id: 'EC-0003', faceValue: '£25.00', availableBalance: '£25.00', redeemedAmount: '£0.00', remainingBalance: '£25.00', expiry: '12 Feb 2027', status: 'Active' },
-  { id: 'EC-0004', faceValue: '£500.00', availableBalance: '£500.00', redeemedAmount: '£0.00', remainingBalance: '£500.00', expiry: '1 Mar 2027', status: 'Active' },
-  { id: 'EC-0005', faceValue: '£75.00', availableBalance: '£75.00', redeemedAmount: '£0.00', remainingBalance: '£75.00', expiry: '—', status: 'Pending' },
-  { id: 'EC-0006', faceValue: '£10.00', availableBalance: '£0.00', redeemedAmount: '£10.00', remainingBalance: '£0.00', expiry: '20 Dec 2026', status: 'Fully Redeemed' },
-]
 
 const DRAWER_DATA: Record<number, DrawerData> = {
   1: { cardId: 'CRD-000001', cardType: 'Business Card', template: 'Standard Business Card', version: '1.2', status: 'Activated', createdDate: '10 Jan 2026', publishedDate: '12 Jan 2026', business: { name: 'TechCorp Solutions', membership: 'Gold Pro', vcard: 'VCRD-TC-001', card: 'CRD-TC-001' }, consumer: { name: '—', membership: '—', vcard: '—', card: '—', ffAllocation: '—' }, allocation: { from: 'Membership', detail: 'Gold Pro — 700 Cards' }, qr: { id: 'QR-TC-001', type: 'Dynamic', lastScan: '2 hours ago', scanCount: 145 }, timeline: [{ label: 'Membership Purchased', date: '10 Jan 2026', active: false }, { label: 'Allocation Created', date: '10 Jan 2026', active: false }, { label: 'Business Received Cards', date: '12 Jan 2026', active: false }, { label: 'Activated', date: '15 Jan 2026', active: true }, { label: 'Shared', date: '—', active: false }, { label: 'Reward Redeemed', date: '—', active: false }, { label: 'Membership Renewed', date: '—', active: false }] },
@@ -173,16 +149,16 @@ export default function CardDistributionPage() {
   const [drawerRecord, setDrawerRecord] = useState<DrawerData | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const totalBusinessCards = MOCK.filter(r => r.cardType === 'Business Card').length
-  const totalBusinessVCards = MOCK.filter(r => r.cardType === 'Business VCard').length
-  const totalConsumerCards = MOCK.filter(r => r.cardType === 'Consumer Card').length
-  const totalConsumerVCards = MOCK.filter(r => r.cardType === 'Consumer VCard').length
-  const pendingDistribution = MOCK.filter(r => r.status === 'Not Allocated' || r.status === 'Allocated').length
-  const activeCards = MOCK.filter(r => r.status === 'Activated').length
-  const expiredCards = MOCK.filter(r => r.status === 'Expired').length
-  const suspendedCards = MOCK.filter(r => r.status === 'Suspended').length
+  const totalBusinessCards = records.filter(r => r.cardType === 'Business Card').length
+  const totalBusinessVCards = records.filter(r => r.cardType === 'Business VCard').length
+  const totalConsumerCards = records.filter(r => r.cardType === 'Consumer Card').length
+  const totalConsumerVCards = records.filter(r => r.cardType === 'Consumer VCard').length
+  const pendingDistribution = records.filter(r => r.status === 'Not Allocated' || r.status === 'Allocated').length
+  const activeCards = records.filter(r => r.status === 'Activated').length
+  const expiredCards = records.filter(r => r.status === 'Expired').length
+  const suspendedCards = records.filter(r => r.status === 'Suspended').length
 
-  const filtered = MOCK.filter(r => {
+  const filtered = records.filter(r => {
     if (typeFilter && r.cardType !== typeFilter) return false
     if (membershipFilter && r.membership !== membershipFilter) return false
     if (statusFilter && r.status !== statusFilter) return false
@@ -387,7 +363,7 @@ export default function CardDistributionPage() {
               </table>
             </div>
             <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">{filtered.length} of {MOCK.length} records</span>
+              <span className="text-[10px] text-gray-500">{filtered.length} of {records.length} records</span>
               {selectedIds.length > 0 && (
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-gray-500 mr-1">{selectedIds.length} selected</span>
@@ -412,7 +388,7 @@ export default function CardDistributionPage() {
               </button>
               {showFF && (
                 <div className="px-4 pb-4 space-y-3">
-                  {MOCK_FF.map((ff, i) => (
+                  {friendsFamilyRows.map((ff, i) => (
                     <div key={i} className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div>
@@ -473,7 +449,7 @@ export default function CardDistributionPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                        {MOCK_ECARDS.map((e) => (
+                        {eCardRows.map((e) => (
                           <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td className="px-2 py-1.5 font-mono text-[11px] text-orange-600 dark:text-orange-400">{e.id}</td>
                             <td className="px-2 py-1.5 font-mono text-gray-700 dark:text-gray-300">{e.faceValue}</td>

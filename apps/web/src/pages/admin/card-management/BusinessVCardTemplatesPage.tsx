@@ -14,11 +14,11 @@ import ActionDropdown from '../../../components/common/ActionDropdown'
 import { TemplateActivityModal, TemplateVersionsModal } from '../../../components/admin/TemplateAuditModals'
 import TemplateConfirmModal from '../../../components/admin/TemplateConfirmModal'
 import {
-  BIZ_VCARD_TEMPLATES as MOCK, combineBizTemplates,
+  BIZ_VCARD_TEMPLATES, combineBizTemplates,
   type BizVCardTemplate,
 } from '../../../services/vcardTemplateCatalogue'
 
-export { BIZ_VCARD_TEMPLATES as MOCK, toBizTemplate, templateSeason, templateSectors, templateCustomization, type BizVCardTemplate } from '../../../services/vcardTemplateCatalogue'
+export { BIZ_VCARD_TEMPLATES, toBizTemplate, templateSeason, templateSectors, templateCustomization, type BizVCardTemplate } from '../../../services/vcardTemplateCatalogue'
 
 const CATEGORIES = ['All', 'Restaurant', 'Retail', 'Coach', 'Estate Agent', 'Salon', 'Hotel', 'Medical', 'Professional', 'Charity']
 const INDUSTRIES = ['All', 'Professional Services', 'Food & Beverage', 'Retail', 'Healthcare', 'Beauty & Wellness', 'Real Estate', 'Fitness', 'Hospitality', 'Nonprofit', 'Coaching']
@@ -28,7 +28,9 @@ const QR_TYPES = ['All', 'Static', 'Dynamic', 'Campaign', 'Seasonal']
 const MEMBERSHIP_PLANS = ['All', 'Bronze', 'Bronze Pro', 'Bronze Pro+', 'Silver', 'Silver Pro', 'Gold', 'Gold Pro', 'Platinum', 'Platinum Pro', 'Platinum Pro+']
 const STATUSES = ['all', 'published', 'draft', 'review', 'archived']
 
-const mostPopular = MOCK.reduce((a, b) => a.businessesUsing > b.businessesUsing ? a : b)
+const mostPopular = BIZ_VCARD_TEMPLATES.length > 0
+  ? BIZ_VCARD_TEMPLATES.reduce((a, b) => a.businessesUsing > b.businessesUsing ? a : b)
+  : null
 
 function LoadingSkeleton() {
   return (
@@ -281,8 +283,8 @@ export default function BusinessVCardTemplatesPage() {
           </div>
           <div className="p-2.5">
             <p className="text-[10px] text-gray-400">Most Popular</p>
-            <p className="text-sm font-bold text-purple-600 truncate">{mostPopular.name}</p>
-            <p className="text-[9px] text-gray-400">{mostPopular.businessesUsing.toLocaleString()} Businesses</p>
+            <p className="text-sm font-bold text-purple-600 truncate">{mostPopular?.name ?? '—'}</p>
+            <p className="text-[9px] text-gray-400">{mostPopular ? `${mostPopular.businessesUsing.toLocaleString()} Businesses` : 'No templates yet'}</p>
           </div>
           <div className="p-2.5">
             <p className="text-[10px] text-gray-400">QR Enabled</p>

@@ -86,6 +86,7 @@ import { NewsletterCampaign } from '../newsletter/entities/newsletter-campaign.e
 import { Subscriber } from '../newsletter/entities/subscriber.entity'
 import { Country } from '../countries/entities/country.entity'
 import { CouponCode } from '../coupon-codes/entities/coupon-code.entity'
+import { Appointment } from '../appointments/entities/appointment.entity'
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { CouponCode } from '../coupon-codes/entities/coupon-code.entity'
       Subscriber,
       Country,
       CouponCode,
+      Appointment,
     ]),
   ],
   providers: [AdminsService],

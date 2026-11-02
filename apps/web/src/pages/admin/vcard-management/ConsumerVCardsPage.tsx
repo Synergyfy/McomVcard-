@@ -80,6 +80,7 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
 
 export function PreviewModal({ vcard, onClose }: { vcard: ConsumerVCard | null; onClose: () => void }) {
   if (!vcard) return null
+
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
@@ -129,15 +130,13 @@ export function BuilderWorkspace({ vcard, onClose }: { vcard: ConsumerVCard | nu
 
   if (!vcard) return null
 
+  const friendsFamilyRows: FriendsFamilyDetail[] = []
+
   const toggleSection = (id: string) => setSections(prev => prev.map(s => String(s.id) === id ? { ...s, enabled: !s.enabled } : s))
   const moveUp = (i: number) => { if (i === 0) return; const u = [...sections]; [u[i - 1], u[i]] = [u[i], u[i - 1]]; setSections(u) }
   const moveDown = (i: number) => { if (i === sections.length - 1) return; const u = [...sections]; [u[i], u[i + 1]] = [u[i + 1], u[i]]; setSections(u) }
 
-  const mockFF: FriendsFamilyDetail[] = [
-    { name: 'Jane Smith', relation: 'Friend', status: 'Activated', allocatedTo: 'Jane Smith', activated: '22 Jan 2026', createdDate: '18 Jan 2026' },
-    { name: 'Lily Smith', relation: 'Family', status: 'Activated', allocatedTo: 'Lily Smith', activated: '22 Jan 2026', createdDate: '18 Jan 2026' },
-    { name: '—', relation: 'Friend', status: 'Available', allocatedTo: '—', activated: '—', createdDate: '—' },
-  ]
+  
 
   return (
     <>
@@ -261,10 +260,10 @@ export function BuilderWorkspace({ vcard, onClose }: { vcard: ConsumerVCard | nu
               {showFF && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-[10px]"><span className="text-gray-500">Total Entitlement</span><span className="font-semibold text-gray-900 dark:text-white">3</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-gray-500">Allocated</span><span className="font-semibold text-gray-900 dark:text-white">{mockFF.filter(f => f.status === 'Activated').length}</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-gray-500">Available</span><span className="font-semibold text-green-600">{mockFF.filter(f => f.status === 'Available').length}</span></div>
+                  <div className="flex justify-between text-[10px]"><span className="text-gray-500">Allocated</span><span className="font-semibold text-gray-900 dark:text-white">{friendsFamilyRows.filter(f => f.status === 'Activated').length}</span></div>
+                  <div className="flex justify-between text-[10px]"><span className="text-gray-500">Available</span><span className="font-semibold text-green-600">{friendsFamilyRows.filter(f => f.status === 'Available').length}</span></div>
                   <div className="space-y-1 mt-1">
-                    {mockFF.map((f, i) => (
+                    {friendsFamilyRows.map((f, i) => (
                       <div key={i} className="bg-gray-50 dark:bg-gray-700/30 rounded p-1.5">
                         <div className="flex justify-between text-[9px]"><span className="font-medium text-gray-700 dark:text-gray-300">{f.name}</span><StatusBadge status={f.status} /></div>
                         {f.relation !== '—' && <p className="text-[8px] text-gray-400">{f.relation} · {f.activated}</p>}

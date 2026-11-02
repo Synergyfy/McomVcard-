@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import type { NewsletterCampaign } from '../../../types'
 import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
-const MOCK_CAMPAIGNS: NewsletterCampaign[] = [
-  { id: '1', subject: 'Introducing New Pro Templates', content: 'Check out our latest template designs...', sent_count: 1234, status: 'sent', created_at: '2025-07-01' },
-  { id: '2', subject: 'Summer Sale – 50% Off Pro Plans', content: 'Limited time offer...', sent_count: 0, status: 'draft', created_at: '2025-07-10' },
-  { id: '3', subject: 'Monthly Newsletter – July', content: 'Here are this month updates...', sent_count: 1156, status: 'sent', created_at: '2025-06-28' },
-  { id: '4', subject: 'New Feature: Analytics Dashboard', content: 'Track your vCard performance...', sent_count: 982, status: 'sent', created_at: '2025-06-15' },
-  { id: '5', subject: 'Webinar Invitation: Digital Networking', content: 'Join us for a free webinar...', sent_count: 0, status: 'draft', created_at: '2025-07-12' },
-  { id: '6', subject: 'Holiday Greetings from Mobile VCard Link', content: 'Wishing you a wonderful holiday...', sent_count: 2100, status: 'sent', created_at: '2025-12-20' },
-]
 
 export default function NewsletterPage() {
   const { t } = useTranslation()
@@ -26,8 +20,8 @@ export default function NewsletterPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getNewsletterCampaigns()
-      .then((res) => setCampaigns(res.data && res.data.length ? res.data : MOCK_CAMPAIGNS))
-      .catch(() => setCampaigns(MOCK_CAMPAIGNS))
+      .then((res) => setCampaigns(rowsOf(res)))
+      .catch(() => setCampaigns([]))
       .finally(() => setLoading(false))
   }, [])
 
@@ -85,12 +79,12 @@ export default function NewsletterPage() {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Subject<InfoTooltip text="Subject line used when this campaign is delivered." /></span></label>
             <input type="text" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Content<InfoTooltip text="Email body sent to active subscribers. HTML is supported." /></span></label>
             <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={8} required
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
           </div>

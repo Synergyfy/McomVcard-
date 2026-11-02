@@ -1,16 +1,18 @@
 import type { InputHTMLAttributes, ReactNode } from 'react'
+import InfoTooltip from '../common/InfoTooltip'
 
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string
   icon?: ReactNode
   rightIcon?: ReactNode
+  tooltip?: string
 }
 
-export default function InputField({ label, error, icon, rightIcon, className = '', ...props }: InputFieldProps) {
+export default function InputField({ label, error, icon, rightIcon, tooltip, className = '', ...props }: InputFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label className="flex items-center text-sm font-medium text-gray-700">{label}{tooltip && <InfoTooltip text={tooltip} label={`About ${label}`} />}</label>
       <div className="relative">
         {icon && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">

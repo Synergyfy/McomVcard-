@@ -1,79 +1,78 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { Link, useNavigate } from 'react-router-dom'
-import { tokenStore } from '../../services/tokenStore'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAdminAuth } from '../../contexts/AdminAuthContext'
+import InfoTooltip from '../../components/common/InfoTooltip'
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('admin@mcom.com')
-  const [password, setPassword] = useState('password')
+  const [searchParams] = useSearchParams()
+  const { login, isAdminAuthenticated, isLoading } = useAdminAuth()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
-  const [tfaCode, setTfaCode] = useState('')
-  const [showTfa, setShowTfa] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+
+  const redirect = (() => {
+    const target = searchParams.get('redirect')
+    if (!target || !target.startsWith('/admin') || target.startsWith('/admin/login')) return '/admin'
+    return target
+  })()
+
+  useEffect(() => {
+    if (!isLoading && isAdminAuthenticated) navigate(redirect, { replace: true })
+  }, [isAdminAuthenticated, isLoading, navigate, redirect])
+
+  const validate = () => {
+    const next: { email?: string; password?: string } = {}
+    if (!email.trim()) next.email = 'Email address is required'
+    else if (!EMAIL_PATTERN.test(email.trim())) next.email = 'Enter a valid email address'
+    if (!password) next.password = 'Password is required'
+    else if (password.length < 8) next.password = 'Password must be at least 8 characters'
+    setFieldErrors(next)
+    return Object.keys(next).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    if (!validate()) return
+
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
-    tokenStore.set('mock_admin_token_abc123')
-    localStorage.setItem(
-      'auth_user',
-      JSON.stringify({
-        id: '1',
-        name: 'Admin',
-        first_name: 'Admin',
-        last_name: '',
-        email: 'admin@mcom.com',
-        status: 'active',
-        is_active: true,
-        is_verified: true,
-      })
-    )
-    setLoading(false)
-    navigate('/admin')
+    try {
+      await login({ email: email.trim().toLowerCase(), password })
+      navigate(redirect, { replace: true })
+    } catch (err: any) {
+      const status = err?.response?.status
+      const message = err?.response?.data?.message
+      if (status === 401) setError('Invalid email or password, or this account is not an administrator.')
+      else if (status === 429) setError('Too many sign-in attempts. Please wait a minute and try again.')
+      else setError(typeof message === 'string' ? message : 'Unable to sign in right now. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="admin-app min-h-screen flex">
-      <Helmet>
-        <title>Admin Login - MCOM VCard Social Bio</title>
-      </Helmet>
+      <Helmet><title>Admin Login - MCOM VCard Social Bio</title></Helmet>
 
-      {/* Left - Brand Panel */}
       <div className="hidden lg:flex lg:w-[55%] relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-orange-500/10 blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full bg-blue-500/10 blur-3xl" />
-        </div>
-
         <div className="relative z-10 flex flex-col justify-between w-full p-16">
-          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-orange-500/30">
-              M
-            </div>
-            <div>
-              <span className="text-white font-bold text-xl tracking-tight">MCOM</span>
-              <span className="text-orange-400 font-bold text-xl tracking-tight"> VCard</span>
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-orange-500/30">M</div>
+            <div><span className="text-white font-bold text-xl tracking-tight">MCOM</span><span className="text-orange-400 font-bold text-xl tracking-tight"> VCard</span></div>
           </div>
-
-          {/* Hero text */}
           <div className="space-y-6 max-w-lg">
-            <h1 className="text-4xl font-bold text-white leading-tight tracking-tight">
-              Your Digital Identity
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-300">
-                Platform
-              </span>
-            </h1>
-            <p className="text-gray-400 text-base leading-relaxed">
-              Manage businesses, consumers, templates, rewards, campaigns, and analytics — all from one powerful dashboard.
-            </p>
-
-            {/* Feature cards */}
+            <h1 className="text-4xl font-bold text-white leading-tight tracking-tight">Your Digital Identity<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-300">Platform</span></h1>
+            <p className="text-gray-400 text-base leading-relaxed">Manage businesses, consumers, templates, rewards, campaigns, and analytics — all from one powerful dashboard.</p>
             <div className="grid grid-cols-2 gap-3 pt-4">
               {[
                 { title: 'Smart Cards', desc: 'Digital business cards with NFC & QR', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1' },
@@ -83,143 +82,69 @@ export default function AdminLoginPage() {
               ].map((f) => (
                 <div key={f.title} className="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
                   <div className="w-9 h-9 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={f.icon} />
-                    </svg>
+                    <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={f.icon} /></svg>
                   </div>
-                  <div>
-                    <div className="text-white text-sm font-semibold">{f.title}</div>
-                    <div className="text-gray-500 text-xs mt-0.5">{f.desc}</div>
-                  </div>
+                  <div><div className="text-white text-sm font-semibold">{f.title}</div><div className="text-gray-500 text-xs mt-0.5">{f.desc}</div></div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="text-gray-600 text-xs">
-            &copy; {new Date().getFullYear()} MCOM VCard Social Bio. All rights reserved.
-          </div>
+          <div className="text-gray-600 text-xs">&copy; {new Date().getFullYear()} MCOM VCard Social Bio. All rights reserved.</div>
         </div>
       </div>
 
-      {/* Right - Login Panel */}
       <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-8">
         <div className="w-full max-w-[400px]">
-          {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm">
-              M
-            </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm">M</div>
             <span className="text-gray-900 dark:text-white font-bold text-lg">MCOM VCard</span>
           </div>
-
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-8">
-            {/* Header */}
             <div className="text-center mb-8">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/20">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               </div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Admin Login</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to manage your platform</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Restricted access to the platform dashboard</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email */}
+            {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
+
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@mcom.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                  required
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                  required
-                />
-              </div>
-
-              {/* 2FA */}
-              {showTfa && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Two-Factor Code</label>
-                  <input
-                    type="text"
-                    value={tfaCode}
-                    onChange={(e) => setTfaCode(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm text-center tracking-[0.5em] font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Remember me & 2FA toggle */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-orange-500 focus:ring-orange-500/50 cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Remember me</span>
+                <label htmlFor="admin-email" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Email address<InfoTooltip text="Use the email address of an administrator account. Regular user accounts cannot sign in here." />
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowTfa(!showTfa)}
-                  className={`text-sm font-medium transition-colors ${showTfa ? 'text-orange-500' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  {showTfa ? '− 2FA' : '+ 2FA'}
-                </button>
+                <input id="admin-email" name="email" type="email" autoComplete="username" value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined })) }}
+                  placeholder="admin@centralhubsolution.com" aria-invalid={Boolean(fieldErrors.email)}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${fieldErrors.email ? 'border-red-400 focus:ring-red-400/40' : 'border-gray-200 dark:border-gray-700 focus:ring-orange-500/50 focus:border-orange-500'}`} required />
+                {fieldErrors.email && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.email}</p>}
               </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in to dashboard'
-                )}
+              <div>
+                <label htmlFor="admin-password" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Password<InfoTooltip text="Your admin account password. It is sent securely to the API and never stored in the browser." />
+                </label>
+                <div className="relative">
+                  <input id="admin-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password}
+                    onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined })) }}
+                    placeholder="Enter your password" aria-invalid={Boolean(fieldErrors.password)}
+                    className={`w-full px-4 py-2.5 pr-12 rounded-xl border bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all ${fieldErrors.password ? 'border-red-400 focus:ring-red-400/40' : 'border-gray-200 dark:border-gray-700 focus:ring-orange-500/50 focus:border-orange-500'}`} required />
+                  <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 hover:text-orange-600 dark:text-gray-400">{showPassword ? 'Hide' : 'Show'}</button>
+                </div>
+                {fieldErrors.password && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.password}</p>}
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500/50" />
+                <span className="flex items-center text-sm text-gray-600 dark:text-gray-400">Keep me signed in<InfoTooltip text="Uses a secure HttpOnly admin session cookie so you can return without re-entering your password." /></span>
+              </label>
+              <button type="submit" disabled={loading} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                {loading ? 'Signing in...' : 'Sign in to dashboard'}
               </button>
-
-              {/* Forgot password */}
-              <div className="text-center">
-                <Link to="/forgot-password" className="text-sm text-gray-500 dark:text-gray-400 hover:text-orange-500 transition-colors">
-                  Forgot your password?
-                </Link>
-              </div>
+              <div className="text-center"><Link to="/forgot-password" className="text-sm text-gray-500 dark:text-gray-400 hover:text-orange-500">Forgot your password?</Link></div>
             </form>
           </div>
-
-          {/* Footer note */}
-          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">
-            Secure admin access. Unauthorized use is prohibited.
-          </p>
+          <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">Secure admin access. Unauthorized use is prohibited.</p>
         </div>
       </div>
     </div>

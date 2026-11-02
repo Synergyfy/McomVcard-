@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
 import toast from 'react-hot-toast'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 export default function CountryFormPage() {
   const { t } = useTranslation()
@@ -49,25 +50,25 @@ export default function CountryFormPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('common.name')}<InfoTooltip text="Display name shown in address forms and public profiles." /></span></label>
             <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.country_code')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.country_code')}<InfoTooltip text="ISO 3166-1 alpha-2 code, for example GB." /></span></label>
             <input type="text" value={form.code} onChange={(e) => update('code', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.phone_code')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.phone_code')}<InfoTooltip text="International dialling prefix, for example +44." /></span></label>
             <input type="text" value={form.phone_code} onChange={(e) => update('phone_code', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.currency_code')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('admin.currency_code')}<InfoTooltip text="Default ISO currency code used for prices in this country." /></span></label>
             <input type="text" value={form.currency_code} onChange={(e) => update('currency_code', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.status')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1"><span className="flex items-center">{t('common.status')}<InfoTooltip text="Inactive countries are hidden from public selection lists." /></span></label>
             <select value={form.status} onChange={(e) => update('status', Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
               <option value={1}>{t('common.active')}</option>
               <option value={0}>{t('common.inactive')}</option>

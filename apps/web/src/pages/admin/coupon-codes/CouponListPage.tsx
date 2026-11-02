@@ -2,19 +2,10 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_COUPONS: any[] = [
-  { id: 1, code: 'WELCOME10', discount_type: 'percentage', discount_value: 10, max_uses: 100, used_count: 23, plan_name: 'Basic', expires_at: '2025-12-31', status: 1 },
-  { id: 2, code: 'PRO50', discount_type: 'percentage', discount_value: 50, max_uses: 50, used_count: 12, plan_name: 'Pro', expires_at: '2025-09-30', status: 1 },
-  { id: 3, code: 'FLAT5', discount_type: 'fixed', discount_value: 5, max_uses: 200, used_count: 45, plan_name: 'Basic', expires_at: '2026-01-01', status: 1 },
-  { id: 4, code: 'ENTERPRISE100', discount_type: 'fixed', discount_value: 100, max_uses: 10, used_count: 2, plan_name: 'Enterprise', expires_at: '2025-08-15', status: 1 },
-  { id: 5, code: 'SUMMER25', discount_type: 'percentage', discount_value: 25, max_uses: 75, used_count: 31, plan_name: 'Pro', expires_at: '2025-08-31', status: 1 },
-  { id: 6, code: 'EXPIRED20', discount_type: 'percentage', discount_value: 20, max_uses: 50, used_count: 50, plan_name: 'Basic', expires_at: '2025-01-01', status: 0 },
-  { id: 7, code: 'VIP30', discount_type: 'percentage', discount_value: 30, max_uses: 25, used_count: 8, plan_name: 'Enterprise', expires_at: '2025-12-01', status: 1 },
-  { id: 8, code: 'DEAL15', discount_type: 'fixed', discount_value: 15, max_uses: 0, used_count: 0, plan_name: '', expires_at: null, status: 1 },
-]
 
 export default function CouponListPage() {
   const { t } = useTranslation()
@@ -27,8 +18,8 @@ export default function CouponListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getCouponCodes()
-      .then((res) => setCoupons(res.data && res.data.length ? res.data : MOCK_COUPONS))
-      .catch(() => setCoupons(MOCK_COUPONS))
+      .then((res) => setCoupons(rowsOf(res)))
+      .catch(() => setCoupons([]))
       .finally(() => setLoading(false))
   }, [])
 

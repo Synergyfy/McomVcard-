@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 const PREDEFINED_ROLES = [
   {
@@ -223,18 +224,18 @@ export default function RoleListPage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create New Role</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Role Name<InfoTooltip text="Unique role identifier used by the API role guard, for example MANAGER." /></span></label>
                 <input type="text" value={newRole.name} onChange={(e) => setNewRole({ ...newRole, name: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="e.g., Editor" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guard</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Guard<InfoTooltip text="The authentication guard that protects routes using this role." /></span></label>
                 <select value={newRole.guard} onChange={(e) => setNewRole({ ...newRole, guard: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
                   <option value="web">Web</option>
                   <option value="api">API</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Description<InfoTooltip text="Optional explanation shown to other administrators." /></span></label>
                 <textarea value={newRole.description} onChange={(e) => setNewRole({ ...newRole, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Describe this role..." />
               </div>
             </div>

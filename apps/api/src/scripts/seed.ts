@@ -139,7 +139,7 @@ async function seed() {
 
     // Seed users for each role (idempotent — skips existing emails)
     const seedUsers = [
-      { email: 'admin@example.com', password: 'admin123', firstName: 'Admin', lastName: 'User', role: adminRole },
+      { email: 'admin@centralhubsolution.com', password: 'AdminPass2026!', firstName: 'Central Hub', lastName: 'Administrator', role: adminRole },
       { email: 'user@example.com', password: 'user123', firstName: 'Regular', lastName: 'User', role: userRole },
       { email: 'owner@example.com', password: 'owner123', firstName: 'Business', lastName: 'Owner', role: ownerRole },
       { email: 'staff@example.com', password: 'staff123', firstName: 'Staff', lastName: 'Member', role: staffRole },

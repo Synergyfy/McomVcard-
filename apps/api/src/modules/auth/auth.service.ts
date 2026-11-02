@@ -242,7 +242,7 @@ export class AuthService {
     const currentUser = await this.reconcileLocalPlanAccess(user)
 
     return ApiResponse.success(
-      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(currentUser) },
+      { token: accessToken, refresh_token: newRefreshToken, user: UserResponseDto.fromEntity(currentUser), roles },
       'Token refreshed',
       200,
     )

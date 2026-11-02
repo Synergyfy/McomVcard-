@@ -57,7 +57,6 @@ export class MailService {
     }
 
     if (!this.transporter) {
-      // Dev fallback: no SMTP configured — surface the email in the logs so flows are testable.
       this.logger.log(
         `[DEV EMAIL] to=${payload.to} subject="${payload.subject}"\n${payload.text ?? ''}`,
       )
@@ -91,17 +90,14 @@ export class MailService {
   }
 
   private textToHtml(text: string): string {
-    return text
-      .split('\n')
-      .map((line) => `<p>${line || '&nbsp;'}</p>`)
-      .join('')
+    return text.split('\n').map((line) => `<p>${line || '&nbsp;'}</p>`).join('')
   }
 
   async sendReferralInvite(to: string, inviterName: string): Promise<void> {
     const appUrl = this.config.get('WEB_PUBLIC_URL') || 'http://localhost:9023'
     await this.sendMail({
       to,
-      subject: `${inviterName} invited you to MCOM VCard`,
+      subject: `${inviterName} invited you to join MCOM VCard`,
       text: `Hi,\n\n${inviterName} invited you to join MCOM VCard.\n\nCreate your free account here:\n${appUrl}/login\n\nIf you were not expecting this invitation, you can safely ignore this email.\n\nThanks,\nThe MCOM Team`,
       html: `<p>Hi,</p><p><strong>${inviterName}</strong> invited you to join MCOM VCard.</p><p><a href="${appUrl}/login">Create your free account</a></p><p>If you were not expecting this invitation, you can safely ignore this email.</p>`,
     })

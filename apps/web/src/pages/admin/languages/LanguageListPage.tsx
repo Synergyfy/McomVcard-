@@ -2,20 +2,10 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminService } from '../../../services/admin'
+import { rowsOf } from '../../../services/adminList'
 import toast from 'react-hot-toast'
 import ActionDropdown from '../../../components/common/ActionDropdown'
 
-const MOCK_LANGUAGES: any[] = [
-  { id: 1, name: 'English', code: 'en', native_name: 'English', is_default: 1, status: 1 },
-  { id: 2, name: 'Spanish', code: 'es', native_name: 'Español', is_default: 0, status: 1 },
-  { id: 3, name: 'French', code: 'fr', native_name: 'Français', is_default: 0, status: 1 },
-  { id: 4, name: 'German', code: 'de', native_name: 'Deutsch', is_default: 0, status: 1 },
-  { id: 5, name: 'Portuguese', code: 'pt', native_name: 'Português', is_default: 0, status: 1 },
-  { id: 6, name: 'Arabic', code: 'ar', native_name: 'العربية', is_default: 0, status: 1 },
-  { id: 7, name: 'Russian', code: 'ru', native_name: 'Русский', is_default: 0, status: 0 },
-  { id: 8, name: 'Chinese', code: 'zh', native_name: '中文', is_default: 0, status: 0 },
-  { id: 9, name: 'Turkish', code: 'tr', native_name: 'Türkçe', is_default: 0, status: 1 },
-]
 
 export default function LanguageListPage() {
   const { t } = useTranslation()
@@ -28,8 +18,8 @@ export default function LanguageListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getLanguages()
-      .then((res) => setLanguages(res.data && res.data.length ? res.data : MOCK_LANGUAGES))
-      .catch(() => setLanguages(MOCK_LANGUAGES))
+      .then((res) => setLanguages(rowsOf(res)))
+      .catch(() => setLanguages([]))
       .finally(() => setLoading(false))
   }, [])
 

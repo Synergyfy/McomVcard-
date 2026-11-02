@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { adminService } from '../../../services/admin'
 import InputField from '../../../components/auth/InputField'
 import type { DashboardMeta, EmailSetting } from '../../../types'
+import InfoTooltip from '../../../components/common/InfoTooltip'
 
 type Tab = 'general' | 'branding' | 'email' | 'payment' | 'sms' | 'notifications' | 'booking'
 
@@ -34,8 +35,8 @@ export default function SettingsPage() {
   const [bookingSettings, setBookingSettings] = useState({ buffer_minutes: 15, max_bookings_per_slot: 1, allow_cancellation: true, cancellation_deadline_hours: 24, require_confirmation: true, max_future_days: 60, min_notice_hours: 2, auto_confirm: false })
 
   useEffect(() => {
-    adminService.getGeneralSettings().then(setMeta).catch(() => {})
-    adminService.getEmailSettings().then(setEmail).catch(() => {})
+    adminService.getGeneralSettings().then((data: any) => setMeta((prev) => ({ ...prev, ...data }))).catch(() => {})
+    adminService.getEmailSettings().then((data: any) => setEmail((prev) => ({ ...prev, ...data }))).catch(() => {})
   }, [])
 
   const showSuccess = () => { setMessage(t('admin.saved')); setTimeout(() => setMessage(''), 3000) }
@@ -104,31 +105,31 @@ export default function SettingsPage() {
           <form onSubmit={(e) => { e.preventDefault(); handleBrandingSave() }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Logo URL<InfoTooltip text="Public URL of the brand logo shown in the dashboard and emails." /></span></label>
                 <input type="text" value={branding.logo_url} onChange={(e) => setBranding({ ...branding, logo_url: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favicon URL</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Favicon URL<InfoTooltip text="Public URL of the browser tab icon." /></span></label>
                 <input type="text" value={branding.favicon_url} onChange={(e) => setBranding({ ...branding, favicon_url: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Primary Color<InfoTooltip text="Main brand colour used for buttons and active navigation." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.primary_color} onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.primary_color} onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secondary Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Secondary Color<InfoTooltip text="Supporting brand colour used for highlights." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.secondary_color} onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.secondary_color} onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Accent Color</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Accent Color<InfoTooltip text="Accent colour used for badges and call-to-action details." /></span></label>
                 <div className="flex gap-2 items-center">
                   <input type="color" value={branding.accent_color} onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })} className="w-10 h-10 rounded cursor-pointer border border-gray-200" />
                   <input type="text" value={branding.accent_color} onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono" />
@@ -136,7 +137,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Custom CSS</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span className="flex items-center">Custom CSS<InfoTooltip text="Optional CSS applied to the public front end." /></span></label>
               <textarea value={branding.custom_css} onChange={(e) => setBranding({ ...branding, custom_css: e.target.value })} rows={4} className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm font-mono text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="/* custom styles */" />
             </div>
             <button type="submit" disabled={loading} className="px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg hover:bg-orange-600 disabled:opacity-50 shadow-sm shadow-orange-200 dark:shadow-none">

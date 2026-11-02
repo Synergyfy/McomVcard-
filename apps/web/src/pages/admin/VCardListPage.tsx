@@ -2,16 +2,9 @@ import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { adminService } from '../../services/admin'
+import { rowsOf } from '../../services/adminList'
 import ActionDropdown from '../../components/common/ActionDropdown'
 
-const MOCK_VCARDS: any[] = [
-  { id: 1, name: 'Sarah Johnson', user: { name: 'Sarah Johnson' }, status: 1, url_slug: 'sarah-j' },
-  { id: 2, name: 'Mike Chen Consulting', user: { name: 'Mike Chen' }, status: 1, url_slug: 'mike-c' },
-  { id: 3, name: 'Emily Designs', user: { name: 'Emily Williams' }, status: 1, url_slug: 'emily-d' },
-  { id: 4, name: 'Anna Garcia Fitness', user: { name: 'Anna Garcia' }, status: 0, url_slug: 'anna-f' },
-  { id: 5, name: 'James Brown Photography', user: { name: 'James Brown' }, status: 1, url_slug: 'james-p' },
-  { id: 6, name: 'Robert Taylor Realty', user: { name: 'Robert Taylor' }, status: 0, url_slug: 'robert-r' },
-]
 
 export default function VCardListPage() {
   const { t } = useTranslation()
@@ -23,8 +16,8 @@ export default function VCardListPage() {
   useEffect(() => {
     setLoading(true)
     adminService.getVcards()
-      .then((res) => setVcards(res.data && res.data.length ? res.data : MOCK_VCARDS))
-      .catch(() => setVcards(MOCK_VCARDS))
+      .then((res) => setVcards(rowsOf(res)))
+      .catch(() => setVcards([]))
       .finally(() => setLoading(false))
   }, [])
 

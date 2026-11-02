@@ -9,7 +9,7 @@
 
 import type { CardFaces, CardSectionState } from './cardTemplateStore'
 import { getCardTemplate, loadCardTemplatesByType } from './cardTemplateStore'
-import { MOCK, toRow, type CardRow } from '../pages/admin/card-management/BusinessCardTemplatesPage'
+import { toRow, type CardRow } from '../pages/admin/card-management/BusinessCardTemplatesPage'
 import { buildMockFaces } from '../components/admin/CardPreview'
 
 export type { CardRow }
@@ -340,12 +340,10 @@ export const BIZ_CARD_SECTIONS: BizCardSectionDef[] = [
 
 export function getBusinessCardRows(): CardRow[] {
   const stored = loadCardTemplatesByType('business').map(toRow)
-  return [...MOCK, ...stored]
+  return stored
 }
 
 export function getBusinessCardRow(cardId: string): CardRow | null {
-  const mock = MOCK.find(m => m.id === cardId)
-  if (mock) return mock
   const stored = getCardTemplate(Number(cardId))
   return stored ? toRow(stored) : null
 }
