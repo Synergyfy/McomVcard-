@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:api": "pnpm --filter api start:dev",
-    "dev:web": "pnpm --filter web dev",
-    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
-    "build": "pnpm --filter api build && pnpm --filter web build",
-    "build:api": "pnpm --filter api build",
-    "build:web": "pnpm --filter web build",
+    "dev:api": "node init && pnpm --filter api start:dev",
+    "dev:web": "node init && pnpm --filter web dev",
+    "dev": "node init && concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
+    "build": "node init && pnpm --filter api build && pnpm --filter web build",
+    "build:api": "node init && pnpm --filter api build",
+    "build:web": "node init && pnpm --filter web build",
     "migrate": "pnpm --filter api migration:run",
     "seed": "pnpm --filter api seed"
   },
